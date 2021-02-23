@@ -1,21 +1,17 @@
 <script lang="ts">
-  import { flip } from 'svelte/animate';
-  import { topics } from '../dataAPI';
+  import { fade } from 'svelte/transition';
+  import { topicsRequest } from '../state/dataAPI';
   import Topic from './Topic.svelte';
 </script>
 
 <div class="topicList">
   <h2>Themenliste</h2>
 
-  {#await $topics then result}
+  {#await $topicsRequest then topics}
     <ul>
-      {#each result as topic (topic.id)}
-        <li animate:flip={{ duration: 1000 }}>
-          <Topic
-            name={topic.name}
-            additionalTypes={topic.additionalTypes}
-            resourcesCount={topic.resourcesCount}
-          />
+      {#each topics as { name, additionalTypes, resourcesCount, id } (id)}
+        <li transition:fade>
+          <Topic {name} {additionalTypes} {resourcesCount} />
         </li>
       {/each}
     </ul>

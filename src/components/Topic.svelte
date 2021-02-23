@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AdditionalType } from "../Types";
+  import type { AdditionalType } from '../types/app';
 
   export let name: string;
   export let additionalTypes: AdditionalType[];
@@ -9,7 +9,7 @@
 <div class="topic">
   {#if additionalTypes}
     {#each additionalTypes as { name }}
-      <span class="addType">{name}</span>{" / "}
+      <span class="addType">{name}</span>{' / '}
     {/each}
   {/if}
   <h3>{name} ({resourcesCount})</h3>

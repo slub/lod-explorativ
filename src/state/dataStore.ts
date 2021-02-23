@@ -1,14 +1,12 @@
 import { derived } from 'svelte/store';
 import base64 from 'base-64';
 import { query } from './uiState';
-import {
-  multiQuery,
-  topicRelatedRessourcesQuery,
-  topicSearchQuery
-} from './queries';
-import config from './config';
-import type { ResourceAggResponse, Topic } from './esTypes';
-import type { TopicMeta } from './appTypes';
+import { topicSearchQuery } from '../queries/topics';
+import { topicRelatedRessourcesQuery } from '../queries/resources';
+import { multiQuery } from '../queries/helper';
+import type { ResourceAggResponse, Topic } from '../types/es';
+import type { TopicMeta } from '../types/app';
+import config from '../config';
 
 /**
  * The dataStore listens to UI state changes and fetches new data if required.

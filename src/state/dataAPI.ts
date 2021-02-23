@@ -1,5 +1,5 @@
 import { derived } from 'svelte/store';
-import type { Topic, TopicMeta } from './appTypes';
+import type { Topic } from '../types/app';
 import {
   createHeaders,
   topicResult,
@@ -11,7 +11,7 @@ import {
  */
 
 /** Combines results from topic search in topic index and associated resources in resource index */
-export const topics = derived(
+export const topicsRequest = derived(
   [topicResult, topicRelatedRessources],
   async ([$topicResult, $topicRelatedRessources]) => {
     const [result, topicRessources] = await Promise.all([
