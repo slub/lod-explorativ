@@ -1,14 +1,15 @@
 <script lang="ts">
-  import { query } from "../UIState";
+  import { debounce } from 'lodash';
+  import { query } from '../uiState';
 
-  function handleChange(e) {
+  const handleChange = debounce((e) => {
     query.set(e.target.value);
-  }
+  }, 500);
 </script>
 
 <input
   type="text"
   placeholder="Nach Thema suchen..."
-  bind:value={$query}
+  value={$query}
   on:input={handleChange}
 />

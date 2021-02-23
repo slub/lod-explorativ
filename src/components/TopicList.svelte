@@ -1,18 +1,21 @@
 <script lang="ts">
-  import { topics } from "../dataAPI";
-  import Topic from "./Topic.svelte";
+  import { flip } from 'svelte/animate';
+  import { topics } from '../dataAPI';
+  import Topic from './Topic.svelte';
 </script>
 
 <div class="topicList">
   <h2>Themenliste</h2>
 
-  {#await $topics}
-    Suche Themen ...
-  {:then result}
+  {#await $topics then result}
     <ul>
-      {#each result as { name, additionalTypes, resources }}
-        <li>
-          <Topic {name} {additionalTypes} resourcesCount={resources} />
+      {#each result as topic (topic.id)}
+        <li animate:flip={{ duration: 1000 }}>
+          <Topic
+            name={topic.name}
+            additionalTypes={topic.additionalTypes}
+            resourcesCount={topic.resourcesCount}
+          />
         </li>
       {/each}
     </ul>
