@@ -5,7 +5,7 @@
 </script>
 
 <div class="topicList">
-  <h2>Themenliste</h2>
+  <h2>Themen</h2>
 
   {#await $topicsRequest then topics}
     <ul>

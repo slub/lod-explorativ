@@ -1,3 +1,8 @@
+export enum Endpoint {
+  search = 'search',
+  mget = 'mget'
+}
+
 export interface Category {
   '@id': string;
   name: string;
@@ -91,4 +96,42 @@ export interface ResourceAggResponse {
   status: number;
   timed_out: boolean;
   took: number;
+}
+
+export interface BirthDate {
+  '@value': string;
+  description: string;
+  disambiguatingDescription: string;
+}
+
+export interface Occupation {
+  description: string;
+  name: string;
+}
+
+export interface Person {
+  '@context': string;
+  '@id': string;
+  '@type': string;
+  birthDate: BirthDate;
+  dateModified: string;
+  hasOccupation: Occupation[];
+  identifier: string;
+  isBasedOn: string;
+  preferredName: string;
+  sameAs: SameAs[];
+  _isil: string;
+  _type: string;
+  _version: number;
+}
+
+export interface PersonResult {
+  found: boolean;
+  _id: string;
+  _index: string;
+  _primary_term: number;
+  _seq_no: number;
+  _source: Person;
+  _type: string;
+  _version: number;
 }

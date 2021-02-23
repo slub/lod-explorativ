@@ -1,10 +1,17 @@
 import { derived } from 'svelte/store';
 import base64 from 'base-64';
+import { flatten, uniq } from 'lodash';
 import { query } from './uiState';
 import { topicSearchQuery } from '../queries/topics';
 import { topicRelatedRessourcesQuery } from '../queries/resources';
 import { multiQuery } from '../queries/helper';
-import type { ResourceAggResponse, Topic } from '../types/es';
+import type {
+  Endpoint as EndpointType,
+  PersonResult,
+  ResourceAggResponse,
+  Topic
+} from '../types/es';
+import { Endpoint } from '../types/es';
 import type { TopicMeta } from '../types/app';
 import config from '../config';
 
@@ -26,12 +33,19 @@ export function createHeaders(props = {}) {
   });
 }
 
-export async function search(index: string, body: object) {
-  const response = await fetch(`${config.esHost}/${index}-explorativ/_search`, {
-    method: 'POST',
-    headers: createHeaders(),
-    body: JSON.stringify(body)
-  });
+export async function search(
+  index: string,
+  body: object,
+  endpoint: EndpointType = Endpoint.search
+) {
+  const response = await fetch(
+    `${config.esHost}/${index}-explorativ/_${endpoint}`,
+    {
+      method: 'POST',
+      headers: createHeaders(),
+      body: JSON.stringify(body)
+    }
+  );
 
   const result = await response.json();
 
@@ -89,12 +103,7 @@ export const topicRelatedRessources = derived(
       const { hits, aggregations } = res;
       const meta = {
         resourcesCount: hits.total.value,
-        topAuthors: aggregations.topAuthors.buckets.map(
-          ({ key, doc_count }) => ({
-            name: key.replace('https://data.slub-dresden.de/persons/', ''),
-            docCount: doc_count
-          })
-        ),
+        topAuthors: aggregations.topAuthors.buckets,
         datePublished: aggregations.datePublished.buckets.map(
           ({ key, key_as_string, doc_count }) => ({
             year: new Date(key).getFullYear(),
@@ -113,3 +122,32 @@ export const topicRelatedRessources = derived(
     return new Map(mapEntries);
   }
 );
+
+export const authors = derived(topicRelatedRessources, async ($aggRequest) => {
+  const aggs = await $aggRequest;
+  const entries = Array.from(aggs);
+
+  // TODO: refactor
+  const ids = uniq(
+    flatten(
+      Array.from(aggs.values()).map((agg) =>
+        agg.topAuthors.map((author) =>
+          author.key.replace('https://data.slub-dresden.de/persons/', '')
+        )
+      )
+    )
+  );
+
+  // property name must be `ids`
+  const body = {
+    ids
+  };
+
+  const result = await search('persons', body, Endpoint.mget);
+  const docs: PersonResult[] = result.docs;
+
+  // only return found persons
+  const persons = docs.filter((d) => d.found).map((d) => d._source);
+
+  return persons;
+});

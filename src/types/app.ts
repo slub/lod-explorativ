@@ -1,6 +1,6 @@
 export interface TopAuthor {
-  name: string;
-  docCount: number;
+  key: string;
+  doc_count: number;
 }
 
 export interface DatePublished {
