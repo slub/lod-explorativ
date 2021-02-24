@@ -1,5 +1,6 @@
 import { compact } from 'lodash';
 import { derived } from 'svelte/store';
+import type { Person } from 'types/es';
 import type { Topic } from '../types/app';
 import {
   topicRequest,
@@ -24,13 +25,14 @@ export const topicsEnriched = derived(
 
     // merge results
     const merged = topics.map(({ _id, _score, _source }) => {
-      const { preferredName, additionalType } = _source;
+      const { preferredName, additionalType, alternateName } = _source;
       // get aggregation results on resources index
+      // TODO: if we search for the alternateName, we have to adapt it here
       const aggregations = topicRessources?.get(preferredName);
 
       // TODO: add counts
       // get references to authors and search for the author object
-      const topicAuthors = compact(
+      const topicAuthors: Person[] = compact(
         aggregations?.topAuthors.map((authorRef) => {
           const author = authors.find(
             (author) => author['@id'] === authorRef.key
@@ -39,13 +41,13 @@ export const topicsEnriched = derived(
         })
       );
 
-      // TODO: merge authors into topics (WIP)
-
       // create topic model
       const topic: Topic = {
         id: _id,
         score: _score,
         name: preferredName,
+        // TODO: preserve all alternateNames?
+        alternateName: alternateName?.[0],
         // create additionalType model
         // TODO: replace references with topics
         additionalTypes: additionalType?.map(

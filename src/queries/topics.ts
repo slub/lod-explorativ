@@ -6,9 +6,9 @@ export function topicSearchQuery(query: string) {
       // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-multi-match-query.html
       // multi_match: {
       //   query,
-      //   fields,
-      //   type: "phrase",
-      // },
+      //   fields: ['*'],
+      //   // type: 'most_fields'
+      // }
       simple_query_string: {
         query,
         fields: ['*'],

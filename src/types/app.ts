@@ -25,6 +25,7 @@ export interface TopicMeta {
 export interface Topic {
   id: string;
   name: string;
+  alternateName: string;
   score: number;
   additionalTypes: AdditionalType[];
   aggregations: TopicMeta;

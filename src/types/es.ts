@@ -51,6 +51,8 @@ export interface Source {
   identifier: string;
   isBasedOn: string;
   preferredName: string;
+  alternateName: string[];
+  description: string;
   sameAs: SameAs[];
   _isil: string;
 }

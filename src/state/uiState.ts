@@ -1,3 +1,3 @@
 import { writable } from 'svelte/store';
 
-export const query = writable('Abstrakte Kunst');
+export const query = writable('Köln');

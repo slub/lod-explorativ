@@ -9,18 +9,9 @@
 
   {#await $topicsEnriched then topics}
     <ul>
-      {#each topics as { name, additionalTypes, aggregations, authors, id } (id)}
+      {#each topics as topic (topic.id)}
         <li transition:fade>
-          <Topic
-            {name}
-            {additionalTypes}
-            resourcesCount={aggregations.resourcesCount}
-          />
-          <ul class="authorList">
-            {#each authors as author}
-              <li>{author.preferredName}</li>
-            {/each}
-          </ul>
+          <Topic {topic} />
         </li>
       {/each}
     </ul>
@@ -33,9 +24,6 @@ List of topics for search query
 
 -->
 <style>
-  .authorList {
-    margin-bottom: 2rem;
-  }
   .topicList {
     overflow-y: auto;
   }

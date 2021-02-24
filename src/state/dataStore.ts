@@ -86,9 +86,17 @@ export const topicRessourceRequest = derived(
     const topics = await $topicResult;
 
     // array of topic names
-    const topicNames = topics.map((t) => t._source.preferredName);
+    const topicNames = topics.map((t) => {
+      const { preferredName, alternateName } = t._source;
+      return preferredName;
+      // TODO: results would be more specific when searching for the alternateName
+      return alternateName ? alternateName[0] : preferredName;
+    });
+
+    if (topicNames.length === 0) return new Map();
 
     // generate multiple queries from names
+    // TODO: make fields interactive
     const multiReq = multiQuery(topicNames, topicRelatedRessourcesQuery, ['*']);
 
     const responses: ResourceAggResponse[] = await msearch(
@@ -101,6 +109,7 @@ export const topicRessourceRequest = derived(
     const mapEntries: [string, TopicMeta][] = topicNames.map((topicName, i) => {
       const res = responses[i];
       const { hits, aggregations } = res;
+
       const meta = {
         resourcesCount: hits.total.value,
         topAuthors: aggregations.topAuthors.buckets,
@@ -139,6 +148,8 @@ export const authorRequest = derived(
         )
       )
     );
+
+    if (ids.length === 0) return [];
 
     // property name must be `ids`
     const body = {
