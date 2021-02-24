@@ -3,12 +3,6 @@ export enum Endpoint {
   mget = 'mget'
 }
 
-export interface Category {
-  '@id': string;
-  name: string;
-  sameAs: string;
-}
-
 export interface IsBasedOn {
   '@id': string;
   '@type': string;
@@ -26,7 +20,7 @@ export interface SameAs {
   publisher: Publisher;
 }
 
-export interface AdditionalType {
+export interface Reference {
   '@id': string;
   description: string;
   name: string;
@@ -49,9 +43,9 @@ export interface Source {
   '@id': string;
   '@type': string;
   about: About[];
-  additionalType: AdditionalType[];
+  additionalType: Reference[];
   category: {
-    [lang: string]: Category[];
+    [lang: string]: Reference[];
   };
   dateModified: string;
   identifier: string;
@@ -98,9 +92,9 @@ export interface ResourceAggResponse {
   took: number;
 }
 
-export interface BirthDate {
+export interface Date {
   '@value': string;
-  description: string;
+  description: number;
   disambiguatingDescription: string;
 }
 
@@ -109,23 +103,46 @@ export interface Occupation {
   name: string;
 }
 
+export interface Suffix {
+  name: string;
+  description: string;
+}
+
 export interface Person {
   '@context': string;
   '@id': string;
   '@type': string;
-  birthDate: BirthDate;
-  dateModified: string;
-  hasOccupation: Occupation[];
+  birthDate?: Date;
+  deathDate?: Date;
+  dateModified?: string;
+  periodOfActivityStart?: Date;
+  periodOfActivityEnd?: Date;
+  hasOccupation?: Occupation[];
   identifier: string;
   isBasedOn: string;
   preferredName: string;
+  alternateName: string;
+  horrifiedSuffix: Suffix;
   sameAs: SameAs[];
+  about: About[];
+  category: Reference[];
+  sibling?: Reference[];
+  children?: Reference[];
+  colleague?: Reference[];
+  follows?: Reference[];
+  parent?: Reference[];
+  knows?: Reference[];
+  spouse?: Reference[];
+  relatedTo?: Reference[];
+  birthPlace?: Reference;
+  deathPlace?: Reference;
+  workLocation?: Reference[];
   _isil: string;
   _type: string;
   _version: number;
 }
 
-export interface PersonResult {
+export interface PersonSearchResult {
   found: boolean;
   _id: string;
   _index: string;

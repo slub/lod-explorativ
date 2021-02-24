@@ -7,7 +7,7 @@ import { topicRelatedRessourcesQuery } from '../queries/resources';
 import { multiQuery } from '../queries/helper';
 import type {
   Endpoint as EndpointType,
-  PersonResult,
+  PersonSearchResult,
   ResourceAggResponse,
   Topic
 } from '../types/es';
@@ -70,7 +70,7 @@ export async function msearch(index: string, body: string) {
 /**
  * Searches topics with a given query
  */
-export const topicResult = derived(query, async ($query) => {
+export const topicRequest = derived(query, async ($query) => {
   const request = topicSearchQuery($query);
   const result = await search('topics', request);
 
@@ -80,8 +80,8 @@ export const topicResult = derived(query, async ($query) => {
 /**
  * Retrieves topic-related information from `resource` index and enriches topics
  */
-export const topicRelatedRessources = derived(
-  topicResult,
+export const topicRessourceRequest = derived(
+  topicRequest,
   async ($topicResult) => {
     const topics = await $topicResult;
 
@@ -123,31 +123,34 @@ export const topicRelatedRessources = derived(
   }
 );
 
-export const authors = derived(topicRelatedRessources, async ($aggRequest) => {
-  const aggs = await $aggRequest;
-  const entries = Array.from(aggs);
+export const authorRequest = derived(
+  topicRessourceRequest,
+  async ($aggRequest) => {
+    const aggs = await $aggRequest;
+    const entries = Array.from(aggs);
 
-  // TODO: refactor
-  const ids = uniq(
-    flatten(
-      Array.from(aggs.values()).map((agg) =>
-        agg.topAuthors.map((author) =>
-          author.key.replace('https://data.slub-dresden.de/persons/', '')
+    // TODO: refactor
+    const ids = uniq(
+      flatten(
+        Array.from(aggs.values()).map((agg) =>
+          agg.topAuthors.map((author) =>
+            author.key.replace('https://data.slub-dresden.de/persons/', '')
+          )
         )
       )
-    )
-  );
+    );
 
-  // property name must be `ids`
-  const body = {
-    ids
-  };
+    // property name must be `ids`
+    const body = {
+      ids
+    };
 
-  const result = await search('persons', body, Endpoint.mget);
-  const docs: PersonResult[] = result.docs;
+    const result = await search('persons', body, Endpoint.mget);
+    const docs: PersonSearchResult[] = result.docs;
 
-  // only return found persons
-  const persons = docs.filter((d) => d.found).map((d) => d._source);
+    // only return found persons
+    const persons = docs.filter((pDoc) => pDoc.found).map((d) => d._source);
 
-  return persons;
-});
+    return persons;
+  }
+);

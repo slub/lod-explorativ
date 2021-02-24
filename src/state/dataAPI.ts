@@ -1,35 +1,43 @@
+import { compact } from 'lodash';
 import { derived } from 'svelte/store';
 import type { Topic } from '../types/app';
-import { topicResult, topicRelatedRessources, authors } from './dataStore';
+import {
+  topicRequest,
+  topicRessourceRequest,
+  authorRequest
+} from './dataStore';
 
 /**
  * The dataAPI combines the results of the DataStore and provides the UI components with data.
  */
 
 /** Combines results from topic search in topic index and associated resources in resource index */
-export const topicsRequest = derived(
-  [topicResult, topicRelatedRessources, authors],
+export const topicsEnriched = derived(
+  [topicRequest, topicRessourceRequest, authorRequest],
   async ([$topicResult, $topicRelatedRessources, $authors]) => {
-    const [result, topicRessources, authors] = await Promise.all([
+    // wait until all data is loaded
+    const [topics, topicRessources, authors] = await Promise.all([
       $topicResult,
       $topicRelatedRessources,
       $authors
     ]);
 
     // merge results
-    const merged = result.map(({ _id, _score, _source }) => {
+    const merged = topics.map(({ _id, _score, _source }) => {
       const { preferredName, additionalType } = _source;
-      const meta = topicRessources?.get(preferredName);
-      const withAuthors = {
-        ...meta,
-        topAuthors: meta?.topAuthors.map((a) => {
-          const author = authors.find((p) => p['@id'] === a.key);
-          return {
-            docCount: a.doc_count,
-            ...author
-          };
+      // get aggregation results on resources index
+      const aggregations = topicRessources?.get(preferredName);
+
+      // TODO: add counts
+      // get references to authors and search for the author object
+      const topicAuthors = compact(
+        aggregations?.topAuthors.map((authorRef) => {
+          const author = authors.find(
+            (author) => author['@id'] === authorRef.key
+          );
+          return author;
         })
-      };
+      );
 
       // TODO: merge authors into topics (WIP)
 
@@ -39,6 +47,7 @@ export const topicsRequest = derived(
         score: _score,
         name: preferredName,
         // create additionalType model
+        // TODO: replace references with topics
         additionalTypes: additionalType?.map(
           ({ name, description, ...rest }) => ({
             id: rest['@id'],
@@ -46,7 +55,8 @@ export const topicsRequest = derived(
             description
           })
         ),
-        ...meta
+        aggregations,
+        authors: topicAuthors
       };
 
       return topic;
