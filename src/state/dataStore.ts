@@ -97,7 +97,18 @@ export const topicRessourceRequest = derived(
 
     // generate multiple queries from names
     // TODO: make fields interactive
-    const multiReq = multiQuery(topicNames, topicRelatedRessourcesQuery, ['*']);
+    const multiReq = multiQuery(topicNames, topicRelatedRessourcesQuery, [
+      'preferredName',
+      'partOfSeries.name',
+      'about.name',
+      'about.keywords',
+      'mentions.name'
+      // 'alternativeHeadline',
+      // TODO: should we also search in authors?
+      // 'author.name',
+      // 'nameShort',
+      // 'nameSub',
+    ]);
 
     const responses: ResourceAggResponse[] = await msearch(
       'resources',
