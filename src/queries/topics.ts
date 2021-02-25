@@ -11,7 +11,13 @@ export function topicSearchQuery(query: string) {
       // }
       simple_query_string: {
         query,
-        fields: ['*'],
+        fields: [
+          'preferredName',
+          'alternateName',
+          'description',
+          'additionalType.description',
+          'additionalType.name'
+        ],
         default_operator: 'and'
       }
     }

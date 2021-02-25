@@ -1,4 +1,4 @@
-import { compact } from 'lodash';
+import { compact, orderBy } from 'lodash';
 import { derived } from 'svelte/store';
 import type { Person } from 'types/es';
 import type { Topic } from '../types/app';
@@ -25,10 +25,13 @@ export const topicsEnriched = derived(
 
     // merge results
     const merged = topics.map(({ _id, _score, _source }) => {
-      const { preferredName, additionalType, alternateName } = _source;
+      const { preferredName, additionalType, alternateName = [] } = _source;
+
       // get aggregation results on resources index
-      // TODO: if we search for the alternateName, we have to adapt it here
       const aggregations = topicRessources?.get(preferredName);
+      const alternateAggs = new Map(
+        alternateName.map((altName) => [altName, topicRessources.get(altName)])
+      );
 
       // TODO: add counts
       // get references to authors and search for the author object
@@ -58,12 +61,13 @@ export const topicsEnriched = derived(
           })
         ),
         aggregations,
+        alternateAggs,
         authors: topicAuthors
       };
 
       return topic;
     });
 
-    return merged;
+    return orderBy(merged, 'aggregations.resourcesCount', ['desc']);
   }
 );

@@ -1,6 +1,6 @@
 import { derived } from 'svelte/store';
 import base64 from 'base-64';
-import { flatten, uniq } from 'lodash';
+import { compact, flatten, uniq } from 'lodash';
 import { query } from './uiState';
 import { topicSearchQuery } from '../queries/topics';
 import { topicRelatedRessourcesQuery } from '../queries/resources';
@@ -86,12 +86,14 @@ export const topicRessourceRequest = derived(
     const topics = await $topicResult;
 
     // array of topic names
-    const topicNames = topics.map((t) => {
-      const { preferredName, alternateName } = t._source;
-      return preferredName;
-      // TODO: results would be more specific when searching for the alternateName
-      return alternateName ? alternateName[0] : preferredName;
-    });
+    const topicNames: string[] = compact(
+      flatten(
+        topics.map((t) => {
+          const { preferredName, alternateName = [] } = t._source;
+          return [preferredName, ...alternateName];
+        })
+      )
+    );
 
     if (topicNames.length === 0) return new Map();
 
@@ -117,29 +119,31 @@ export const topicRessourceRequest = derived(
 
     // responses do not contain the query
     // that is why we relate the queries with the results before returning anything
-    const mapEntries: [string, TopicMeta][] = topicNames.map((topicName, i) => {
-      const res = responses[i];
-      const { hits, aggregations } = res;
+    const aggMap = new Map(
+      topicNames.map((topicName, i) => {
+        const res = responses[i];
+        const { hits, aggregations } = res;
 
-      const meta = {
-        resourcesCount: hits.total.value,
-        topAuthors: aggregations.topAuthors.buckets,
-        datePublished: aggregations.datePublished.buckets.map(
-          ({ key, key_as_string, doc_count }) => ({
-            year: new Date(key).getFullYear(),
-            count: doc_count
-          })
-        ),
-        mentions: aggregations.mentions.buckets.map(({ key, doc_count }) => ({
-          name: key,
-          docCount: doc_count
-        }))
-      };
+        const meta: TopicMeta = {
+          resourcesCount: hits.total.value,
+          topAuthors: aggregations.topAuthors.buckets,
+          datePublished: aggregations.datePublished.buckets.map(
+            ({ key, key_as_string, doc_count }) => ({
+              year: new Date(key).getFullYear(),
+              count: doc_count
+            })
+          ),
+          mentions: aggregations.mentions.buckets.map(({ key, doc_count }) => ({
+            name: key,
+            docCount: doc_count
+          }))
+        };
 
-      return [topicName, meta];
-    });
+        return [topicName, meta];
+      })
+    );
 
-    return new Map(mapEntries);
+    return aggMap;
   }
 );
 

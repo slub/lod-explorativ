@@ -10,10 +10,13 @@
     name,
     alternateName,
     aggregations,
+    alternateAggs,
     authors,
     id,
     score
   } = topic;
+
+  const altCount = alternateAggs.get(alternateName)?.resourcesCount;
 </script>
 
 <div class="topic">
@@ -22,15 +25,20 @@
       <span class="addType">{name}</span>{' / '}
     {/each}
   {/if}
-  <h3>{alternateName || name}</h3>
-  <p class:count={name === $query}>
-    {aggregations.resourcesCount} Ressourcen gefunden mit dem Begriff "{name}".
-    {#if name === $query}
-      Entspricht nicht der Anzahl an Dokumenten mit dem Begriff "{alternateName}"!
+  <h3>
+    {name}
+    {#if alternateName && alternateName !== name}
+      // {alternateName}
     {/if}
-  </p>
-  <div>PreferredName: {name}</div>
-  <div>alternateName: {alternateName}</div>
+  </h3>
+
+  <div>PreferredName: {name} (Ressourcen: {aggregations.resourcesCount})</div>
+  <div>
+    alternateName: {alternateName || '-'}
+    {#if !!alternateName}
+      <span class:count={altCount === 0}>(Ressourcen: {altCount})</span>
+    {/if}
+  </div>
   <div>Score: {Math.round(score)}</div>
   <div>ID: {id}</div>
 

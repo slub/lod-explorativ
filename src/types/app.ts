@@ -29,6 +29,8 @@ export interface Topic {
   score: number;
   additionalTypes: AdditionalType[];
   aggregations: TopicMeta;
+  // TODO: remove, added property for testing
+  alternateAggs: Map<string, TopicMeta>;
   authors: Person[];
 }
 
