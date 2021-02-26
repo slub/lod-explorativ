@@ -24,7 +24,9 @@ export function topicRelatedRessourcesQuery(query: string, fields: string[]) {
       },
       mentions: {
         terms: {
-          field: 'mentions.@id.keyword',
+          // TODO: use id
+          // field: 'mentions.@id.keyword',
+          field: 'mentions.name.keyword',
           size: 20
         }
       }
