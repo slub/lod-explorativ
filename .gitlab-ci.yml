@@ -6,11 +6,12 @@ default:
 deploymenttime:
   stage: deploy
   only:
-    - gitlabCI
+    - main
+    - develop
   script:
     - export
     - yarn build
-    - rsync -r --delete ${CI_PROJECT_DIR}/public/ /var/www/webapp_main # lateron use: $CI_COMMIT_BRANCH
+    - rsync -r --delete ${CI_PROJECT_DIR}/public/ /var/www/webapp_$CI_COMMIT_BRANCH
   tags:
     - search-deployment
 
