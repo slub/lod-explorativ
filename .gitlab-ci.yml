@@ -3,7 +3,10 @@ default:
   before_script:
     - npm install
 
-runapp:
+deploymenttime:
   script:
-    - npm run dev
+    - export
+    - yarn build
+  tags:
+    - search-deployment
 
