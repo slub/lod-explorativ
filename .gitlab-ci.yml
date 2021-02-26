@@ -1,7 +1,7 @@
 default:
   image: node:14-alpine
   before_script:
-    - npm install
+    - yarn install
 
 deploymenttime:
   stage: deploy
@@ -10,7 +10,7 @@ deploymenttime:
   script:
     - export
     - yarn build
-    - rsync -r --delete ${CI_PROJECT_DIR}/public/ /var/www/webapp_main
+    - rsync -r --delete ${CI_PROJECT_DIR}/public/ /var/www/webapp_main # lateron use: $CI_COMMIT_BRANCH
   tags:
     - search-deployment
 
