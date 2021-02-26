@@ -7,7 +7,7 @@ deploymenttime:
   script:
     - export
     - yarn build
-    - cp -r ${CI_PROJECT_DIR}/public /var/www/webapp_main
+    - rsync -r --delete ${CI_PROJECT_DIR}/public /var/www/webapp_main
   tags:
     - search-deployment
 
