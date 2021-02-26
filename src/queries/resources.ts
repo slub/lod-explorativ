@@ -1,3 +1,27 @@
+const aggs = {
+  topAuthors: {
+    terms: {
+      field: 'author.@id.keyword',
+      size: 10
+    }
+  },
+  datePublished: {
+    date_histogram: {
+      field: 'datePublished.@value',
+      calendar_interval: 'year',
+      min_doc_count: 1
+    }
+  },
+  mentions: {
+    terms: {
+      // TODO: use id
+      // field: 'mentions.@id.keyword',
+      field: 'mentions.name.keyword',
+      size: 20
+    }
+  }
+};
+
 export function topicRelatedRessourcesQuery(query: string, fields: string[]) {
   return {
     size: 0,
@@ -8,44 +32,18 @@ export function topicRelatedRessourcesQuery(query: string, fields: string[]) {
         default_operator: 'and'
       }
     },
-    aggs: {
-      topAuthors: {
-        terms: {
-          field: 'author.@id.keyword',
-          size: 10
-        }
-      },
-      datePublished: {
-        date_histogram: {
-          field: 'datePublished.@value',
-          calendar_interval: 'year',
-          min_doc_count: 1
-        }
-      },
-      mentions: {
-        terms: {
-          // TODO: use id
-          // field: 'mentions.@id.keyword',
-          field: 'mentions.name.keyword',
-          size: 20
-        }
-      }
-    }
+    aggs
   };
 }
 
-/**
- *
- * @param queries list of queries
- * @param queryFn function returns sub query object
- * @param fields  fields in which to search
- */
-export function multiQuery(
-  queries: string[],
-  queryFn: Function,
-  fields: string[]
-) {
-  return queries
-    .map((q) => `{}\n${JSON.stringify(queryFn(q, fields))}\n`)
-    .join('');
+export function topicRelatedRessourcesQueryExact(query: string, field: string) {
+  return {
+    size: 0,
+    query: {
+      match: {
+        [field]: query
+      }
+    },
+    aggs
+  };
 }
