@@ -3,7 +3,10 @@ import base64 from 'base-64';
 import { compact, flatten, uniq } from 'lodash';
 import { query } from './uiState';
 import { topicSearchQuery } from '../queries/topics';
-import { topicRelatedRessourcesQuery } from '../queries/resources';
+import {
+  topicRelatedRessourcesQuery,
+  topicRelatedRessourcesQueryExact
+} from '../queries/resources';
 import { multiQuery } from '../queries/helper';
 import type {
   Endpoint as EndpointType,
@@ -95,6 +98,8 @@ export const topicRessourceRequest = derived(
       )
     );
 
+    const topicIDs = topics.map((t) => t._source['@id']);
+
     if (topicNames.length === 0) return new Map();
 
     // generate multiple queries from names
@@ -112,10 +117,19 @@ export const topicRessourceRequest = derived(
       // 'nameSub',
     ]);
 
+    const multiReqExact = multiQuery(
+      topicIDs,
+      topicRelatedRessourcesQueryExact,
+      'mentions.@id'
+    );
+
     const responses: ResourceAggResponse[] = await msearch(
       'resources',
       multiReq
     );
+
+    // TODO: add exact results to topic
+    const exactResponses = await msearch('resources', multiReqExact);
 
     // responses do not contain the query
     // that is why we relate the queries with the results before returning anything

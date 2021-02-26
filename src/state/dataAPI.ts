@@ -68,6 +68,8 @@ export const topicsEnriched = derived(
       return topic;
     });
 
-    return orderBy(merged, 'aggregations.resourcesCount', ['desc']);
+    return merged;
+
+    // return orderBy(merged, 'aggregations.resourcesCount', ['desc']);
   }
 );

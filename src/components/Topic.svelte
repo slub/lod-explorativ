@@ -2,6 +2,7 @@
   import type { Topic } from '../types/app';
   import AuthorList from './AuthorList.svelte';
   import { query } from '../state/uiState';
+  import RelatedTopicList from './RelatedTopicList.svelte';
 
   export let topic: Topic;
 
@@ -16,7 +17,9 @@
     score
   } = topic;
 
-  const altCount = alternateAggs.get(alternateName)?.resourcesCount;
+  const altAgg = alternateAggs.get(alternateName);
+  const altCount = altAgg?.resourcesCount;
+  const { mentions } = aggregations;
 </script>
 
 <div class="topic">
@@ -43,6 +46,13 @@
   <div>ID: {id}</div>
 
   <AuthorList {authors} />
+  <RelatedTopicList {mentions} listName="Erwähnungen nach `preferredName`" />
+  {#if altCount > 0}
+    <RelatedTopicList
+      mentions={altAgg.mentions}
+      listName="Erwähnungen nach `alternateName[0]`"
+    />
+  {/if}
 </div>
 
 <style>
