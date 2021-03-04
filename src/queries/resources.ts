@@ -26,10 +26,10 @@ export function topicRelatedRessourcesQuery(query: string, fields: string[]) {
   return {
     size: 0,
     query: {
-      simple_query_string: {
+      multi_match: {
         query,
         fields,
-        default_operator: 'and'
+        type: 'phrase'
       }
     },
     aggs
@@ -43,10 +43,10 @@ export function topicRelatedRessourcesCountQuery(
   return {
     size: 0,
     query: {
-      simple_query_string: {
+      multi_match: {
         query,
         fields,
-        default_operator: 'and'
+        type: 'phrase'
       }
     }
   };

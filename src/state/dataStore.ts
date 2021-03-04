@@ -119,18 +119,11 @@ export const topicRessourceAggregationRequest = derived(
     const topicNames: string[] = map(topics, '_source.preferredName');
 
     // generate multiple queries from names
-    const multiReq = multiQuery(topicNames, topicRelatedRessourcesQuery, [
-      'mentions.name',
-      'preferredName',
-      'partOfSeries.name',
-      'about.name',
-      'about.keywords'
-      // 'alternativeHeadline'
-      // TODO: should we also search in authors?
-      // 'author.name',
-      // 'nameShort',
-      // 'nameSub',
-    ]);
+    const multiReq = multiQuery(
+      topicNames,
+      topicRelatedRessourcesQuery,
+      config.search.resources
+    );
 
     const responses: ResourceAggResponse[] = await msearch(
       'resources',
@@ -157,13 +150,11 @@ export const topicRessourceAltNameRequest = derived(
     );
 
     // generate multiple queries and make broad search
-    const multiReq = multiQuery(altNames, topicRelatedRessourcesCountQuery, [
-      'mentions.name',
-      'preferredName',
-      'partOfSeries.name',
-      'about.name',
-      'about.keywords'
-    ]);
+    const multiReq = multiQuery(
+      altNames,
+      topicRelatedRessourcesCountQuery,
+      config.search.resources
+    );
 
     const responses: ResourceAggResponse[] = await msearch(
       'resources',
