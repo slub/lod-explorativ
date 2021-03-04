@@ -26,11 +26,12 @@ export interface Topic {
   id: string;
   name: string;
   alternateName: string;
+  description: string;
   score: number;
   additionalTypes: AdditionalType[];
   aggregations: TopicMeta;
-  // TODO: remove, added property for testing
-  alternateAggs: Map<string, TopicMeta>;
+  aggregationsLoose: TopicMeta;
+  altCount: number;
   authors: Person[];
 }
 

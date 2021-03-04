@@ -1,11 +1,11 @@
 import { derived } from 'svelte/store';
 import base64 from 'base-64';
-import { compact, flatten, uniq } from 'lodash';
+import { compact, flatten, map, uniq, zip } from 'lodash';
 import { query } from './uiState';
 import { topicSearchQuery } from '../queries/topics';
 import {
   topicRelatedRessourcesQuery,
-  topicRelatedRessourcesQueryExact
+  topicRelatedRessourcesCountQuery
 } from '../queries/resources';
 import { multiQuery } from '../queries/helper';
 import type {
@@ -15,7 +15,6 @@ import type {
   Topic
 } from '../types/es';
 import { Endpoint } from '../types/es';
-import type { TopicMeta } from '../types/app';
 import config from '../config';
 
 /**
@@ -81,97 +80,111 @@ export const topicRequest = derived(query, async ($query) => {
 });
 
 /**
- * Retrieves topic-related information from `resource` index and enriches topics
+ * Searches topic names in `mentions.name` field of `resources` index and returns aggregations.
  */
-export const topicRessourceRequest = derived(
+export const topicRessourceExactAggregationRequest = derived(
   topicRequest,
   async ($topicResult) => {
     const topics = await $topicResult;
 
     // array of topic names
-    const topicNames: string[] = compact(
-      flatten(
-        topics.map((t) => {
-          const { preferredName, alternateName = [] } = t._source;
-          return [preferredName, ...alternateName];
-        })
-      )
-    );
-
-    const topicIDs = topics.map((t) => t._source['@id']);
-
-    if (topicNames.length === 0) return new Map();
+    const topicNames: string[] = map(topics, '_source.preferredName');
 
     // generate multiple queries from names
-    // TODO: make fields interactive
     const multiReq = multiQuery(topicNames, topicRelatedRessourcesQuery, [
-      'preferredName',
-      'partOfSeries.name',
-      'about.name',
-      'about.keywords',
       'mentions.name'
-      // 'alternativeHeadline',
-      // TODO: should we also search in authors?
-      // 'author.name',
-      // 'nameShort',
-      // 'nameSub',
     ]);
-
-    const multiReqExact = multiQuery(
-      topicIDs,
-      topicRelatedRessourcesQueryExact,
-      'mentions.@id'
-    );
 
     const responses: ResourceAggResponse[] = await msearch(
       'resources',
       multiReq
     );
 
-    // TODO: add exact results to topic
-    const exactResponses = await msearch('resources', multiReqExact);
+    // relate responses with queries
+    const resultMap = new Map(zip(topicNames, responses));
 
-    // responses do not contain the query
-    // that is why we relate the queries with the results before returning anything
-    const aggMap = new Map(
-      topicNames.map((topicName, i) => {
-        const res = responses[i];
-        const { hits, aggregations } = res;
+    return resultMap;
+  }
+);
 
-        const meta: TopicMeta = {
-          resourcesCount: hits.total.value,
-          topAuthors: aggregations.topAuthors.buckets,
-          datePublished: aggregations.datePublished.buckets.map(
-            ({ key, key_as_string, doc_count }) => ({
-              year: new Date(key).getFullYear(),
-              count: doc_count
-            })
-          ),
-          mentions: aggregations.mentions.buckets.map(({ key, doc_count }) => ({
-            name: key,
-            docCount: doc_count
-          }))
-        };
+/**
+ * Searches topic names in multiple fields of `resources` index and returns aggregations.
+ */
+export const topicRessourceAggregationRequest = derived(
+  topicRequest,
+  async ($topicResult) => {
+    const topics = await $topicResult;
 
-        return [topicName, meta];
-      })
+    // array of topic names
+    const topicNames: string[] = map(topics, '_source.preferredName');
+
+    // generate multiple queries from names
+    const multiReq = multiQuery(topicNames, topicRelatedRessourcesQuery, [
+      'mentions.name',
+      'preferredName',
+      'partOfSeries.name',
+      'about.name',
+      'about.keywords'
+      // 'alternativeHeadline'
+      // TODO: should we also search in authors?
+      // 'author.name',
+      // 'nameShort',
+      // 'nameSub',
+    ]);
+
+    const responses: ResourceAggResponse[] = await msearch(
+      'resources',
+      multiReq
     );
 
-    return aggMap;
+    // relate responses with queries
+    const resultMap = new Map(zip(topicNames, responses));
+
+    return resultMap;
+  }
+);
+
+/**
+ * Returns for topics alternate names the number of ressources with the given name
+ */
+export const topicRessourceAltNameRequest = derived(
+  topicRequest,
+  async ($topicResult) => {
+    const topics = await $topicResult;
+
+    const altNames: string[] = compact(
+      flatten(map(topics, '_source.alternateName'))
+    );
+
+    // generate multiple queries and make broad search
+    const multiReq = multiQuery(altNames, topicRelatedRessourcesCountQuery, [
+      'mentions.name',
+      'preferredName',
+      'partOfSeries.name',
+      'about.name',
+      'about.keywords'
+    ]);
+
+    const responses: ResourceAggResponse[] = await msearch(
+      'resources',
+      multiReq
+    );
+
+    // relate responses with queries
+    return new Map(zip(altNames, responses));
   }
 );
 
 export const authorRequest = derived(
-  topicRessourceRequest,
+  topicRessourceExactAggregationRequest,
   async ($aggRequest) => {
     const aggs = await $aggRequest;
-    const entries = Array.from(aggs);
 
     // TODO: refactor
     const ids = uniq(
       flatten(
         Array.from(aggs.values()).map((agg) =>
-          agg.topAuthors.map((author) =>
+          agg.aggregations.topAuthors.buckets.map((author) =>
             author.key.replace('https://data.slub-dresden.de/persons/', '')
           )
         )

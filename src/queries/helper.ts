@@ -7,7 +7,7 @@
 export function multiQuery(
   queries: string[],
   queryFn: Function,
-  fields: string[] | string
+  fields: string[]
 ) {
   return queries
     .map((q) => `{}\n${JSON.stringify(queryFn(q, fields))}\n`)

@@ -11,15 +11,15 @@
     name,
     alternateName,
     aggregations,
-    alternateAggs,
+    aggregationsLoose,
     authors,
     id,
-    score
+    score,
+    description,
+    altCount
   } = topic;
 
-  const altAgg = alternateAggs.get(alternateName);
-  const altCount = altAgg?.resourcesCount;
-  const { mentions } = aggregations;
+  const { mentions, resourcesCount } = aggregations;
 </script>
 
 <div class="topic">
@@ -31,33 +31,59 @@
   <h3>
     {name}
     {#if alternateName && alternateName !== name}
-      // {alternateName}
+      [{alternateName}]
     {/if}
   </h3>
 
-  <div>PreferredName: {name} (Ressourcen: {aggregations.resourcesCount})</div>
-  <div>
-    alternateName: {alternateName || '-'}
-    {#if !!alternateName}
-      <span class:count={altCount === 0}>(Ressourcen: {altCount})</span>
-    {/if}
-  </div>
+  <p>
+    Das Thema „{name}“ ist in <span class="count">{resourcesCount}</span>
+    Ressource{#if resourcesCount > 1}
+      n
+    {/if} verlinkt.
+  </p>
+
+  <p>
+    Die Suche nach dem Begriff „{name}“ in *allen* Feldern der Ressourcen ergibt
+    {#if resourcesCount === aggregationsLoose.resourcesCount}ebenfalls{/if}
+    <span class="count">{aggregationsLoose.resourcesCount}</span>
+    Treffer.
+  </p>
+
+  {#if !!alternateName && alternateName !== name}
+    <p>
+      Die Suche nach dem alternativen Namen „{alternateName}“ ergibt
+      <span class="count">{altCount}</span>
+      Treffer.
+    </p>
+  {/if}
+
   <div>Score: {Math.round(score)}</div>
   <div>ID: {id}</div>
 
-  <AuthorList {authors} />
-  <RelatedTopicList {mentions} listName="Erwähnungen nach `preferredName`" />
-  {#if altCount > 0}
+  {#if description}
+    <p class="description">{description}</p>
+  {/if}
+
+  {#if authors.length > 0}
+    <AuthorList {authors} />
+  {/if}
+  {#if mentions.length > 0}
+    <RelatedTopicList {mentions} listName="Erwähnungen explizit" />
+  {/if}
+  {#if aggregationsLoose.mentions.length > 0}
     <RelatedTopicList
-      mentions={altAgg.mentions}
-      listName="Erwähnungen nach `alternateName[0]`"
+      mentions={aggregationsLoose.mentions}
+      listName="Erwähnungen implizit"
     />
   {/if}
 </div>
 
 <style>
+  .description {
+    font-style: italic;
+  }
   .count {
-    color: red;
+    font-weight: bold;
   }
   .topic {
     padding: 1rem;

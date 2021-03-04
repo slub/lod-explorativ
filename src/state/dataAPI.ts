@@ -1,56 +1,109 @@
 import { compact, orderBy } from 'lodash';
 import { derived } from 'svelte/store';
-import type { Person } from 'types/es';
-import type { Topic } from '../types/app';
+import type { Person, ResourceAggResponse } from 'types/es';
+import type { Topic, TopicMeta } from '../types/app';
 import {
   topicRequest,
-  topicRessourceRequest,
-  authorRequest
+  authorRequest,
+  topicRessourceAltNameRequest,
+  topicRessourceExactAggregationRequest,
+  topicRessourceAggregationRequest
 } from './dataStore';
 
 /**
  * The dataAPI combines the results of the DataStore and provides the UI components with data.
  */
 
+/**
+ * Replaces author references to persons with person objects
+ *
+ * @param aggs         ElasticSearch aggregation object
+ * @param personList   List of persons
+ */
+function getPersons(aggs: ResourceAggResponse, personList: Person[]) {
+  const persons = compact(
+    aggs.aggregations.topAuthors.buckets.map((authorRef) => {
+      const person = personList.find((p) => p['@id'] === authorRef.key);
+      return person;
+    })
+  );
+
+  return persons;
+}
+
+/**
+ * Transforms ElasticSearch aggregation result to internal representation
+ *
+ * @param aggs ElasticSearch aggregation object
+ */
+function convertAggs(aggs: ResourceAggResponse) {
+  const { hits, aggregations } = aggs;
+
+  const meta: TopicMeta = {
+    resourcesCount: hits.total.value,
+    topAuthors: aggregations.topAuthors.buckets,
+    datePublished: aggregations.datePublished.buckets.map(
+      ({ key, key_as_string, doc_count }) => ({
+        year: new Date(key).getFullYear(),
+        count: doc_count
+      })
+    ),
+    mentions: aggregations.mentions.buckets.map(({ key, doc_count }) => ({
+      name: key,
+      docCount: doc_count
+    }))
+  };
+
+  return meta;
+}
+
 /** Combines results from topic search in topic index and associated resources in resource index */
 export const topicsEnriched = derived(
-  [topicRequest, topicRessourceRequest, authorRequest],
-  async ([$topicResult, $topicRelatedRessources, $authors]) => {
+  [
+    topicRequest,
+    authorRequest,
+    topicRessourceAltNameRequest,
+    topicRessourceExactAggregationRequest,
+    topicRessourceAggregationRequest
+  ],
+  async ([$topicResult, $authors, $altCounts, $aggMapStrict, $aggMapLoose]) => {
     // wait until all data is loaded
-    const [topics, topicRessources, authors] = await Promise.all([
+    const [
+      topics,
+      authors,
+      altCounts,
+      aggMapStrict,
+      aggMapLoose
+    ] = await Promise.all([
       $topicResult,
-      $topicRelatedRessources,
-      $authors
+      $authors,
+      $altCounts,
+      $aggMapStrict,
+      $aggMapLoose
     ]);
 
     // merge results
     const merged = topics.map(({ _id, _score, _source }) => {
-      const { preferredName, additionalType, alternateName = [] } = _source;
+      const {
+        preferredName,
+        additionalType,
+        alternateName = [],
+        description
+      } = _source;
 
       // get aggregation results on resources index
-      const aggregations = topicRessources?.get(preferredName);
-      const alternateAggs = new Map(
-        alternateName.map((altName) => [altName, topicRessources.get(altName)])
-      );
+      const aggStrict = aggMapStrict.get(preferredName);
+      const aggLoose = aggMapLoose.get(preferredName);
 
-      // TODO: add counts
-      // get references to authors and search for the author object
-      const topicAuthors: Person[] = compact(
-        aggregations?.topAuthors.map((authorRef) => {
-          const author = authors.find(
-            (author) => author['@id'] === authorRef.key
-          );
-          return author;
-        })
-      );
+      // TODO: preserve all alternateNames?
+      const altName = alternateName?.[0];
 
       // create topic model
       const topic: Topic = {
         id: _id,
         score: _score,
         name: preferredName,
-        // TODO: preserve all alternateNames?
-        alternateName: alternateName?.[0],
+        alternateName: altName,
         // create additionalType model
         // TODO: replace references with topics
         additionalTypes: additionalType?.map(
@@ -60,9 +113,11 @@ export const topicsEnriched = derived(
             description
           })
         ),
-        aggregations,
-        alternateAggs,
-        authors: topicAuthors
+        description,
+        aggregations: aggStrict ? convertAggs(aggStrict) : null,
+        aggregationsLoose: aggLoose ? convertAggs(aggLoose) : null,
+        altCount: altCounts.get(altName)?.hits.total.value,
+        authors: aggStrict ? getPersons(aggStrict, authors) : []
       };
 
       return topic;

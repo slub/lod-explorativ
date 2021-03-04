@@ -1,3 +1,3 @@
 import { writable } from 'svelte/store';
 
-export const query = writable('Festspiele');
+export const query = writable('Bremen');

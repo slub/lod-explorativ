@@ -36,14 +36,18 @@ export function topicRelatedRessourcesQuery(query: string, fields: string[]) {
   };
 }
 
-export function topicRelatedRessourcesQueryExact(query: string, field: string) {
+export function topicRelatedRessourcesCountQuery(
+  query: string,
+  fields: string[]
+) {
   return {
     size: 0,
     query: {
-      match: {
-        [field]: query
+      simple_query_string: {
+        query,
+        fields,
+        default_operator: 'and'
       }
-    },
-    aggs
+    }
   };
 }
