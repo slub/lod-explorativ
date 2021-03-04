@@ -3,6 +3,7 @@
   import AuthorList from './AuthorList.svelte';
   import { query } from '../state/uiState';
   import RelatedTopicList from './RelatedTopicList.svelte';
+  import LocationsList from './LocationsList.svelte';
 
   export let topic: Topic;
 
@@ -13,6 +14,7 @@
     aggregations,
     aggregationsLoose,
     authors,
+    locations,
     id,
     score,
     description,
@@ -67,6 +69,11 @@
   {#if authors.length > 0}
     <AuthorList {authors} />
   {/if}
+
+  {#if locations.length > 0}
+    <LocationsList {locations} />
+  {/if}
+
   {#if mentions.length > 0}
     <RelatedTopicList {mentions} listName="Erwähnungen explizit" />
   {/if}

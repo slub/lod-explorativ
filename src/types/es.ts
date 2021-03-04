@@ -144,13 +144,44 @@ export interface Person {
   _version: number;
 }
 
-export interface PersonSearchResult {
+export interface GeoCoord {
+  '@type': string;
+  latitude: string;
+  longitude: string;
+}
+export interface Geo {
+  '@context': string;
+  '@id': string;
+  '@type': string;
+  about: About[];
+  adressRegion: string;
+  alternateName: string[];
+  dateModified: string;
+  dateOfEstablishment: Date;
+  dateOfTermination: Date;
+  geo: GeoCoord;
+  identifier: string;
+  isBasedOn: string;
+  preferredName: string;
+  sameAs: SameAs[];
+  _isil: string;
+}
+
+export interface SearchResult {
   found: boolean;
   _id: string;
   _index: string;
   _primary_term: number;
   _seq_no: number;
-  _source: Person;
+  _source: any;
   _type: string;
   _version: number;
+}
+
+export interface PersonSearchResult extends SearchResult {
+  _source: Person;
+}
+
+export interface GeoSearchResult extends SearchResult {
+  _source: Geo;
 }

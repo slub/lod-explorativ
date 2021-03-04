@@ -7,12 +7,11 @@ export default {
       'partOfSeries.name',
       'about.name',
       'about.keywords',
-      'description'
-      // 'alternativeHeadline'
-      // TODO: should we also search in authors?
-      // 'author.name',
-      // 'nameShort',
-      // 'nameSub',
+      'description',
+      'alternativeHeadline',
+      'author.name',
+      'nameShort',
+      'nameSub'
     ]
   }
 };

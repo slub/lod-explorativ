@@ -15,8 +15,8 @@ const aggs = {
   mentions: {
     terms: {
       // TODO: use id
-      // field: 'mentions.@id.keyword',
-      field: 'mentions.name.keyword',
+      field: 'mentions.@id.keyword',
+      // field: 'mentions.name.keyword',
       size: 20
     }
   }

@@ -1,13 +1,14 @@
 import { compact, orderBy } from 'lodash';
 import { derived } from 'svelte/store';
-import type { Person, ResourceAggResponse } from 'types/es';
+import type { Geo, Person, ResourceAggResponse } from 'types/es';
 import type { Topic, TopicMeta } from '../types/app';
 import {
   topicRequest,
   authorRequest,
   topicRessourceAltNameRequest,
   topicRessourceExactAggregationRequest,
-  topicRessourceAggregationRequest
+  topicRessourceLooseAggregationRequest,
+  geoRequest
 } from './dataStore';
 
 /**
@@ -29,6 +30,17 @@ function getPersons(aggs: ResourceAggResponse, personList: Person[]) {
   );
 
   return persons;
+}
+
+function getLocations(aggs: ResourceAggResponse, locations: Geo[]) {
+  const locs = compact(
+    aggs.aggregations.mentions.buckets.map((ref) => {
+      const loc = locations.find((p) => p['@id'] === ref.key);
+      return loc;
+    })
+  );
+
+  return locs;
 }
 
 /**
@@ -64,22 +76,32 @@ export const topicsEnriched = derived(
     authorRequest,
     topicRessourceAltNameRequest,
     topicRessourceExactAggregationRequest,
-    topicRessourceAggregationRequest
+    topicRessourceLooseAggregationRequest,
+    geoRequest
   ],
-  async ([$topicResult, $authors, $altCounts, $aggMapStrict, $aggMapLoose]) => {
+  async ([
+    $topicResult,
+    $authors,
+    $altCounts,
+    $aggMapStrict,
+    $aggMapLoose,
+    $geo
+  ]) => {
     // wait until all data is loaded
     const [
       topics,
       authors,
       altCounts,
       aggMapStrict,
-      aggMapLoose
+      aggMapLoose,
+      geo
     ] = await Promise.all([
       $topicResult,
       $authors,
       $altCounts,
       $aggMapStrict,
-      $aggMapLoose
+      $aggMapLoose,
+      $geo
     ]);
 
     // merge results
@@ -117,7 +139,8 @@ export const topicsEnriched = derived(
         aggregations: aggStrict ? convertAggs(aggStrict) : null,
         aggregationsLoose: aggLoose ? convertAggs(aggLoose) : null,
         altCount: altCounts.get(altName)?.hits.total.value,
-        authors: aggStrict ? getPersons(aggStrict, authors) : []
+        authors: aggStrict ? getPersons(aggStrict, authors) : [],
+        locations: aggStrict ? getLocations(aggStrict, geo) : []
       };
 
       return topic;

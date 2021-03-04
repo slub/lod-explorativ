@@ -1,4 +1,4 @@
-import type { Person } from './es';
+import type { Geo, Person } from './es';
 
 export interface TopAuthor {
   key: string;
@@ -33,6 +33,7 @@ export interface Topic {
   aggregationsLoose: TopicMeta;
   altCount: number;
   authors: Person[];
+  locations: Geo[];
 }
 
 export interface AdditionalType {

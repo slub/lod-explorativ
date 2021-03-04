@@ -10,6 +10,7 @@ import {
 import { multiQuery } from '../queries/helper';
 import type {
   Endpoint as EndpointType,
+  GeoSearchResult,
   PersonSearchResult,
   ResourceAggResponse,
   Topic
@@ -110,7 +111,7 @@ export const topicRessourceExactAggregationRequest = derived(
 /**
  * Searches topic names in multiple fields of `resources` index and returns aggregations.
  */
-export const topicRessourceAggregationRequest = derived(
+export const topicRessourceLooseAggregationRequest = derived(
   topicRequest,
   async ($topicResult) => {
     const topics = await $topicResult;
@@ -169,12 +170,13 @@ export const topicRessourceAltNameRequest = derived(
 export const authorRequest = derived(
   topicRessourceExactAggregationRequest,
   async ($aggRequest) => {
-    const aggs = await $aggRequest;
+    const aggMap = await $aggRequest;
+    const aggregations = Array.from(aggMap.values());
 
     // TODO: refactor
     const ids = uniq(
       flatten(
-        Array.from(aggs.values()).map((agg) =>
+        aggregations.map((agg) =>
           agg.aggregations.topAuthors.buckets.map((author) =>
             author.key.replace('https://data.slub-dresden.de/persons/', '')
           )
@@ -196,5 +198,38 @@ export const authorRequest = derived(
     const persons = docs.filter((pDoc) => pDoc.found).map((d) => d._source);
 
     return persons;
+  }
+);
+
+export const geoRequest = derived(
+  topicRessourceExactAggregationRequest,
+  async ($aggRequest) => {
+    const aggMap = await $aggRequest;
+    const aggregations = Array.from(aggMap.values());
+
+    // TODO: refactor
+    const ids = uniq(
+      flatten(
+        aggregations.map((agg) =>
+          agg.aggregations.mentions.buckets.map((mention) => mention.key)
+        )
+      )
+    )
+      .filter((x) => /geo/.test(x))
+      .map((x) => x.replace('https://data.slub-dresden.de/geo/', ''));
+
+    if (ids.length === 0) return [];
+
+    // property name must be `ids`
+    const body = {
+      ids
+    };
+
+    const result = await search('geo', body, Endpoint.mget);
+    const docs: GeoSearchResult[] = result.docs;
+
+    const places = docs.filter((pDoc) => pDoc.found).map((d) => d._source);
+
+    return places;
   }
 );
