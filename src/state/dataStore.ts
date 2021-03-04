@@ -88,11 +88,11 @@ export const topicRessourceExactAggregationRequest = derived(
     const topics = await $topicResult;
 
     // array of topic names
-    const topicNames: string[] = map(topics, '_source.preferredName');
+    const topicIDs: string[] = map(topics, (t) => t._source['@id']);
 
     // generate multiple queries from names
-    const multiReq = multiQuery(topicNames, topicRelatedRessourcesQuery, [
-      'mentions.name'
+    const multiReq = multiQuery(topicIDs, topicRelatedRessourcesQuery, [
+      'mentions.@id'
     ]);
 
     const responses: ResourceAggResponse[] = await msearch(
@@ -101,7 +101,7 @@ export const topicRessourceExactAggregationRequest = derived(
     );
 
     // relate responses with queries
-    const resultMap = new Map(zip(topicNames, responses));
+    const resultMap = new Map(zip(topicIDs, responses));
 
     return resultMap;
   }

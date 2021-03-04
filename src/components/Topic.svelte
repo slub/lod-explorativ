@@ -28,7 +28,7 @@
       <span class="addType">{name}</span>{' / '}
     {/each}
   {/if}
-  <h3>
+  <h3 {id}>
     {name}
     {#if alternateName && alternateName !== name}
       [{alternateName}]

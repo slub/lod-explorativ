@@ -92,7 +92,7 @@ export const topicsEnriched = derived(
       } = _source;
 
       // get aggregation results on resources index
-      const aggStrict = aggMapStrict.get(preferredName);
+      const aggStrict = aggMapStrict.get(_source['@id']);
       const aggLoose = aggMapLoose.get(preferredName);
 
       // TODO: preserve all alternateNames?
