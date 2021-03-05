@@ -1,5 +1,6 @@
 export enum Endpoint {
   search = 'search',
+  msearch = 'msearch',
   mget = 'mget'
 }
 

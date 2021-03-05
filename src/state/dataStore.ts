@@ -36,38 +36,37 @@ export function createHeaders(props = {}) {
   });
 }
 
+/**
+ * Send search or get query to ElasticSearch
+ *
+ * @param index     Index name
+ * @param query     ElasticSearch query
+ * @param endpoint  ElasticSearch endpoint
+ */
 export async function search(
   index: string,
-  body: object,
+  query: Object | string,
   endpoint: EndpointType = Endpoint.search
 ) {
+  const headers =
+    endpoint === Endpoint.msearch
+      ? { 'Content-Type': 'Application/x-ndjson' }
+      : {};
+
+  const body = typeof query === 'object' ? JSON.stringify(query) : query;
+
   const response = await fetch(
     `${config.esHost}/${index}-explorativ/_${endpoint}`,
     {
       method: 'POST',
-      headers: createHeaders(),
-      body: JSON.stringify(body)
+      headers: createHeaders(headers),
+      body
     }
   );
 
   const result = await response.json();
 
   return result;
-}
-
-export async function msearch(index: string, body: string) {
-  const response = await fetch(
-    `${config.esHost}/${index}-explorativ/_msearch`,
-    {
-      method: 'POST',
-      headers: createHeaders({ 'Content-Type': 'Application/x-ndjson' }),
-      body
-    }
-  );
-
-  const { responses } = await response.json();
-
-  return responses;
 }
 
 /**
@@ -96,15 +95,11 @@ export const topicRessourceExactAggregationRequest = derived(
       'mentions.@id'
     ]);
 
-    const responses: ResourceAggResponse[] = await msearch(
-      'resources',
-      multiReq
-    );
+    const result = await search('resources', multiReq, Endpoint.msearch);
+    const responses: ResourceAggResponse[] = result.responses;
 
     // relate responses with queries
-    const resultMap = new Map(zip(topicIDs, responses));
-
-    return resultMap;
+    return new Map(zip(topicIDs, responses));
   }
 );
 
@@ -126,15 +121,11 @@ export const topicRessourceLooseAggregationRequest = derived(
       config.search.resources
     );
 
-    const responses: ResourceAggResponse[] = await msearch(
-      'resources',
-      multiReq
-    );
+    const result = await search('resources', multiReq, Endpoint.msearch);
+    const responses: ResourceAggResponse[] = result.responses;
 
     // relate responses with queries
-    const resultMap = new Map(zip(topicNames, responses));
-
-    return resultMap;
+    return new Map(zip(topicNames, responses));
   }
 );
 
@@ -157,10 +148,8 @@ export const topicRessourceAltNameRequest = derived(
       config.search.resources
     );
 
-    const responses: ResourceAggResponse[] = await msearch(
-      'resources',
-      multiReq
-    );
+    const result = await search('resources', multiReq, Endpoint.msearch);
+    const responses: ResourceAggResponse[] = result.responses;
 
     // relate responses with queries
     return new Map(zip(altNames, responses));
