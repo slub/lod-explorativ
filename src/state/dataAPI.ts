@@ -1,6 +1,6 @@
-import { compact, orderBy } from 'lodash';
+import { compact } from 'lodash';
 import { derived } from 'svelte/store';
-import type { Geo, Person, ResourceAggResponse } from 'types/es';
+import type { ResourceAggResponse } from 'types/es';
 import type { Topic, TopicMeta } from '../types/app';
 import {
   topicRequest,
@@ -16,31 +16,22 @@ import {
  */
 
 /**
- * Replaces author references to persons with person objects
+ * Replaces references to entities of different indices with real entity objects
  *
- * @param aggs         ElasticSearch aggregation object
- * @param personList   List of persons
+ * @param aggs          ElasticSearch aggregation result
+ * @param entityList    List of entity objects
+ * @param aggName       Name of the aggregation
  */
-function getPersons(aggs: ResourceAggResponse, personList: Person[]) {
-  const persons = compact(
-    aggs.aggregations.topAuthors.buckets.map((authorRef) => {
-      const person = personList.find((p) => p['@id'] === authorRef.key);
-      return person;
-    })
+function getEntities<T>(
+  aggs: ResourceAggResponse,
+  entityList: T[],
+  aggName: string
+): T[] {
+  return compact(
+    aggs.aggregations[aggName].buckets.map((ref) =>
+      entityList.find((p) => p['@id'] === ref.key)
+    )
   );
-
-  return persons;
-}
-
-function getLocations(aggs: ResourceAggResponse, locations: Geo[]) {
-  const locs = compact(
-    aggs.aggregations.mentions.buckets.map((ref) => {
-      const loc = locations.find((p) => p['@id'] === ref.key);
-      return loc;
-    })
-  );
-
-  return locs;
 }
 
 /**
@@ -139,8 +130,8 @@ export const topicsEnriched = derived(
         aggregations: aggStrict ? convertAggs(aggStrict) : null,
         aggregationsLoose: aggLoose ? convertAggs(aggLoose) : null,
         altCount: altCounts.get(altName)?.hits.total.value,
-        authors: aggStrict ? getPersons(aggStrict, authors) : [],
-        locations: aggStrict ? getLocations(aggStrict, geo) : []
+        authors: aggStrict ? getEntities(aggStrict, authors, 'topAuthors') : [],
+        locations: aggStrict ? getEntities(aggStrict, geo, 'mentions') : []
       };
 
       return topic;

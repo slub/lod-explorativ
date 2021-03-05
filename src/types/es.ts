@@ -110,23 +110,27 @@ export interface Suffix {
   description: string;
 }
 
-export interface Person {
+export interface Entity {
   '@context': string;
   '@id': string;
   '@type': string;
+  preferredName: string;
+  about: About[];
+  identifier: string;
+  isBasedOn: string;
+  sameAs: SameAs[];
+  _isil: string;
+}
+
+export interface Person extends Entity {
   birthDate?: Date;
   deathDate?: Date;
   dateModified?: string;
   periodOfActivityStart?: Date;
   periodOfActivityEnd?: Date;
   hasOccupation?: Occupation[];
-  identifier: string;
-  isBasedOn: string;
-  preferredName: string;
   alternateName: string;
   horrifiedSuffix: Suffix;
-  sameAs: SameAs[];
-  about: About[];
   category: Reference[];
   sibling?: Reference[];
   children?: Reference[];
@@ -139,32 +143,23 @@ export interface Person {
   birthPlace?: Reference;
   deathPlace?: Reference;
   workLocation?: Reference[];
-  _isil: string;
   _type: string;
   _version: number;
 }
 
-export interface GeoCoord {
-  '@type': string;
-  latitude: string;
-  longitude: string;
-}
-export interface Geo {
-  '@context': string;
-  '@id': string;
-  '@type': string;
-  about: About[];
+export interface Geo extends Entity {
   adressRegion: string;
   alternateName: string[];
   dateModified: string;
   dateOfEstablishment: Date;
   dateOfTermination: Date;
   geo: GeoCoord;
-  identifier: string;
-  isBasedOn: string;
-  preferredName: string;
-  sameAs: SameAs[];
-  _isil: string;
+}
+
+export interface GeoCoord {
+  '@type': string;
+  latitude: string;
+  longitude: string;
 }
 
 export interface SearchResult {
