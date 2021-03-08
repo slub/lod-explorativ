@@ -3,12 +3,13 @@ import { derived } from 'svelte/store';
 import type { ResourceAggResponse } from 'types/es';
 import type { Topic, TopicMeta } from '../types/app';
 import {
-  topicRequest,
-  authorRequest,
-  topicRessourceAltNameRequest,
-  topicRessourceExactAggregationRequest,
-  topicRessourceLooseAggregationRequest,
-  geoRequest
+  topicSearchRequest,
+  authorMGetRequest,
+  resourcesAltMSearchRequest,
+  resourcesExactMSearchRequest,
+  resourcesLooseMSearchRequest,
+  geoMGetRequest,
+  topicsRelatedMGetRequest
 } from './dataStore';
 
 /**
@@ -63,12 +64,13 @@ function convertAggs(aggs: ResourceAggResponse) {
 /** Combines results from topic search in topic index and associated resources in resource index */
 export const topicsEnriched = derived(
   [
-    topicRequest,
-    authorRequest,
-    topicRessourceAltNameRequest,
-    topicRessourceExactAggregationRequest,
-    topicRessourceLooseAggregationRequest,
-    geoRequest
+    topicSearchRequest,
+    authorMGetRequest,
+    resourcesAltMSearchRequest,
+    resourcesExactMSearchRequest,
+    resourcesLooseMSearchRequest,
+    geoMGetRequest,
+    topicsRelatedMGetRequest
   ],
   async ([
     $topicResult,
@@ -76,7 +78,8 @@ export const topicsEnriched = derived(
     $altCounts,
     $aggMapStrict,
     $aggMapLoose,
-    $geo
+    $geo,
+    $topicsRelated
   ]) => {
     // wait until all data is loaded
     const [
@@ -85,14 +88,16 @@ export const topicsEnriched = derived(
       altCounts,
       aggMapStrict,
       aggMapLoose,
-      geo
+      geo,
+      topicsRelated
     ] = await Promise.all([
       $topicResult,
       $authors,
       $altCounts,
       $aggMapStrict,
       $aggMapLoose,
-      $geo
+      $geo,
+      $topicsRelated
     ]);
 
     // merge results
@@ -131,7 +136,10 @@ export const topicsEnriched = derived(
         aggregationsLoose: aggLoose ? convertAggs(aggLoose) : null,
         altCount: altCounts.get(altName)?.hits.total.value,
         authors: aggStrict ? getEntities(aggStrict, authors, 'topAuthors') : [],
-        locations: aggStrict ? getEntities(aggStrict, geo, 'mentions') : []
+        locations: aggStrict ? getEntities(aggStrict, geo, 'mentions') : [],
+        related: aggStrict
+          ? getEntities(aggStrict, topicsRelated, 'mentions')
+          : []
       };
 
       return topic;

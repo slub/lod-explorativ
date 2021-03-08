@@ -39,33 +39,6 @@ export interface About {
   identifier: Identifier;
 }
 
-export interface Source {
-  '@context': string;
-  '@id': string;
-  '@type': string;
-  about: About[];
-  additionalType: Reference[];
-  category: {
-    [lang: string]: Reference[];
-  };
-  dateModified: string;
-  identifier: string;
-  isBasedOn: string;
-  preferredName: string;
-  alternateName: string[];
-  description: string;
-  sameAs: SameAs[];
-  _isil: string;
-}
-
-export interface Topic {
-  _id: string;
-  _index: string;
-  _score: number;
-  _type: string;
-  _source: Source;
-}
-
 export interface Bucket {
   key: string;
   key_as_string: string;
@@ -111,6 +84,12 @@ export interface Suffix {
   description: string;
 }
 
+export interface GeoCoord {
+  '@type': string;
+  latitude: string;
+  longitude: string;
+}
+
 export interface Entity {
   '@context': string;
   '@id': string;
@@ -121,6 +100,16 @@ export interface Entity {
   isBasedOn: string;
   sameAs: SameAs[];
   _isil: string;
+}
+
+export interface Topic extends Entity {
+  additionalType: Reference[];
+  category: {
+    [lang: string]: Reference[];
+  };
+  dateModified: string;
+  alternateName: string[];
+  description: string;
 }
 
 export interface Person extends Entity {
@@ -157,13 +146,7 @@ export interface Geo extends Entity {
   geo: GeoCoord;
 }
 
-export interface GeoCoord {
-  '@type': string;
-  latitude: string;
-  longitude: string;
-}
-
-export interface SearchResult {
+export interface GetResponse {
   found: boolean;
   _id: string;
   _index: string;
@@ -174,10 +157,22 @@ export interface SearchResult {
   _version: number;
 }
 
-export interface PersonSearchResult extends SearchResult {
+export interface TopicSearchResponse {
+  _id: string;
+  _index: string;
+  _score: number;
+  _type: string;
+  _source: Topic;
+}
+
+export interface PersonGetResponse extends GetResponse {
   _source: Person;
 }
 
-export interface GeoSearchResult extends SearchResult {
+export interface GeoGetResponse extends GetResponse {
   _source: Geo;
+}
+
+export interface TopicGetResponse extends GetResponse {
+  _source: Topic;
 }

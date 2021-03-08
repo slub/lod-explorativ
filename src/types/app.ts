@@ -1,4 +1,4 @@
-import type { Geo, Person } from './es';
+import type { Geo, Person, Topic as TopicES } from './es';
 
 export interface TopAuthor {
   key: string;
@@ -34,6 +34,7 @@ export interface Topic {
   altCount: number;
   authors: Person[];
   locations: Geo[];
+  related: TopicES[];
 }
 
 export interface AdditionalType {

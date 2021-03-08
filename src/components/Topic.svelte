@@ -4,6 +4,7 @@
   import { query } from '../state/uiState';
   import RelatedTopicList from './RelatedTopicList.svelte';
   import LocationsList from './LocationsList.svelte';
+  import RelatedTopicsList from './RelatedTopicsList.svelte';
 
   export let topic: Topic;
 
@@ -15,6 +16,7 @@
     aggregationsLoose,
     authors,
     locations,
+    related,
     id,
     score,
     description,
@@ -72,6 +74,10 @@
 
   {#if locations.length > 0}
     <LocationsList {locations} />
+  {/if}
+
+  {#if related.length > 0}
+    <RelatedTopicsList topics={related} />
   {/if}
 
   {#if mentions.length > 0}

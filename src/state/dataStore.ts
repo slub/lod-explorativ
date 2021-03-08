@@ -10,10 +10,11 @@ import {
 import { multiQuery } from '../queries/helper';
 import type {
   Endpoint as EndpointType,
-  GeoSearchResult,
-  PersonSearchResult,
+  GeoGetResponse,
+  PersonGetResponse,
   ResourceAggResponse,
-  Topic
+  TopicGetResponse,
+  TopicSearchResponse
 } from '../types/es';
 import { Endpoint } from '../types/es';
 import config from '../config';
@@ -72,18 +73,18 @@ export async function search(
 /**
  * Searches topics with a given query
  */
-export const topicRequest = derived(query, async ($query) => {
+export const topicSearchRequest = derived(query, async ($query) => {
   const request = topicSearchQuery($query);
   const result = await search('topics', request);
 
-  return <Topic[]>(result?.hits.hits ?? []);
+  return <TopicSearchResponse[]>(result?.hits.hits ?? []);
 });
 
 /**
  * Searches topic names in `mentions.name` field of `resources` index and returns aggregations.
  */
-export const topicRessourceExactAggregationRequest = derived(
-  topicRequest,
+export const resourcesExactMSearchRequest = derived(
+  topicSearchRequest,
   async ($topicResult) => {
     const topics = await $topicResult;
 
@@ -106,8 +107,8 @@ export const topicRessourceExactAggregationRequest = derived(
 /**
  * Searches topic names in multiple fields of `resources` index and returns aggregations.
  */
-export const topicRessourceLooseAggregationRequest = derived(
-  topicRequest,
+export const resourcesLooseMSearchRequest = derived(
+  topicSearchRequest,
   async ($topicResult) => {
     const topics = await $topicResult;
 
@@ -132,8 +133,8 @@ export const topicRessourceLooseAggregationRequest = derived(
 /**
  * Returns for topics alternate names the number of ressources with the given name
  */
-export const topicRessourceAltNameRequest = derived(
-  topicRequest,
+export const resourcesAltMSearchRequest = derived(
+  topicSearchRequest,
   async ($topicResult) => {
     const topics = await $topicResult;
 
@@ -156,13 +157,12 @@ export const topicRessourceAltNameRequest = derived(
   }
 );
 
-export const authorRequest = derived(
-  topicRessourceExactAggregationRequest,
+export const authorMGetRequest = derived(
+  resourcesExactMSearchRequest,
   async ($aggRequest) => {
     const aggMap = await $aggRequest;
     const aggregations = Array.from(aggMap.values());
 
-    // TODO: refactor
     const ids = uniq(
       flatten(
         aggregations.map((agg) =>
@@ -181,7 +181,7 @@ export const authorRequest = derived(
     };
 
     const result = await search('persons', body, Endpoint.mget);
-    const docs: PersonSearchResult[] = result.docs;
+    const docs: PersonGetResponse[] = result.docs;
 
     // only return found persons
     const persons = docs.filter((pDoc) => pDoc.found).map((d) => d._source);
@@ -190,13 +190,12 @@ export const authorRequest = derived(
   }
 );
 
-export const geoRequest = derived(
-  topicRessourceExactAggregationRequest,
+export const geoMGetRequest = derived(
+  resourcesExactMSearchRequest,
   async ($aggRequest) => {
     const aggMap = await $aggRequest;
     const aggregations = Array.from(aggMap.values());
 
-    // TODO: refactor
     const ids = uniq(
       flatten(
         aggregations.map((agg) =>
@@ -215,10 +214,42 @@ export const geoRequest = derived(
     };
 
     const result = await search('geo', body, Endpoint.mget);
-    const docs: GeoSearchResult[] = result.docs;
+    const docs: GeoGetResponse[] = result.docs;
 
     const places = docs.filter((pDoc) => pDoc.found).map((d) => d._source);
 
     return places;
+  }
+);
+
+export const topicsRelatedMGetRequest = derived(
+  resourcesExactMSearchRequest,
+  async ($aggRequest) => {
+    const aggMap = await $aggRequest;
+    const aggregations = Array.from(aggMap.values());
+
+    const ids = uniq(
+      flatten(
+        aggregations.map((agg) =>
+          agg.aggregations.mentions.buckets.map((mention) => mention.key)
+        )
+      )
+    )
+      .filter((x) => /topics/.test(x))
+      .map((x) => x.replace('https://data.slub-dresden.de/topics/', ''));
+
+    if (ids.length === 0) return [];
+
+    // property name must be `ids`
+    const body = {
+      ids
+    };
+
+    const result = await search('topics', body, Endpoint.mget);
+    const docs: TopicGetResponse[] = result.docs;
+
+    const topics = docs.filter((pDoc) => pDoc.found).map((d) => d._source);
+
+    return topics;
   }
 );
