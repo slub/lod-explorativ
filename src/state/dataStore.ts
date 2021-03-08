@@ -158,6 +158,7 @@ export const resourcesAltMSearchRequest = derived(
   }
 );
 
+// TODO: similar to `getMentionsByIndex` function, could be combined
 export const authorMGetRequest = derived(
   resourcesExactMSearchRequest,
   async ($aggRequest) => {
@@ -191,98 +192,76 @@ export const authorMGetRequest = derived(
   }
 );
 
+/**
+ * Helper function that uses IDs from aggregation results to request the contained entities
+ *
+ * @param index name of index
+ * @param aggMap ElasticSearch aggregation result
+ * @returns index documents
+ */
+async function getMentionsByIndex(
+  index: string,
+  aggMap: Map<string, ResourceAggResponse>
+) {
+  const aggregations = Array.from(aggMap.values());
+
+  const ids = uniq(
+    flatten(
+      aggregations.map((agg) =>
+        agg.aggregations.mentions.buckets.map((mention) => mention.key)
+      )
+    )
+  )
+    .filter((x) => new RegExp(index).test(x))
+    .map((x) => x.replace(`https://data.slub-dresden.de/${index}/`, ''));
+
+  if (ids.length === 0) return [];
+
+  // property name must be `ids`
+  const body = {
+    ids
+  };
+
+  const result = await search(index, body, Endpoint.mget);
+  const docs: GeoGetResponse[] = result.docs;
+
+  const foundItems = docs.filter((pDoc) => pDoc.found).map((d) => d._source);
+
+  return foundItems;
+}
+
+/**
+ * Derived store contains topic-related places (exact matching)
+ */
 export const geoMGetRequest = derived(
   resourcesExactMSearchRequest,
   async ($aggRequest) => {
     const aggMap = await $aggRequest;
-    const aggregations = Array.from(aggMap.values());
-
-    const ids = uniq(
-      flatten(
-        aggregations.map((agg) =>
-          agg.aggregations.mentions.buckets.map((mention) => mention.key)
-        )
-      )
-    )
-      .filter((x) => /geo/.test(x))
-      .map((x) => x.replace('https://data.slub-dresden.de/geo/', ''));
-
-    if (ids.length === 0) return [];
-
-    // property name must be `ids`
-    const body = {
-      ids
-    };
-
-    const result = await search('geo', body, Endpoint.mget);
-    const docs: GeoGetResponse[] = result.docs;
-
-    const places = docs.filter((pDoc) => pDoc.found).map((d) => d._source);
-
+    const places = await getMentionsByIndex('geo', aggMap);
     return places;
   }
 );
 
+/**
+ * Derived store contains topic-related topics (exact matching)
+ */
 export const topicsRelatedMGetRequest = derived(
   resourcesExactMSearchRequest,
   async ($aggRequest) => {
     const aggMap = await $aggRequest;
-    const aggregations = Array.from(aggMap.values());
-
-    const ids = uniq(
-      flatten(
-        aggregations.map((agg) =>
-          agg.aggregations.mentions.buckets.map((mention) => mention.key)
-        )
-      )
-    )
-      .filter((x) => /topics/.test(x))
-      .map((x) => x.replace('https://data.slub-dresden.de/topics/', ''));
-
-    if (ids.length === 0) return [];
-
-    // property name must be `ids`
-    const body = {
-      ids
-    };
-
-    const result = await search('topics', body, Endpoint.mget);
-    const docs: TopicGetResponse[] = result.docs;
-
-    const topics = docs.filter((pDoc) => pDoc.found).map((d) => d._source);
-
+    const topics = await getMentionsByIndex('topics', aggMap);
     return topics;
   }
 );
 
+/**
+ * Derived store contains topic-related events (exact matching)
+ */
 export const eventsMGetRequest = derived(
   resourcesExactMSearchRequest,
   async ($aggRequest) => {
     const aggMap = await $aggRequest;
-    const aggregations = Array.from(aggMap.values());
-
-    const ids = uniq(
-      flatten(
-        aggregations.map((agg) =>
-          agg.aggregations.mentions.buckets.map((mention) => mention.key)
-        )
-      )
-    )
-      .filter((x) => /events/.test(x))
-      .map((x) => x.replace('https://data.slub-dresden.de/events/', ''));
-
-    if (ids.length === 0) return [];
-
-    // property name must be `ids`
-    const body = {
-      ids
-    };
-
-    const result = await search('events', body, Endpoint.mget);
-    const docs: EventGetResponse[] = result.docs;
-
-    const events = docs.filter((pDoc) => pDoc.found).map((d) => d._source);
-
+    const events = await getMentionsByIndex('events', aggMap);
     return events;
   }
 );
