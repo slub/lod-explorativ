@@ -1,14 +1,14 @@
 <script lang="ts">
   import type { Topic } from 'types/es';
 
-  export let topics: Topic[];
+  export let topics: Map<Topic, number>;
 </script>
 
 <div class="container">
-  <h4>Erwähnte Themen</h4>
+  <h4>Verwandte Themen</h4>
   <ul class="authorList">
-    {#each topics as topic}
-      <li>{topic.preferredName}</li>
+    {#each Array.from(topics) as [topic, count]}
+      <li>{topic.preferredName} ({count})</li>
     {/each}
   </ul>
 </div>

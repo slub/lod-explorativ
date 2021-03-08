@@ -70,23 +70,23 @@
     <p class="description">{description}</p>
   {/if}
 
-  {#if authors.length > 0}
+  {#if authors.size > 0}
     <AuthorList {authors} />
   {/if}
 
-  {#if locations.length > 0}
+  {#if locations.size > 0}
     <LocationsList {locations} />
   {/if}
 
-  {#if related.length > 0}
+  {#if related.size > 0}
     <RelatedTopicsList topics={related} />
   {/if}
 
-  {#if events.length > 0}
+  {#if events.size > 0}
     <EventsList {events} />
   {/if}
 
-  {#if mentions.length > 0}
+  <!-- {#if mentions.length > 0}
     <RelatedTopicList {mentions} listName="Erwähnungen explizit" />
   {/if}
 
@@ -95,7 +95,7 @@
       mentions={aggregationsLoose.mentions}
       listName="Erwähnungen implizit"
     />
-  {/if}
+  {/if} -->
 </div>
 
 <style>

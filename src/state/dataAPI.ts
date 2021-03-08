@@ -28,12 +28,18 @@ function getEntities<T>(
   aggs: ResourceAggResponse,
   entityList: T[],
   aggName: string
-): T[] {
-  return compact(
-    aggs.aggregations[aggName].buckets.map((ref) =>
-      entityList.find((p) => p['@id'] === ref.key)
-    )
+): Map<T, number> {
+  if (!aggs) return null;
+
+  const entries: [T, number][] = compact(
+    aggs.aggregations[aggName].buckets.map(({ key, doc_count }) => {
+      const entity = entityList.find((p) => p['@id'] === key);
+      if (!entity) return null;
+      return [entity, doc_count];
+    })
   );
+
+  return new Map(entries);
 }
 
 /**
@@ -140,12 +146,10 @@ export const topicsEnriched = derived(
         aggregations: aggStrict ? convertAggs(aggStrict) : null,
         aggregationsLoose: aggLoose ? convertAggs(aggLoose) : null,
         altCount: altCounts.get(altName)?.hits.total.value,
-        authors: aggStrict ? getEntities(aggStrict, authors, 'topAuthors') : [],
-        locations: aggStrict ? getEntities(aggStrict, geo, 'mentions') : [],
-        related: aggStrict
-          ? getEntities(aggStrict, topicsRelated, 'mentions')
-          : [],
-        events: aggStrict ? getEntities(aggStrict, events, 'mentions') : []
+        authors: getEntities(aggStrict, authors, 'topAuthors'),
+        locations: getEntities(aggStrict, geo, 'mentions'),
+        related: getEntities(aggStrict, topicsRelated, 'mentions'),
+        events: getEntities(aggStrict, events, 'mentions')
       };
 
       return topic;

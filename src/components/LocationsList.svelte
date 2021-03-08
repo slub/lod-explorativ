@@ -1,14 +1,14 @@
 <script lang="ts">
   import type { Geo } from 'types/es';
 
-  export let locations: Geo[];
+  export let locations: Map<Geo, number>;
 </script>
 
 <div class="container">
   <h4>Erwähnte Orte</h4>
   <ul class="authorList">
-    {#each locations as geo}
-      <li>{geo.preferredName}</li>
+    {#each Array.from(locations) as [geo, count]}
+      <li>{geo.preferredName} ({count})</li>
     {/each}
   </ul>
 </div>

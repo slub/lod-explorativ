@@ -32,10 +32,14 @@ export interface Topic {
   aggregations: ResourceAggregation;
   aggregationsLoose: ResourceAggregation;
   altCount: number;
-  authors: Person[];
-  locations: Geo[];
-  related: TopicES[];
-  events: EventES[];
+  authors: Map<Person, number>;
+  locations: Map<Geo, number>;
+  related: Map<TopicES, number>;
+  events: Map<EventES, number>;
+}
+
+export interface EntityCount {
+  docCount: number;
 }
 
 export interface AdditionalType {
