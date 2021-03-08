@@ -1,7 +1,7 @@
 import { compact } from 'lodash';
 import { derived } from 'svelte/store';
 import type { ResourceAggResponse } from 'types/es';
-import type { Topic, TopicMeta } from '../types/app';
+import type { ResourceAggregation, Topic } from '../types/app';
 import {
   topicSearchRequest,
   authorMGetRequest,
@@ -44,8 +44,8 @@ function getEntities<T>(
 function convertAggs(aggs: ResourceAggResponse) {
   const { hits, aggregations } = aggs;
 
-  const meta: TopicMeta = {
-    resourcesCount: hits.total.value,
+  const meta: ResourceAggregation = {
+    docCount: hits.total.value,
     topAuthors: aggregations.topAuthors.buckets,
     datePublished: aggregations.datePublished.buckets.map(
       ({ key, key_as_string, doc_count }) => ({

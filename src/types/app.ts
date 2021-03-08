@@ -15,8 +15,8 @@ export interface Mention {
   docCount: number;
 }
 
-export interface TopicMeta {
-  resourcesCount: number;
+export interface ResourceAggregation {
+  docCount: number;
   topAuthors: TopAuthor[];
   datePublished: DatePublished[];
   mentions: Mention[];
@@ -29,8 +29,8 @@ export interface Topic {
   description: string;
   score: number;
   additionalTypes: AdditionalType[];
-  aggregations: TopicMeta;
-  aggregationsLoose: TopicMeta;
+  aggregations: ResourceAggregation;
+  aggregationsLoose: ResourceAggregation;
   altCount: number;
   authors: Person[];
   locations: Geo[];

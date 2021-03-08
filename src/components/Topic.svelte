@@ -25,7 +25,7 @@
     altCount
   } = topic;
 
-  const { mentions, resourcesCount } = aggregations;
+  const { mentions, docCount } = aggregations;
 </script>
 
 <div class="topic">
@@ -42,16 +42,16 @@
   </h3>
 
   <p>
-    Das Thema „{name}“ ist in <span class="count">{resourcesCount}</span>
-    Ressource{#if resourcesCount > 1}
+    Das Thema „{name}“ ist in <span class="count">{docCount}</span>
+    Ressource{#if docCount > 1}
       n
     {/if} verlinkt.
   </p>
 
   <p>
     Die Suche nach dem Begriff „{name}“ in *allen* Feldern der Ressourcen ergibt
-    {#if resourcesCount === aggregationsLoose.resourcesCount}ebenfalls{/if}
-    <span class="count">{aggregationsLoose.resourcesCount}</span>
+    {#if docCount === aggregationsLoose.docCount}ebenfalls{/if}
+    <span class="count">{aggregationsLoose.docCount}</span>
     Treffer.
   </p>
 
