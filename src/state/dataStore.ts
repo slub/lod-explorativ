@@ -10,11 +10,12 @@ import {
 import { multiQuery } from '../queries/helper';
 import type {
   Endpoint as EndpointType,
-  EventGetResponse,
-  GeoGetResponse,
+  Geo,
+  Event as EventES,
+  GetResponse,
   PersonGetResponse,
   ResourceAggResponse,
-  TopicGetResponse,
+  Topic,
   TopicSearchResponse
 } from '../types/es';
 import { Endpoint } from '../types/es';
@@ -199,10 +200,10 @@ export const authorMGetRequest = derived(
  * @param aggMap ElasticSearch aggregation result
  * @returns index documents
  */
-async function getMentionsByIndex(
+async function getMentionsByIndex<T>(
   index: string,
   aggMap: Map<string, ResourceAggResponse>
-) {
+): Promise<T[]> {
   const aggregations = Array.from(aggMap.values());
 
   const ids = uniq(
@@ -223,7 +224,7 @@ async function getMentionsByIndex(
   };
 
   const result = await search(index, body, Endpoint.mget);
-  const docs: GeoGetResponse[] = result.docs;
+  const docs: GetResponse[] = result.docs;
 
   const foundItems = docs.filter((pDoc) => pDoc.found).map((d) => d._source);
 
@@ -237,7 +238,7 @@ export const geoMGetRequest = derived(
   resourcesExactMSearchRequest,
   async ($aggRequest) => {
     const aggMap = await $aggRequest;
-    const places = await getMentionsByIndex('geo', aggMap);
+    const places = await getMentionsByIndex<Geo>('geo', aggMap);
     return places;
   }
 );
@@ -249,7 +250,7 @@ export const topicsRelatedMGetRequest = derived(
   resourcesExactMSearchRequest,
   async ($aggRequest) => {
     const aggMap = await $aggRequest;
-    const topics = await getMentionsByIndex('topics', aggMap);
+    const topics = await getMentionsByIndex<Topic>('topics', aggMap);
     return topics;
   }
 );
@@ -261,7 +262,7 @@ export const eventsMGetRequest = derived(
   resourcesExactMSearchRequest,
   async ($aggRequest) => {
     const aggMap = await $aggRequest;
-    const events = await getMentionsByIndex('events', aggMap);
+    const events = await getMentionsByIndex<EventES>('events', aggMap);
     return events;
   }
 );
