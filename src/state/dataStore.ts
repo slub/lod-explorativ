@@ -10,6 +10,7 @@ import {
 import { multiQuery } from '../queries/helper';
 import type {
   Endpoint as EndpointType,
+  EventGetResponse,
   GeoGetResponse,
   PersonGetResponse,
   ResourceAggResponse,
@@ -251,5 +252,37 @@ export const topicsRelatedMGetRequest = derived(
     const topics = docs.filter((pDoc) => pDoc.found).map((d) => d._source);
 
     return topics;
+  }
+);
+
+export const eventsMGetRequest = derived(
+  resourcesExactMSearchRequest,
+  async ($aggRequest) => {
+    const aggMap = await $aggRequest;
+    const aggregations = Array.from(aggMap.values());
+
+    const ids = uniq(
+      flatten(
+        aggregations.map((agg) =>
+          agg.aggregations.mentions.buckets.map((mention) => mention.key)
+        )
+      )
+    )
+      .filter((x) => /events/.test(x))
+      .map((x) => x.replace('https://data.slub-dresden.de/events/', ''));
+
+    if (ids.length === 0) return [];
+
+    // property name must be `ids`
+    const body = {
+      ids
+    };
+
+    const result = await search('events', body, Endpoint.mget);
+    const docs: EventGetResponse[] = result.docs;
+
+    const events = docs.filter((pDoc) => pDoc.found).map((d) => d._source);
+
+    return events;
   }
 );

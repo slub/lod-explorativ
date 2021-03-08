@@ -102,6 +102,18 @@ export interface Entity {
   _isil: string;
 }
 
+export interface Event extends Entity {
+  alternateName: string;
+  name: {
+    [lang: string]: string;
+  };
+  startDate: Date;
+  endDate: Date;
+  category: {
+    [lang: string]: Reference[];
+  };
+}
+
 export interface Topic extends Entity {
   additionalType: Reference[];
   category: {
@@ -175,4 +187,8 @@ export interface GeoGetResponse extends GetResponse {
 
 export interface TopicGetResponse extends GetResponse {
   _source: Topic;
+}
+
+export interface EventGetResponse extends GetResponse {
+  _source: Event;
 }

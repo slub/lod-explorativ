@@ -9,7 +9,8 @@ import {
   resourcesExactMSearchRequest,
   resourcesLooseMSearchRequest,
   geoMGetRequest,
-  topicsRelatedMGetRequest
+  topicsRelatedMGetRequest,
+  eventsMGetRequest
 } from './dataStore';
 
 /**
@@ -70,7 +71,8 @@ export const topicsEnriched = derived(
     resourcesExactMSearchRequest,
     resourcesLooseMSearchRequest,
     geoMGetRequest,
-    topicsRelatedMGetRequest
+    topicsRelatedMGetRequest,
+    eventsMGetRequest
   ],
   async ([
     $topicResult,
@@ -79,7 +81,8 @@ export const topicsEnriched = derived(
     $aggMapStrict,
     $aggMapLoose,
     $geo,
-    $topicsRelated
+    $topicsRelated,
+    $events
   ]) => {
     // wait until all data is loaded
     const [
@@ -89,7 +92,8 @@ export const topicsEnriched = derived(
       aggMapStrict,
       aggMapLoose,
       geo,
-      topicsRelated
+      topicsRelated,
+      events
     ] = await Promise.all([
       $topicResult,
       $authors,
@@ -97,7 +101,8 @@ export const topicsEnriched = derived(
       $aggMapStrict,
       $aggMapLoose,
       $geo,
-      $topicsRelated
+      $topicsRelated,
+      $events
     ]);
 
     // merge results
@@ -139,7 +144,8 @@ export const topicsEnriched = derived(
         locations: aggStrict ? getEntities(aggStrict, geo, 'mentions') : [],
         related: aggStrict
           ? getEntities(aggStrict, topicsRelated, 'mentions')
-          : []
+          : [],
+        events: aggStrict ? getEntities(aggStrict, events, 'mentions') : []
       };
 
       return topic;

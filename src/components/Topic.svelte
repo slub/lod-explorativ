@@ -5,6 +5,7 @@
   import RelatedTopicList from './RelatedTopicList.svelte';
   import LocationsList from './LocationsList.svelte';
   import RelatedTopicsList from './RelatedTopicsList.svelte';
+  import EventsList from './EventsList.svelte';
 
   export let topic: Topic;
 
@@ -17,6 +18,7 @@
     authors,
     locations,
     related,
+    events,
     id,
     score,
     description,
@@ -80,9 +82,14 @@
     <RelatedTopicsList topics={related} />
   {/if}
 
+  {#if events.length > 0}
+    <EventsList {events} />
+  {/if}
+
   {#if mentions.length > 0}
     <RelatedTopicList {mentions} listName="Erwähnungen explizit" />
   {/if}
+
   {#if aggregationsLoose.mentions.length > 0}
     <RelatedTopicList
       mentions={aggregationsLoose.mentions}
