@@ -1,3 +1,3 @@
 import { writable } from 'svelte/store';
 
-export const query = writable('Weltpolitik');
+export const query = writable('Kunst');
