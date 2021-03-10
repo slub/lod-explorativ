@@ -1,11 +1,24 @@
 import { derived } from 'svelte/store';
 import base64 from 'base-64';
+import { compact, flatten, map, uniq, zip } from 'lodash';
 import { query } from './uiState';
 import { topicSearchQuery } from '../queries/topics';
-import { topicRelatedRessourcesQuery } from '../queries/resources';
+import {
+  topicRelatedRessourcesQuery,
+  topicRelatedRessourcesCountQuery
+} from '../queries/resources';
 import { multiQuery } from '../queries/helper';
-import type { ResourceAggResponse, Topic } from '../types/es';
-import type { TopicMeta } from '../types/app';
+import type {
+  Endpoint as EndpointType,
+  Geo,
+  Event as EventES,
+  GetResponse,
+  PersonGetResponse,
+  ResourceAggResponse,
+  Topic,
+  TopicSearchResponse
+} from '../types/es';
+import { Endpoint } from '../types/es';
 import config from '../config';
 
 /**
@@ -26,90 +39,230 @@ export function createHeaders(props = {}) {
   });
 }
 
-export async function search(index: string, body: object) {
-  const response = await fetch(`${config.esHost}/${index}-explorativ/_search`, {
-    method: 'POST',
-    headers: createHeaders(),
-    body: JSON.stringify(body)
-  });
+/**
+ * Send search or get query to ElasticSearch
+ *
+ * @param index     Index name
+ * @param query     ElasticSearch query
+ * @param endpoint  ElasticSearch endpoint
+ */
+export async function search(
+  index: string,
+  query: Object | string,
+  endpoint: EndpointType = Endpoint.search
+) {
+  const headers =
+    endpoint === Endpoint.msearch
+      ? { 'Content-Type': 'Application/x-ndjson' }
+      : {};
+
+  const body = typeof query === 'object' ? JSON.stringify(query) : query;
+
+  const response = await fetch(
+    `${config.esHost}/${index}-explorativ/_${endpoint}`,
+    {
+      method: 'POST',
+      headers: createHeaders(headers),
+      body
+    }
+  );
 
   const result = await response.json();
 
   return result;
 }
 
-export async function msearch(index: string, body: string) {
-  const response = await fetch(
-    `${config.esHost}/${index}-explorativ/_msearch`,
-    {
-      method: 'POST',
-      headers: createHeaders({ 'Content-Type': 'Application/x-ndjson' }),
-      body
-    }
-  );
-
-  const { responses } = await response.json();
-
-  return responses;
-}
-
 /**
  * Searches topics with a given query
  */
-export const topicResult = derived(query, async ($query) => {
+export const topicSearchRequest = derived(query, async ($query) => {
   const request = topicSearchQuery($query);
   const result = await search('topics', request);
 
-  return <Topic[]>(result?.hits.hits ?? []);
+  return <TopicSearchResponse[]>(result?.hits.hits ?? []);
 });
 
 /**
- * Retrieves topic-related information from `resource` index and enriches topics
+ * Searches topic names in `mentions.name` field of `resources` index and returns aggregations.
  */
-export const topicRelatedRessources = derived(
-  topicResult,
+export const resourcesExactMSearchRequest = derived(
+  topicSearchRequest,
   async ($topicResult) => {
     const topics = await $topicResult;
 
     // array of topic names
-    const topicNames = topics.map((t) => t._source.preferredName);
+    const topicIDs: string[] = map(topics, (t) => t._source['@id']);
 
     // generate multiple queries from names
-    const multiReq = multiQuery(topicNames, topicRelatedRessourcesQuery, ['*']);
+    const multiReq = multiQuery(topicIDs, topicRelatedRessourcesQuery, [
+      'mentions.@id'
+    ]);
 
-    const responses: ResourceAggResponse[] = await msearch(
-      'resources',
-      multiReq
+    const result = await search('resources', multiReq, Endpoint.msearch);
+    const responses: ResourceAggResponse[] = result.responses;
+
+    // relate responses with queries
+    return new Map(zip(topicIDs, responses));
+  }
+);
+
+/**
+ * Searches topic names in multiple fields of `resources` index and returns aggregations.
+ */
+export const resourcesLooseMSearchRequest = derived(
+  topicSearchRequest,
+  async ($topicResult) => {
+    const topics = await $topicResult;
+
+    // array of topic names
+    const topicNames: string[] = map(topics, '_source.preferredName');
+
+    // generate multiple queries from names
+    const multiReq = multiQuery(
+      topicNames,
+      topicRelatedRessourcesQuery,
+      config.search.resources
     );
 
-    // responses do not contain the query
-    // that is why we relate the queries with the results before returning anything
-    const mapEntries: [string, TopicMeta][] = topicNames.map((topicName, i) => {
-      const res = responses[i];
-      const { hits, aggregations } = res;
-      const meta = {
-        resourcesCount: hits.total.value,
-        topAuthors: aggregations.topAuthors.buckets.map(
-          ({ key, doc_count }) => ({
-            name: key.replace('https://data.slub-dresden.de/persons/', ''),
-            docCount: doc_count
-          })
-        ),
-        datePublished: aggregations.datePublished.buckets.map(
-          ({ key, key_as_string, doc_count }) => ({
-            year: new Date(key).getFullYear(),
-            count: doc_count
-          })
-        ),
-        mentions: aggregations.mentions.buckets.map(({ key, doc_count }) => ({
-          name: key,
-          docCount: doc_count
-        }))
-      };
+    const result = await search('resources', multiReq, Endpoint.msearch);
+    const responses: ResourceAggResponse[] = result.responses;
 
-      return [topicName, meta];
-    });
+    // relate responses with queries
+    return new Map(zip(topicNames, responses));
+  }
+);
 
-    return new Map(mapEntries);
+/**
+ * Returns for topics alternate names the number of ressources with the given name
+ */
+export const resourcesAltMSearchRequest = derived(
+  topicSearchRequest,
+  async ($topicResult) => {
+    const topics = await $topicResult;
+
+    const altNames: string[] = compact(
+      flatten(map(topics, '_source.alternateName'))
+    );
+
+    // generate multiple queries and make broad search
+    const multiReq = multiQuery(
+      altNames,
+      topicRelatedRessourcesCountQuery,
+      config.search.resources
+    );
+
+    const result = await search('resources', multiReq, Endpoint.msearch);
+    const responses: ResourceAggResponse[] = result.responses;
+
+    // relate responses with queries
+    return new Map(zip(altNames, responses));
+  }
+);
+
+// TODO: similar to `getMentionsByIndex` function, could be combined
+export const authorMGetRequest = derived(
+  resourcesExactMSearchRequest,
+  async ($aggRequest) => {
+    const aggMap = await $aggRequest;
+    const aggregations = Array.from(aggMap.values());
+
+    const ids = uniq(
+      flatten(
+        aggregations.map((agg) =>
+          agg.aggregations.topAuthors.buckets.map((author) =>
+            author.key.replace('https://data.slub-dresden.de/persons/', '')
+          )
+        )
+      )
+    );
+
+    if (ids.length === 0) return [];
+
+    // property name must be `ids`
+    const body = {
+      ids
+    };
+
+    const result = await search('persons', body, Endpoint.mget);
+    const docs: PersonGetResponse[] = result.docs;
+
+    // only return found persons
+    const persons = docs.filter((pDoc) => pDoc.found).map((d) => d._source);
+
+    return persons;
+  }
+);
+
+/**
+ * Helper function that uses IDs from aggregation results to request the contained entities
+ *
+ * @param index name of index
+ * @param aggMap ElasticSearch aggregation result
+ * @returns index documents
+ */
+async function getMentionsByIndex<T>(
+  index: string,
+  aggMap: Map<string, ResourceAggResponse>
+): Promise<T[]> {
+  const aggregations = Array.from(aggMap.values());
+
+  const ids = uniq(
+    flatten(
+      aggregations.map((agg) =>
+        agg.aggregations.mentions.buckets.map((mention) => mention.key)
+      )
+    )
+  )
+    .filter((x) => new RegExp(index).test(x))
+    .map((x) => x.replace(`https://data.slub-dresden.de/${index}/`, ''));
+
+  if (ids.length === 0) return [];
+
+  // property name must be `ids`
+  const body = {
+    ids
+  };
+
+  const result = await search(index, body, Endpoint.mget);
+  const docs: GetResponse[] = result.docs;
+
+  const foundItems = docs.filter((pDoc) => pDoc.found).map((d) => d._source);
+
+  return foundItems;
+}
+
+/**
+ * Derived store contains topic-related places (exact matching)
+ */
+export const geoMGetRequest = derived(
+  resourcesExactMSearchRequest,
+  async ($aggRequest) => {
+    const aggMap = await $aggRequest;
+    const places = await getMentionsByIndex<Geo>('geo', aggMap);
+    return places;
+  }
+);
+
+/**
+ * Derived store contains topic-related topics (exact matching)
+ */
+export const topicsRelatedMGetRequest = derived(
+  resourcesExactMSearchRequest,
+  async ($aggRequest) => {
+    const aggMap = await $aggRequest;
+    const topics = await getMentionsByIndex<Topic>('topics', aggMap);
+    return topics;
+  }
+);
+
+/**
+ * Derived store contains topic-related events (exact matching)
+ */
+export const eventsMGetRequest = derived(
+  resourcesExactMSearchRequest,
+  async ($aggRequest) => {
+    const aggMap = await $aggRequest;
+    const events = await getMentionsByIndex<EventES>('events', aggMap);
+    return events;
   }
 );

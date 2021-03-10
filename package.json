@@ -12,6 +12,7 @@
     "@rollup/plugin-node-resolve": "^11.2.0",
     "@rollup/plugin-typescript": "^8.2.0",
     "@tsconfig/svelte": "^1.0.0",
+    "@types/lodash": "npm:@types/lodash-es",
     "rollup": "^2.39.1",
     "rollup-plugin-css-only": "^3.1.0",
     "rollup-plugin-livereload": "^2.0.0",
@@ -25,9 +26,9 @@
   },
   "dependencies": {
     "base-64": "^1.0.0",
-    "d3-hierarchy": "^2.0.0",
+    "d3": "^6.5.0",
     "layercake": "^4.0.3",
-    "lodash": "^4.17.20",
+    "lodash": "^4.17.21",
     "sirv-cli": "^1.0.0"
   }
 }
