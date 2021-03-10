@@ -1,5 +1,6 @@
 <script lang="ts">
   import * as d3 from 'd3';
+  import { countBy, flatten, uniqBy } from 'lodash';
   import { topicsEnriched } from '../state/dataAPI';
 
   export let width = window.innerWidth;
@@ -16,25 +17,59 @@
       .domain([0, d3.max(maxCount)])
       .range([5, 40]);
 
-    const topicNodes = topics.map((t) => ({
-      id: t.id,
-      radius: radiusScale(t.aggregationsLoose?.docCount),
-      doc: t
-    }));
+    const allNodes = [];
+    const links = [];
+
+    // TODO: move graph generation to dataAPI
+    topics.forEach((primary) => {
+      const primaryNode = {
+        id: 'https://data.slub-dresden.de/topics/' + primary.id,
+        radius: radiusScale(primary.aggregationsLoose?.docCount),
+        doc: primary,
+        type: 'primary',
+        text: primary.name
+      };
+
+      allNodes.push(primaryNode);
+
+      primary.related.forEach((_, related) => {
+        const secNode = {
+          id: related['@id'],
+          radius: 5,
+          doc: related,
+          type: 'secondary',
+          text: related.preferredName
+        };
+
+        const link = {
+          id: `${primaryNode.id}-${secNode.id}`,
+          source: primaryNode.id,
+          target: secNode.id
+        };
+
+        allNodes.push(secNode);
+        links.push(link);
+      });
+    });
+
+    const uniqNodes = uniqBy(allNodes, 'id');
+
+    console.log(uniqNodes);
 
     // TODO: add link force
-    // const link = d3.forceLink(links).id((d) => d.id);
+    const link = d3.forceLink(links).id((d) => d.id);
+    // .distance(600);
 
     simulation = d3
-      .forceSimulation(topicNodes)
-      // .force('link', link)
-      .force('charge', d3.forceManyBody())
+      .forceSimulation(uniqNodes)
+      .force('link', link)
+      .force('charge', d3.forceManyBody().strength(-400))
       .force(
         'collide',
         d3
           .forceCollide()
           .strength(0.1)
-          .radius((d) => d.radius + 75)
+          .radius((d) => d.radius + (d.type === 'primary' ? 50 : 20))
           .iterations(3)
       )
       .force('x', d3.forceX())
@@ -42,17 +77,17 @@
 
     simulation.on('tick', (x) => {
       simNodes = simulation.nodes();
-      // simLinks = link.links();
+      simLinks = link.links();
     });
   });
 
   $: simNodes = [];
-  // $: simLinks = [];
+  $: simLinks = [];
 </script>
 
 <div>
   <svg {width} {height} viewBox="{-width / 2} {-height / 2} {width} {height}">
-    <!-- <g stroke="#999" stroke-opacity={0.6}>
+    <g stroke="#999" stroke-opacity={0.6}>
       {#each simLinks as { source, target, value }}
         <line
           stroke-width={2}
@@ -62,19 +97,22 @@
           y2={target.y}
         />
       {/each}
-    </g> -->
+    </g>
 
     <g>
-      {#each simNodes as { id, doc, x, y, radius } (id)}
-        <g transform="translate({x}, {y})">
-          <circle
-            class:zeroHits={doc.aggregationsLoose?.docCount === 0}
-            r={radius}
-            fill="#f00"
-            fill-opacity="0.5"
-          />
-          <text font-size="12"
-            >{doc.name} ({doc.aggregationsLoose?.docCount})</text
+      {#each simNodes as { id, doc, text, x, y, radius, type } (id)}
+        <g
+          transform="translate({x}, {y})"
+          class:primary={type === 'primary'}
+          class:secondary={type === 'secondary'}
+          class:zeroHits={doc.aggregationsLoose?.docCount === 0}
+        >
+          <circle r={radius} fill="#f00" fill-opacity="0.5" />
+          <text font-size="12" x="10"
+            >{text}
+            {doc.aggregationsLoose
+              ? ` (${doc.aggregationsLoose?.docCount})`
+              : ''}</text
           >
         </g>
       {/each}
@@ -83,7 +121,19 @@
 </div>
 
 <style>
-  .zeroHits {
+  .primary circle {
+    fill: red;
+  }
+
+  .primary text {
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  .secondary circle {
+    fill: blue;
+  }
+  .zeroHits circle {
     fill: #333;
   }
 </style>
