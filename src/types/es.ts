@@ -102,7 +102,7 @@ export interface Entity {
   _isil: string;
 }
 
-export interface Event extends Entity {
+export interface EventES extends Entity {
   alternateName: string;
   name: {
     [lang: string]: string;
@@ -114,7 +114,7 @@ export interface Event extends Entity {
   };
 }
 
-export interface Topic extends Entity {
+export interface TopicES extends Entity {
   additionalType: Reference[];
   category: {
     [lang: string]: Reference[];
@@ -124,7 +124,7 @@ export interface Topic extends Entity {
   description: string;
 }
 
-export interface Person extends Entity {
+export interface PersonES extends Entity {
   birthDate?: Date;
   deathDate?: Date;
   dateModified?: string;
@@ -149,7 +149,7 @@ export interface Person extends Entity {
   _version: number;
 }
 
-export interface Geo extends Entity {
+export interface GeoES extends Entity {
   adressRegion: string;
   alternateName: string[];
   dateModified: string;
@@ -174,21 +174,21 @@ export interface TopicSearchResponse {
   _index: string;
   _score: number;
   _type: string;
-  _source: Topic;
+  _source: TopicES;
 }
 
 export interface PersonGetResponse extends GetResponse {
-  _source: Person;
+  _source: PersonES;
 }
 
 export interface GeoGetResponse extends GetResponse {
-  _source: Geo;
+  _source: GeoES;
 }
 
 export interface TopicGetResponse extends GetResponse {
-  _source: Topic;
+  _source: TopicES;
 }
 
 export interface EventGetResponse extends GetResponse {
-  _source: Event;
+  _source: EventES;
 }

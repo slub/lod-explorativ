@@ -1,4 +1,4 @@
-import type { Geo, Person, Topic as TopicES, Event as EventES } from './es';
+import type { GeoES, PersonES, TopicES, EventES as EventES } from './es';
 
 export interface TopAuthor {
   key: string;
@@ -32,8 +32,8 @@ export interface Topic {
   aggregations: ResourceAggregation;
   aggregationsLoose: ResourceAggregation;
   altCount: number;
-  authors: Map<Person, number>;
-  locations: Map<Geo, number>;
+  authors: Map<PersonES, number>;
+  locations: Map<GeoES, number>;
   related: Map<TopicES, number>;
   events: Map<EventES, number>;
 }

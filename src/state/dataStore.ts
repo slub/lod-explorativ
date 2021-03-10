@@ -10,12 +10,12 @@ import {
 import { multiQuery } from '../queries/helper';
 import type {
   Endpoint as EndpointType,
-  Geo,
-  Event as EventES,
+  GeoES,
+  EventES as EventES,
   GetResponse,
   PersonGetResponse,
   ResourceAggResponse,
-  Topic,
+  TopicES,
   TopicSearchResponse
 } from '../types/es';
 import { Endpoint } from '../types/es';
@@ -238,7 +238,7 @@ export const geoMGetRequest = derived(
   resourcesExactMSearchRequest,
   async ($aggRequest) => {
     const aggMap = await $aggRequest;
-    const places = await getMentionsByIndex<Geo>('geo', aggMap);
+    const places = await getMentionsByIndex<GeoES>('geo', aggMap);
     return places;
   }
 );
@@ -250,7 +250,7 @@ export const topicsRelatedMGetRequest = derived(
   resourcesExactMSearchRequest,
   async ($aggRequest) => {
     const aggMap = await $aggRequest;
-    const topics = await getMentionsByIndex<Topic>('topics', aggMap);
+    const topics = await getMentionsByIndex<TopicES>('topics', aggMap);
     return topics;
   }
 );
