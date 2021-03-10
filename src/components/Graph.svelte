@@ -23,7 +23,7 @@
     // TODO: move graph generation to dataAPI
     topics.forEach((primary) => {
       const primaryNode = {
-        id: primary.id,
+        id: 'https://data.slub-dresden.de/topics/' + primary.id,
         radius: radiusScale(primary.aggregationsLoose?.docCount),
         doc: primary,
         type: 'primary',
@@ -69,7 +69,7 @@
         d3
           .forceCollide()
           .strength(0.1)
-          .radius((d) => d.radius + 5)
+          .radius((d) => d.radius + (d.type === 'primary' ? 50 : 20))
           .iterations(3)
       )
       .force('x', d3.forceX())
@@ -101,15 +101,13 @@
 
     <g>
       {#each simNodes as { id, doc, text, x, y, radius, type } (id)}
-        <g transform="translate({x}, {y})">
-          <circle
-            class:primary={type === 'primary'}
-            class:secondary={type === 'secondary'}
-            class:zeroHits={doc.aggregationsLoose?.docCount === 0}
-            r={radius}
-            fill="#f00"
-            fill-opacity="0.5"
-          />
+        <g
+          transform="translate({x}, {y})"
+          class:primary={type === 'primary'}
+          class:secondary={type === 'secondary'}
+          class:zeroHits={doc.aggregationsLoose?.docCount === 0}
+        >
+          <circle r={radius} fill="#f00" fill-opacity="0.5" />
           <text font-size="12" x="10"
             >{text}
             {doc.aggregationsLoose
@@ -123,13 +121,19 @@
 </div>
 
 <style>
-  .primary {
+  .primary circle {
     fill: red;
   }
-  .secondary {
+
+  .primary text {
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  .secondary circle {
     fill: blue;
   }
-  .zeroHits {
+  .zeroHits circle {
     fill: #333;
   }
 </style>
