@@ -51,3 +51,44 @@ export function topicRelatedRessourcesCountQuery(
     }
   };
 }
+
+/**
+ * Return an ES adjacency matrix query
+ *
+ * @param query search term
+ * @param topicIDs list of topic names
+ * @param fields fields in which to search `query`
+ * @returns ES adjacency matrix query
+ */
+export function topicRelationsQuery(
+  query: string,
+  topicIDs: string[],
+  fields: string[]
+) {
+  const filters = {};
+
+  topicIDs.forEach(
+    (ID) =>
+      (filters[ID] = {
+        terms: { 'mentions.name.keyword': [ID] }
+      })
+  );
+
+  return {
+    size: 0,
+    query: {
+      multi_match: {
+        query,
+        fields,
+        type: 'phrase'
+      }
+    },
+    aggs: {
+      topicsAM: {
+        adjacency_matrix: {
+          filters
+        }
+      }
+    }
+  };
+}

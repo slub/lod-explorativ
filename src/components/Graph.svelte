@@ -1,79 +1,62 @@
 <script lang="ts">
-  import * as d3 from 'd3';
-  import { countBy, flatten, uniqBy } from 'lodash';
-  import { topicsEnriched } from '../state/dataAPI';
+  import { scaleLinear, scaleSqrt } from 'd3-scale';
+  import { max } from 'd3-array';
+  import {
+    forceSimulation,
+    forceLink,
+    forceManyBody,
+    forceCollide,
+    forceX,
+    forceY
+  } from 'd3-force';
+  import type { GraphNode, GraphLink } from 'types/app';
+  import { LinkType, NodeType } from 'types/app';
+  import { graph } from '../state/dataAPI';
+  import { query } from '../state/uiState';
 
   export let width = window.innerWidth;
   export let height = window.innerHeight - 200;
 
   let simulation;
+  let radiusScale;
+  let edgeWidthScale;
 
-  topicsEnriched.subscribe(async (value) => {
-    const topics = await value;
+  $: simNodes = <GraphNode[]>[];
+  $: simLinks = <GraphLink[]>[];
 
-    const maxCount = topics.map((t) => t.aggregationsLoose?.docCount);
-    const radiusScale = d3
-      .scaleSqrt()
-      .domain([0, d3.max(maxCount)])
-      .range([5, 40]);
+  graph.subscribe(async (value) => {
+    const { links, nodes } = await value;
 
-    const allNodes = [];
-    const links = [];
+    radiusScale = scaleSqrt()
+      .domain([0, max(nodes, (n) => n.count)])
+      .range([1, 40]);
 
-    // TODO: move graph generation to dataAPI
-    topics.forEach((primary) => {
-      const primaryNode = {
-        id: 'https://data.slub-dresden.de/topics/' + primary.id,
-        radius: radiusScale(primary.aggregationsLoose?.docCount),
-        doc: primary,
-        type: 'primary',
-        text: primary.name
-      };
+    edgeWidthScale = scaleLinear()
+      .domain([0, max(links, (l) => l.weight)])
+      .range([1, 10]);
 
-      allNodes.push(primaryNode);
+    console.log('node extent', radiusScale.domain());
+    console.log('link extent', edgeWidthScale.domain());
 
-      primary.related.forEach((_, related) => {
-        const secNode = {
-          id: related['@id'],
-          radius: 5,
-          doc: related,
-          type: 'secondary',
-          text: related.preferredName
-        };
-
-        const link = {
-          id: `${primaryNode.id}-${secNode.id}`,
-          source: primaryNode.id,
-          target: secNode.id
-        };
-
-        allNodes.push(secNode);
-        links.push(link);
-      });
-    });
-
-    const uniqNodes = uniqBy(allNodes, 'id');
-
-    console.log(uniqNodes);
+    console.log(nodes, links);
 
     // TODO: add link force
-    const link = d3.forceLink(links).id((d) => d.id);
+    const link = forceLink(links).id((d: GraphLink) => d.id);
     // .distance(600);
 
-    simulation = d3
-      .forceSimulation(uniqNodes)
+    // Create simulation
+    simulation = forceSimulation(nodes)
       .force('link', link)
-      .force('charge', d3.forceManyBody().strength(-400))
+      .force('charge', forceManyBody().strength(-200))
       .force(
         'collide',
-        d3
-          .forceCollide()
-          .strength(0.1)
-          .radius((d) => d.radius + (d.type === 'primary' ? 50 : 20))
+        forceCollide()
+          // .strength(0.1)
+          // .radius((d) => d.radius + (d.type === NodeType.primary ? 50 : 20))
           .iterations(3)
       )
-      .force('x', d3.forceX())
-      .force('y', d3.forceY());
+      .force('x', forceX())
+      .force('y', forceY());
 
     simulation.on('tick', (x) => {
       simNodes = simulation.nodes();
@@ -81,16 +64,19 @@
     });
   });
 
-  $: simNodes = [];
-  $: simLinks = [];
+  function handleClick(name) {
+    query.set(name);
+  }
 </script>
 
 <div>
   <svg {width} {height} viewBox="{-width / 2} {-height / 2} {width} {height}">
     <g stroke="#999" stroke-opacity={0.6}>
-      {#each simLinks as { source, target, value }}
+      {#each simLinks as { source, target, weight, type }}
         <line
-          stroke-width={2}
+          class:mentions_name_link={type === LinkType.MENTIONS_NAME_LINK}
+          class:mentions_id_link={type === LinkType.MENTIONS_NAME_LINK}
+          stroke-width={edgeWidthScale(weight)}
           x1={source.x}
           y1={source.y}
           x2={target.x}
@@ -100,20 +86,17 @@
     </g>
 
     <g>
-      {#each simNodes as { id, doc, text, x, y, radius, type } (id)}
+      {#each simNodes as { id, doc, text, x, y, count, type } (id)}
         <g
           transform="translate({x}, {y})"
-          class:primary={type === 'primary'}
-          class:secondary={type === 'secondary'}
-          class:zeroHits={doc.aggregationsLoose?.docCount === 0}
+          class="node"
+          class:primary={type === NodeType.primary}
+          class:secondary={type === NodeType.secondary}
+          class:zeroHits={count === 0}
+          on:click={() => handleClick(text)}
         >
-          <circle r={radius} fill="#f00" fill-opacity="0.5" />
-          <text font-size="12" x="10"
-            >{text}
-            {doc.aggregationsLoose
-              ? ` (${doc.aggregationsLoose?.docCount})`
-              : ''}</text
-          >
+          <circle r={radiusScale(count)} fill="#f00" fill-opacity="0.5" />
+          <text font-size="12" x="10">{text}</text>
         </g>
       {/each}
     </g>
@@ -121,6 +104,9 @@
 </div>
 
 <style>
+  .node :hover {
+    cursor: pointer;
+  }
   .primary circle {
     fill: red;
   }
@@ -135,5 +121,16 @@
   }
   .zeroHits circle {
     fill: #333;
+  }
+
+  .mentions_name_link {
+    stroke: black;
+    stroke-dasharray: 4 6;
+  }
+
+  .mentions_id_link {
+    stroke: red;
+    stroke-width: 2;
+    stroke-opacity: 0.2;
   }
 </style>

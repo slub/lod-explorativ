@@ -47,3 +47,31 @@ export interface AdditionalType {
   description: string;
   name: string;
 }
+
+export enum LinkType {
+  MENTIONS_ID_LINK = 'MENTIONS_ID_LINK',
+  MENTIONS_NAME_LINK = 'MENTIONS_NAME_LINK'
+}
+
+export enum NodeType {
+  primary = 'primary',
+  secondary = 'secondary'
+}
+
+export interface GraphLink {
+  id: string;
+  source: GraphNode;
+  target: GraphNode;
+  type: LinkType;
+  weight: number;
+}
+
+export interface GraphNode {
+  id: string;
+  doc: Topic;
+  type: NodeType;
+  text: string;
+  count: number;
+  x?: number;
+  y?: number;
+}

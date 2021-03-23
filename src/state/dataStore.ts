@@ -5,7 +5,8 @@ import { query } from './uiState';
 import { topicSearchQuery } from '../queries/topics';
 import {
   topicRelatedRessourcesQuery,
-  topicRelatedRessourcesCountQuery
+  topicRelatedRessourcesCountQuery,
+  topicRelationsQuery
 } from '../queries/resources';
 import { multiQuery } from '../queries/helper';
 import type {
@@ -133,7 +134,7 @@ export const resourcesLooseMSearchRequest = derived(
 );
 
 /**
- * Returns for topics alternate names the number of ressources with the given name
+ * Returns the number of ressources which contain the topic alternate name
  */
 export const resourcesAltMSearchRequest = derived(
   topicSearchRequest,
@@ -264,5 +265,31 @@ export const eventsMGetRequest = derived(
     const aggMap = await $aggRequest;
     const events = await getMentionsByIndex<EventES>('events', aggMap);
     return events;
+  }
+);
+
+/**
+ * Derived store contains relations between primary and secondary topics
+ */
+export const topicRelationsSearchRequest = derived(
+  [query, topicSearchRequest, topicsRelatedMGetRequest],
+  async ([$query, $topics, $aggs]) => {
+    const topics = await $topics;
+    const aggs = await $aggs;
+
+    // array of topic names
+    const topicNames: string[] = map(topics, (t) => t._source['preferredName']);
+    const relatedNames = aggs.map((t) => t.preferredName);
+    const uniqNames = uniq([...topicNames, ...relatedNames]);
+
+    // generate multiple queries from names
+    const req = topicRelationsQuery($query, uniqNames, config.search.resources);
+    const result: ResourceAggResponse = await search(
+      'resources',
+      req,
+      Endpoint.search
+    );
+
+    return result.aggregations.topicsAM.buckets;
   }
 );
