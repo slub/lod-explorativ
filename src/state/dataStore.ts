@@ -274,8 +274,7 @@ export const eventsMGetRequest = derived(
 export const topicRelationsSearchRequest = derived(
   [query, topicSearchRequest, topicsRelatedMGetRequest],
   async ([$query, $topics, $aggs]) => {
-    const topics = await $topics;
-    const aggs = await $aggs;
+    const [topics, aggs] = await Promise.all([$topics, $aggs]);
 
     // array of topic names
     const topicNames: string[] = map(topics, (t) => t._source['preferredName']);

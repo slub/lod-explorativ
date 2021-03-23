@@ -1,3 +1,5 @@
+import { take } from 'lodash';
+
 const aggs = {
   topAuthors: {
     terms: {
@@ -67,7 +69,13 @@ export function topicRelationsQuery(
 ) {
   const filters = {};
 
-  topicIDs.forEach(
+  if (topicIDs.length > 100) {
+    console.warn(
+      `Adjacency matrix query is limited to 100 filters. ${topicIDs.length} filters where passed.`
+    );
+  }
+
+  take(topicIDs, 100).forEach(
     (ID) =>
       (filters[ID] = {
         terms: { 'mentions.name.keyword': [ID] }

@@ -29,7 +29,7 @@
 
     radiusScale = scaleSqrt()
       .domain([0, max(nodes, (n) => n.count)])
-      .range([1, 40]);
+      .range([5, 40]);
 
     edgeWidthScale = scaleLinear()
       .domain([0, max(links, (l) => l.weight)])
@@ -38,21 +38,25 @@
     console.log('node extent', radiusScale.domain());
     console.log('link extent', edgeWidthScale.domain());
 
-    console.log(nodes, links);
-
     // TODO: add link force
-    const link = forceLink(links).id((d: GraphLink) => d.id);
-    // .distance(600);
+    const link = forceLink(links)
+      .id((d: GraphLink) => d.id)
+      .distance(75);
 
     // Create simulation
     simulation = forceSimulation(nodes)
       .force('link', link)
-      .force('charge', forceManyBody().strength(-200))
+      .force(
+        'charge',
+        forceManyBody().strength((d: GraphNode) =>
+          d.type === NodeType.primary ? -10 : -400
+        )
+      )
       .force(
         'collide',
         forceCollide()
-          // .strength(0.1)
-          // .radius((d) => d.radius + (d.type === NodeType.primary ? 50 : 20))
+          .strength(0.1)
+          .radius((d: GraphNode) => (d.type === NodeType.secondary ? 30 : 100))
           .iterations(3)
       )
       .force('x', forceX())
@@ -75,7 +79,7 @@
       {#each simLinks as { source, target, weight, type }}
         <line
           class:mentions_name_link={type === LinkType.MENTIONS_NAME_LINK}
-          class:mentions_id_link={type === LinkType.MENTIONS_NAME_LINK}
+          class:mentions_id_link={type === LinkType.MENTIONS_ID_LINK}
           stroke-width={edgeWidthScale(weight)}
           x1={source.x}
           y1={source.y}
@@ -96,7 +100,11 @@
           on:click={() => handleClick(text)}
         >
           <circle r={radiusScale(count)} fill="#f00" fill-opacity="0.5" />
-          <text font-size="12" x="10">{text}</text>
+          <text font-size="12" x="10"
+            >{text}{#if count}
+              ({count})
+            {/if}</text
+          >
         </g>
       {/each}
     </g>
@@ -129,8 +137,8 @@
   }
 
   .mentions_id_link {
-    stroke: red;
+    stroke: black;
     stroke-width: 2;
-    stroke-opacity: 0.2;
+    stroke-opacity: 0.025;
   }
 </style>

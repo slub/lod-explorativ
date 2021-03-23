@@ -60,8 +60,8 @@ export enum NodeType {
 
 export interface GraphLink {
   id: string;
-  source: GraphNode;
-  target: GraphNode;
+  source: string;
+  target: string;
   type: LinkType;
   weight: number;
 }

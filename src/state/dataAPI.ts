@@ -1,4 +1,4 @@
-import { compact, uniqBy } from 'lodash';
+import { compact, last, uniqBy } from 'lodash';
 import { derived } from 'svelte/store';
 import type { ResourceAggResponse } from 'types/es';
 import {
@@ -181,39 +181,46 @@ export const graph = derived(
     const links: GraphLink[] = [];
 
     topics.forEach((primaryTopic) => {
-      const { name, aggregationsLoose } = primaryTopic;
+      const { id, name, aggregationsLoose, related } = primaryTopic;
 
+      // create graph node
       const primaryNode: GraphNode = {
-        // id: 'https://data.slub-dresden.de/topics/' + primary.id,
         id: name,
-        count: primaryTopic.aggregationsLoose?.docCount,
+        count: aggregationsLoose?.docCount,
         doc: primaryTopic,
         type: NodeType.primary,
-        text: primaryTopic.name
+        text: name
       };
 
       nodes.push(primaryNode);
 
-      primaryTopic.related.forEach((weight, related) => {
-        const secNode: GraphNode = {
-          id: related.preferredName,
-          // TODO: get counts for secondary topics
-          count: 1,
-          // TODO: add topic document
-          doc: null,
-          type: NodeType.secondary,
-          text: related.preferredName
-        };
+      related.forEach((weight, related) => {
+        // check if node already exists
+        let secNode = nodes.find((x) => x.id === related.preferredName);
+
+        if (!secNode) {
+          secNode = {
+            id: related.preferredName,
+            // TODO: get counts for secondary topics
+            count: null,
+            // TODO: add topic document
+            doc: null,
+            type: NodeType.secondary,
+            text: related.preferredName
+          };
+
+          nodes.push(secNode);
+        }
 
         const link: GraphLink = {
           id: `${primaryNode.id}-${secNode.id}`,
-          source: primaryNode,
-          target: secNode,
+          source: primaryNode.id,
+          target: secNode.id,
           type: LinkType.MENTIONS_ID_LINK,
+          // TODO: use proper metric
           weight
         };
 
-        nodes.push(secNode);
         links.push(link);
       });
     });
