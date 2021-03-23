@@ -18,8 +18,7 @@ const aggs = {
     terms: {
       // TODO: use id
       field: 'mentions.@id.keyword',
-      // field: 'mentions.name.keyword',
-      size: 20
+      size: 10
     }
   }
 };

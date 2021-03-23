@@ -177,11 +177,19 @@ export const graph = derived(
   async ([$relationsReq, $topicsReq]) => {
     const [relations, topics] = await Promise.all([$relationsReq, $topicsReq]);
 
+    console.log('-------- GENERATE GRAPH -------------');
+
+    console.log('topics', topics);
+    console.log('relations', relations);
+
     const nodes: GraphNode[] = [];
     const links: GraphLink[] = [];
 
+    let relatedTopicNames = [];
+
+    // create nodes for all top-level topics and collect related topics
     topics.forEach((primaryTopic) => {
-      const { id, name, aggregationsLoose, related } = primaryTopic;
+      const { name, aggregationsLoose, related } = primaryTopic;
 
       // create graph node
       const primaryNode: GraphNode = {
@@ -192,30 +200,22 @@ export const graph = derived(
         text: name
       };
 
+      console.log('primary', primaryNode.id);
+
       nodes.push(primaryNode);
 
-      related.forEach((weight, related) => {
-        // check if node already exists
-        let secNode = nodes.find((x) => x.id === related.preferredName);
+      const relNames = Array.from(related.keys()).map((r) => r.preferredName);
 
-        if (!secNode) {
-          secNode = {
-            id: related.preferredName,
-            // TODO: get counts for secondary topics
-            count: null,
-            // TODO: add topic document
-            doc: null,
-            type: NodeType.secondary,
-            text: related.preferredName
-          };
+      // collect related topics to create these topics later,
+      // so that we can give precedence to top-level topics
+      relatedTopicNames = [...relatedTopicNames, ...relNames];
 
-          nodes.push(secNode);
-        }
-
+      // create links from top-level topics to related topics
+      related.forEach((weight, relatedTopic) => {
         const link: GraphLink = {
-          id: `${primaryNode.id}-${secNode.id}`,
+          id: `${primaryNode.id}-${relatedTopic.preferredName}`,
           source: primaryNode.id,
-          target: secNode.id,
+          target: relatedTopic.preferredName,
           type: LinkType.MENTIONS_ID_LINK,
           // TODO: use proper metric
           weight
@@ -225,23 +225,73 @@ export const graph = derived(
       });
     });
 
-    // TODO: un-comment
-    // relations.forEach(({ key, doc_count }) => {
-    //   const [source, target] = key.split('&');
+    // create related topic nodes if they haven't been created on the top-level
+    relatedTopicNames.forEach((relatedTopic) => {
+      // check if node already exists
+      const exists = nodes.find((x) => x.id === relatedTopic);
 
-    //   // target is undefined for cells ij with i == j
-    //   if (target === undefined) return null;
+      if (!exists) {
+        const secNode = {
+          id: relatedTopic,
+          // TODO: get counts for secondary topics
+          count: null,
+          // TODO: add topic document
+          doc: null,
+          type: NodeType.secondary,
+          text: relatedTopic
+        };
 
-    //   const link: GraphLink = {
-    //     id: source + '-' + target,
-    //     source,
-    //     target,
-    //     weight: doc_count,
-    //     type: LinkType.MENTIONS_NAME_LINK
-    //   };
+        console.log('>> secondary', secNode.id);
+        nodes.push(secNode);
+      }
+    });
 
-    //   links.push(link);
-    // });
+    // TODO: only add relation if it does not already exist (from top-level to related)
+    relations.forEach(({ key, doc_count }) => {
+      const [source, target] = key.split('&');
+
+      // target is undefined for cells ij with i == j
+      if (target) {
+        let sourceNode = nodes.find((x) => x.id === source);
+        let targetNode = nodes.find((x) => x.id === target);
+
+        // FIXME: this case should not happen
+        if (!sourceNode) {
+          nodes.push({
+            id: source,
+            count: null,
+            doc: null,
+            type: NodeType.secondary,
+            text: source
+          });
+
+          console.log(`.....creating source node "${source}" from relations`);
+        }
+
+        // FIXME: this case should not happen
+        if (!targetNode) {
+          nodes.push({
+            id: target,
+            count: null,
+            doc: null,
+            type: NodeType.secondary,
+            text: target
+          });
+
+          console.log(`.....creating target node "${target}" from relations`);
+        }
+
+        const link: GraphLink = {
+          id: source + '-' + target,
+          source,
+          target,
+          weight: doc_count,
+          type: LinkType.MENTIONS_NAME_LINK
+        };
+
+        links.push(link);
+      }
+    });
 
     return { links: compact(links), nodes: uniqBy(nodes, 'id') };
   }

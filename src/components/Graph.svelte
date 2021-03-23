@@ -35,8 +35,8 @@
       .domain([0, max(links, (l) => l.weight)])
       .range([1, 10]);
 
-    console.log('node extent', radiusScale.domain());
-    console.log('link extent', edgeWidthScale.domain());
+    // console.log('node extent', radiusScale.domain());
+    // console.log('link extent', edgeWidthScale.domain());
 
     // TODO: add link force
     const link = forceLink(links)
@@ -100,11 +100,7 @@
           on:click={() => handleClick(text)}
         >
           <circle r={radiusScale(count)} fill="#f00" fill-opacity="0.5" />
-          <text font-size="12" x="10"
-            >{text}{#if count}
-              ({count})
-            {/if}</text
-          >
+          <text font-size="12" x="10">{text}</text>
         </g>
       {/each}
     </g>
@@ -133,12 +129,13 @@
 
   .mentions_name_link {
     stroke: black;
-    stroke-dasharray: 4 6;
+    stroke-opacity: 0.2;
+    stroke-dasharray: 8 4;
   }
 
   .mentions_id_link {
-    stroke: black;
-    stroke-width: 2;
-    stroke-opacity: 0.025;
+    stroke: red;
+    stroke-width: 1;
+    stroke-opacity: 0.3;
   }
 </style>
