@@ -27,6 +27,9 @@
   "dependencies": {
     "base-64": "^1.0.0",
     "d3": "^6.5.0",
+    "d3-array": "^2.12.0",
+    "d3-force": "^2.1.1",
+    "d3-scale": "^3.2.3",
     "layercake": "^4.0.3",
     "lodash": "^4.17.21",
     "sirv-cli": "^1.0.0"

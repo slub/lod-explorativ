@@ -1,7 +1,14 @@
-import { compact } from 'lodash';
+import { compact, uniqBy } from 'lodash';
 import { derived } from 'svelte/store';
 import type { ResourceAggResponse } from 'types/es';
-import type { ResourceAggregation, Topic } from '../types/app';
+import {
+  GraphLink,
+  GraphNode,
+  ResourceAggregation,
+  Topic,
+  NodeType,
+  LinkType
+} from '../types/app';
 import {
   topicSearchRequest,
   authorMGetRequest,
@@ -10,7 +17,8 @@ import {
   resourcesLooseMSearchRequest,
   geoMGetRequest,
   topicsRelatedMGetRequest,
-  eventsMGetRequest
+  eventsMGetRequest,
+  topicRelationsSearchRequest
 } from './dataStore';
 
 /**
@@ -158,5 +166,76 @@ export const topicsEnriched = derived(
     return merged;
 
     // return orderBy(merged, 'aggregations.resourcesCount', ['desc']);
+  }
+);
+
+/**
+ * Returns graph structure for the visualization
+ */
+export const graph = derived(
+  [topicRelationsSearchRequest, topicsEnriched],
+  async ([$relationsReq, $topicsReq]) => {
+    const [relations, topics] = await Promise.all([$relationsReq, $topicsReq]);
+
+    const nodes: GraphNode[] = [];
+    const links: GraphLink[] = [];
+
+    topics.forEach((primaryTopic) => {
+      const { name, aggregationsLoose } = primaryTopic;
+
+      const primaryNode: GraphNode = {
+        // id: 'https://data.slub-dresden.de/topics/' + primary.id,
+        id: name,
+        count: primaryTopic.aggregationsLoose?.docCount,
+        doc: primaryTopic,
+        type: NodeType.primary,
+        text: primaryTopic.name
+      };
+
+      nodes.push(primaryNode);
+
+      primaryTopic.related.forEach((weight, related) => {
+        const secNode: GraphNode = {
+          id: related.preferredName,
+          // TODO: get counts for secondary topics
+          count: 1,
+          // TODO: add topic document
+          doc: null,
+          type: NodeType.secondary,
+          text: related.preferredName
+        };
+
+        const link: GraphLink = {
+          id: `${primaryNode.id}-${secNode.id}`,
+          source: primaryNode,
+          target: secNode,
+          type: LinkType.MENTIONS_ID_LINK,
+          weight
+        };
+
+        nodes.push(secNode);
+        links.push(link);
+      });
+    });
+
+    // TODO: un-comment
+    // relations.forEach(({ key, doc_count }) => {
+    //   const [source, target] = key.split('&');
+
+    //   // target is undefined for cells ij with i == j
+    //   if (target === undefined) return null;
+
+    //   const link: GraphLink = {
+    //     id: source + '-' + target,
+    //     source,
+    //     target,
+    //     weight: doc_count,
+    //     type: LinkType.MENTIONS_NAME_LINK
+    //   };
+
+    //   links.push(link);
+    // });
+
+    return { links: compact(links), nodes: uniqBy(nodes, 'id') };
   }
 );
