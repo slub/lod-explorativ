@@ -177,10 +177,10 @@ export const graph = derived(
   async ([$relationsReq, $topicsReq]) => {
     const [relations, topics] = await Promise.all([$relationsReq, $topicsReq]);
 
-    console.log('-------- GENERATE GRAPH -------------');
+    // console.log('-------- GENERATE GRAPH -------------');
 
-    console.log('topics', topics);
-    console.log('relations', relations);
+    // console.log('topics', topics);
+    // console.log('relations', relations);
 
     const nodes: GraphNode[] = [];
     const links: GraphLink[] = [];
@@ -200,7 +200,7 @@ export const graph = derived(
         text: name
       };
 
-      console.log('primary', primaryNode.id);
+      // console.log('primary', primaryNode.id);
 
       nodes.push(primaryNode);
 
@@ -241,7 +241,7 @@ export const graph = derived(
           text: relatedTopic
         };
 
-        console.log('>> secondary', secNode.id);
+        // console.log('>> secondary', secNode.id);
         nodes.push(secNode);
       }
     });
@@ -265,7 +265,7 @@ export const graph = derived(
             text: source
           });
 
-          console.log(`.....creating source node "${source}" from relations`);
+          // console.log(`.....creating source node "${source}" from relations`);
         }
 
         // FIXME: this case should not happen
@@ -278,7 +278,7 @@ export const graph = derived(
             text: target
           });
 
-          console.log(`.....creating target node "${target}" from relations`);
+          // console.log(`.....creating target node "${target}" from relations`);
         }
 
         const link: GraphLink = {

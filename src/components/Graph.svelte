@@ -14,8 +14,8 @@
   import { graph } from '../state/dataAPI';
   import { query } from '../state/uiState';
 
-  export let width = window.innerWidth;
-  export let height = window.innerHeight - 200;
+  export let width = 800;
+  export let height = 600;
 
   let simulation;
   let radiusScale;
