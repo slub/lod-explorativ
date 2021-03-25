@@ -7,20 +7,25 @@
   import Title from './components/Title.svelte';
   import Suggestions from './components/Suggestions.svelte';
   import Layout from './components/Layout.svelte';
+  import Navigation from './components/Navigation.svelte';
 </script>
 
-<main>
-  <Layout>
-    <Title slot="header" {name} />
-    <div slot="left">
-      <SearchInput />
-      <Suggestions />
-    </div>
-    <Graph slot="main" />
-  </Layout>
+<Layout>
+  <div class="header" slot="header">
+    <Title {name} />
+    <Navigation />
+  </div>
+  <div slot="left">
+    <SearchInput />
+    <Suggestions />
+  </div>
+  <Graph slot="main" />
+</Layout>
 
-  <!-- <TopicList /> -->
-</main>
-
+<!-- <TopicList /> -->
 <style>
+  .header {
+    display: flex;
+    align-items: baseline;
+  }
 </style>

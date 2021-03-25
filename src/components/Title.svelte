@@ -6,10 +6,11 @@
   }
 </script>
 
-<h1 class="title" on:click={handleTitleClick}>{name}</h1>
+<h1 on:click={handleTitleClick}>{name}</h1>
 
 <style>
-  .title {
+  h1 {
     cursor: pointer;
+    margin-right: 15%;
   }
 </style>

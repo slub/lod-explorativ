@@ -1,4 +1,4 @@
-import { compact, last, uniqBy } from 'lodash';
+import { compact, flatten, last, uniq, uniqBy } from 'lodash';
 import { derived } from 'svelte/store';
 import type { ResourceAggResponse } from 'types/es';
 import {
@@ -76,6 +76,20 @@ function convertAggs(aggs: ResourceAggResponse) {
 
   return meta;
 }
+
+export const additionalTypes = derived(topicSearchRequest, async (topicReq) => {
+  const topics = await topicReq;
+
+  const addTypes = uniq(
+    flatten(
+      topics.map((topic) =>
+        topic._source.additionalType.map((type) => type.name)
+      )
+    )
+  ).sort();
+
+  return addTypes;
+});
 
 /** Combines results from topic search in topic index and associated resources in resource index */
 export const topicsEnriched = derived(
