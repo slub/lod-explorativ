@@ -81,9 +81,11 @@ export const additionalTypes = derived(topicSearchRequest, async (topicReq) => {
   const topics = await topicReq;
 
   const addTypes = uniq(
-    flatten(
-      topics.map((topic) =>
-        topic._source.additionalType.map((type) => type.name)
+    compact(
+      flatten(
+        topics.map((topic) =>
+          topic._source.additionalType?.map((type) => type.name)
+        )
       )
     )
   ).sort();
@@ -216,7 +218,10 @@ export const graph = derived(
 
       // collect related topics to create these topics later,
       // so that we can give precedence to top-level topics
-      relatedTopicNames = [...relatedTopicNames, ...relNames];
+      // only add related nodes if conncted to the topic that matches the query
+      if (name === $query) {
+        relatedTopicNames = [...relatedTopicNames, ...relNames];
+      }
 
       // create links from top-level topics to related topics
       // related.forEach((weight, relatedTopic) => {
@@ -258,42 +263,41 @@ export const graph = derived(
       const [source, target] = key.split('&');
 
       // target is undefined for cells ij with i == j
-      // only add relations from or to the topic that matches the query
       if (target) {
         let sourceNode = nodes.find((x) => x.id === source);
         let targetNode = nodes.find((x) => x.id === target);
 
-        // FIXME: this case should not happen
-        if (!sourceNode) {
-          nodes.push({
-            id: source,
-            count: null,
-            doc: null,
-            type: NodeType.secondary,
-            text: source
-          });
+        // if (!sourceNode) {
+        //   nodes.push({
+        //     id: source,
+        //     count: null,
+        //     doc: null,
+        //     type: NodeType.secondary,
+        //     text: source
+        //   });
+        // }
+
+        // if (!targetNode) {
+        //   nodes.push({
+        //     id: target,
+        //     count: null,
+        //     doc: null,
+        //     type: NodeType.secondary,
+        //     text: target
+        //   });
+        // }
+
+        if (sourceNode && targetNode) {
+          const link: GraphLink = {
+            id: source + '-' + target,
+            source,
+            target,
+            weight: doc_count,
+            type: LinkType.MENTIONS_NAME_LINK
+          };
+
+          links.push(link);
         }
-
-        // FIXME: this case should not happen
-        if (!targetNode) {
-          nodes.push({
-            id: target,
-            count: null,
-            doc: null,
-            type: NodeType.secondary,
-            text: target
-          });
-        }
-
-        const link: GraphLink = {
-          id: source + '-' + target,
-          source,
-          target,
-          weight: doc_count,
-          type: LinkType.MENTIONS_NAME_LINK
-        };
-
-        links.push(link);
       }
     });
 

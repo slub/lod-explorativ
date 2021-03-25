@@ -88,7 +88,7 @@
         <line
           class:mentions_name_link={type === LinkType.MENTIONS_NAME_LINK}
           class:mentions_id_link={type === LinkType.MENTIONS_ID_LINK}
-          stroke-width={edgeWidthScale(weight)}
+          stroke-width={1}
           x1={source.x}
           y1={source.y}
           x2={target.x}
@@ -105,10 +105,12 @@
           class:primary={type === NodeType.primary}
           class:secondary={type === NodeType.secondary}
           class:zeroHits={count === 0}
+          class:selected={text === $query}
           on:click={() => handleClick(text)}
         >
           <circle r={radiusScale(count)} fill="#f00" fill-opacity="0.5" />
-          <text font-size="12" x="10">{text}</text>
+          <!-- TODO: do not call function radiusScale(count) twice -->
+          <text font-size="12" x={radiusScale(count) + 5}>{text}</text>
         </g>
       {/each}
     </g>
@@ -127,30 +129,47 @@
     cursor: pointer;
   }
   .primary circle {
-    fill: red;
+    fill: transparent;
+    stroke: grey;
   }
 
-  .primary text {
+  text {
     font-size: 14px;
-    font-weight: bold;
+  }
+
+  .secondary text {
+    fill: grey;
+    font-style: italic;
   }
 
   .secondary circle {
-    fill: blue;
+    fill: black;
+    stroke: transparent;
   }
-  .zeroHits circle {
-    fill: #333;
+
+  .selected circle {
+    stroke: black;
+    stroke-width: 2px;
+    fill: white;
+  }
+
+  .selected text {
+    font-size: 18px;
+    font-weight: bold;
+  }
+  .zeroHits {
+    opacity: 0.2;
   }
 
   .mentions_name_link {
     stroke: black;
     stroke-opacity: 0.2;
-    stroke-dasharray: 8 4;
+    /* stroke-dasharray: 8 4; */
   }
 
   .mentions_id_link {
     stroke: red;
     stroke-width: 1;
-    stroke-opacity: 0.3;
+    /* stroke-opacity: 0; */
   }
 </style>
