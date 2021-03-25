@@ -14,8 +14,11 @@
   import { graph } from '../state/dataAPI';
   import { query } from '../state/uiState';
 
-  export let width = 800;
-  export let height = 600;
+  let width = 800;
+  let height = 600;
+
+  $: svgHeight = height - 5;
+  $: svgWidth = width;
 
   let simulation;
   let radiusScale;
@@ -35,29 +38,30 @@
       .domain([0, max(links, (l) => l.weight)])
       .range([1, 10]);
 
-    // console.log('node extent', radiusScale.domain());
-    // console.log('link extent', edgeWidthScale.domain());
-
-    // TODO: add link force
-    const link = forceLink(links)
-      .id((d: GraphLink) => d.id)
-      .distance(75);
+    const link = forceLink(links).id((d: GraphLink) => d.id);
+    // .strength((d: GraphLink) =>
+    //   d.type === LinkType.MENTIONS_ID_LINK ? 1 : 0
+    // )
+    // .distance((d: GraphLink) =>
+    //   d.type === LinkType.MENTIONS_ID_LINK ? 100 : 400
+    // );
 
     // Create simulation
     simulation = forceSimulation(nodes)
       .force('link', link)
       .force(
         'charge',
-        forceManyBody().strength((d: GraphNode) =>
-          d.type === NodeType.primary ? -10 : -400
-        )
+        forceManyBody(-300)
+        // .strength((d: GraphNode) =>
+        //   d.type === NodeType.primary ? -10 : -400
+        // )
       )
       .force(
         'collide',
         forceCollide()
           .strength(0.1)
           .radius((d: GraphNode) => (d.type === NodeType.secondary ? 30 : 100))
-          .iterations(3)
+        // .iterations(1)
       )
       .force('x', forceX())
       .force('y', forceY());
@@ -73,8 +77,12 @@
   }
 </script>
 
-<div>
-  <svg {width} {height} viewBox="{-width / 2} {-height / 2} {width} {height}">
+<div class="wrapper" bind:clientWidth={width} bind:clientHeight={height}>
+  <svg
+    width={svgWidth}
+    height={svgHeight}
+    viewBox="{-svgWidth / 2} {-svgHeight / 2} {svgWidth} {svgHeight}"
+  >
     <g stroke="#999" stroke-opacity={0.6}>
       {#each simLinks as { source, target, weight, type }}
         <line
@@ -108,6 +116,13 @@
 </div>
 
 <style>
+  .wrapper {
+    height: 100%;
+  }
+
+  svg {
+    overflow: visible;
+  }
   .node :hover {
     cursor: pointer;
   }

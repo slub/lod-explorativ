@@ -1,14 +1,14 @@
 <script lang="ts">
-  import type { Event } from 'types/es';
+  import type { EventES } from 'types/es';
 
-  export let events: Map<Event, number>;
+  export let events: Map<EventES, number>;
 </script>
 
 <div class="container">
   <h4>Ereignisse</h4>
   <ul class="authorList">
-    {#each Array.from(events) as [event, count]}
-      <li>{event.preferredName} ({count})</li>
+    {#each Array.from(events) as [e, count]}
+      <li>{e.name['de']} ({count})</li>
     {/each}
   </ul>
 </div>

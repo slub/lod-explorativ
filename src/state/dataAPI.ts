@@ -20,6 +20,7 @@ import {
   eventsMGetRequest,
   topicRelationsSearchRequest
 } from './dataStore';
+import { query } from './uiState';
 
 /**
  * The dataAPI combines the results of the DataStore and provides the UI components with data.
@@ -173,14 +174,9 @@ export const topicsEnriched = derived(
  * Returns graph structure for the visualization
  */
 export const graph = derived(
-  [topicRelationsSearchRequest, topicsEnriched],
-  async ([$relationsReq, $topicsReq]) => {
+  [topicRelationsSearchRequest, topicsEnriched, query],
+  async ([$relationsReq, $topicsReq, $query]) => {
     const [relations, topics] = await Promise.all([$relationsReq, $topicsReq]);
-
-    // console.log('-------- GENERATE GRAPH -------------');
-
-    // console.log('topics', topics);
-    // console.log('relations', relations);
 
     const nodes: GraphNode[] = [];
     const links: GraphLink[] = [];
@@ -200,8 +196,6 @@ export const graph = derived(
         text: name
       };
 
-      // console.log('primary', primaryNode.id);
-
       nodes.push(primaryNode);
 
       const relNames = Array.from(related.keys()).map((r) => r.preferredName);
@@ -211,18 +205,18 @@ export const graph = derived(
       relatedTopicNames = [...relatedTopicNames, ...relNames];
 
       // create links from top-level topics to related topics
-      related.forEach((weight, relatedTopic) => {
-        const link: GraphLink = {
-          id: `${primaryNode.id}-${relatedTopic.preferredName}`,
-          source: primaryNode.id,
-          target: relatedTopic.preferredName,
-          type: LinkType.MENTIONS_ID_LINK,
-          // TODO: use proper metric
-          weight
-        };
+      // related.forEach((weight, relatedTopic) => {
+      //   const link: GraphLink = {
+      //     id: `${primaryNode.id}-${relatedTopic.preferredName}`,
+      //     source: primaryNode.id,
+      //     target: relatedTopic.preferredName,
+      //     type: LinkType.MENTIONS_ID_LINK,
+      //     // TODO: use proper metric
+      //     weight
+      //   };
 
-        links.push(link);
-      });
+      //   links.push(link);
+      // });
     });
 
     // create related topic nodes if they haven't been created on the top-level
@@ -241,7 +235,6 @@ export const graph = derived(
           text: relatedTopic
         };
 
-        // console.log('>> secondary', secNode.id);
         nodes.push(secNode);
       }
     });
@@ -251,6 +244,7 @@ export const graph = derived(
       const [source, target] = key.split('&');
 
       // target is undefined for cells ij with i == j
+      // only add relations from or to the topic that matches the query
       if (target) {
         let sourceNode = nodes.find((x) => x.id === source);
         let targetNode = nodes.find((x) => x.id === target);
@@ -264,8 +258,6 @@ export const graph = derived(
             type: NodeType.secondary,
             text: source
           });
-
-          // console.log(`.....creating source node "${source}" from relations`);
         }
 
         // FIXME: this case should not happen
@@ -277,8 +269,6 @@ export const graph = derived(
             type: NodeType.secondary,
             text: target
           });
-
-          // console.log(`.....creating target node "${target}" from relations`);
         }
 
         const link: GraphLink = {

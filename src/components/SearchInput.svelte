@@ -13,3 +13,11 @@
   value={$query}
   on:input={handleChange}
 />
+
+<style>
+  input {
+    border: none;
+    border-bottom: 2px solid black;
+    padding: 0.5rem 0.25rem;
+  }
+</style>

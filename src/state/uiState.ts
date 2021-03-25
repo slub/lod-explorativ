@@ -3,13 +3,15 @@ import { writable } from 'svelte/store';
 
 const url = new URL(window.location.href);
 const queryParam = url.searchParams.get('q');
-const queries = [
+
+export const queries = [
   'Festival',
   'Kobold',
   'Jugendkultur',
   'Pandemie',
   'Klima',
-  'Cyber'
+  'Cyber',
+  'Journalist'
 ];
 
 export const query = writable(
