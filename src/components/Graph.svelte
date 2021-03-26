@@ -7,7 +7,9 @@
     forceManyBody,
     forceCollide,
     forceX,
-    forceY
+    forceY,
+    forceCenter,
+    forceRadial
   } from 'd3-force';
   import type { GraphNode, GraphLink } from 'types/app';
   import { LinkType, NodeType } from 'types/app';
@@ -39,6 +41,7 @@
       .range([1, 10]);
 
     const link = forceLink(links).id((d: GraphLink) => d.id);
+    // .distance(300);
     // .strength((d: GraphLink) =>
     //   d.type === LinkType.MENTIONS_ID_LINK ? 1 : 0
     // )
@@ -51,20 +54,25 @@
       .force('link', link)
       .force(
         'charge',
-        forceManyBody(-300)
-        // .strength((d: GraphNode) =>
-        //   d.type === NodeType.primary ? -10 : -400
-        // )
+        forceManyBody(-300).strength((d: GraphNode) =>
+          d.type === NodeType.primary ? -10 : -400
+        )
+        // .distanceMax(200)
       )
       .force(
         'collide',
         forceCollide()
           .strength(0.1)
-          .radius((d: GraphNode) => (d.type === NodeType.secondary ? 30 : 100))
-        // .iterations(1)
+          .radius((d: GraphNode) => Math.max(radiusScale(d.count) * 2, 20))
+          .iterations(3)
       )
       .force('x', forceX())
-      .force('y', forceY());
+      .force('y', forceY())
+      .force('center', forceCenter())
+      .force(
+        'radial',
+        forceRadial((d: GraphNode) => (d.text === $query ? 0 : height / 2))
+      );
 
     simulation.on('tick', (x) => {
       simNodes = simulation.nodes();
@@ -163,7 +171,7 @@
 
   .mentions_name_link {
     stroke: black;
-    stroke-opacity: 0.2;
+    stroke-opacity: 0.1;
     /* stroke-dasharray: 8 4; */
   }
 
