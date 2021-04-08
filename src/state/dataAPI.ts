@@ -84,7 +84,7 @@ export const additionalTypes = derived(topicSearchRequest, async (topicReq) => {
     compact(
       flatten(
         topics.map((topic) =>
-          topic._source.additionalType?.map((type) => type.name)
+          topic.additionalTypes?.map((type) => type.name)
         )
       )
     )
@@ -137,36 +137,32 @@ export const topicsEnriched = derived(
     ]);
 
     // merge results
-    const merged = topics.map(({ _id, _score, _source }) => {
+    const merged = topics.map((ret) => {
       const {
-        preferredName,
-        additionalType,
-        alternateName = [],
-        description
-      } = _source;
+        name,
+        additionalTypes,
+        alternateName,
+        description,
+        id,
+        score
+      } = ret;
 
       // get aggregation results on resources index
-      const aggStrict = aggMapStrict.get(_source['@id']);
-      const aggLoose = aggMapLoose.get(preferredName);
+      const aggStrict = aggMapStrict.get(id);
+      const aggLoose = aggMapLoose.get(name);
 
       // TODO: preserve all alternateNames?
       const altName = alternateName?.[0];
 
       // create topic model
       const topic: Topic = {
-        id: _id,
-        score: _score,
-        name: preferredName,
+        id,
+        score,
+        name,
         alternateName: altName,
         // create additionalType model
         // TODO: replace references with topics
-        additionalTypes: additionalType?.map(
-          ({ name, description, ...rest }) => ({
-            id: rest['@id'],
-            name,
-            description
-          })
-        ),
+        additionalTypes,
         description,
         aggregations: aggStrict ? convertAggs(aggStrict) : null,
         aggregationsLoose: aggLoose ? convertAggs(aggLoose) : null,

@@ -2,7 +2,6 @@ import { derived } from 'svelte/store';
 import base64 from 'base-64';
 import { compact, flatten, map, uniq, zip } from 'lodash';
 import { query } from './uiState';
-import { topicSearchQuery } from '../queries/topics';
 import {
   topicRelatedRessourcesQuery,
   topicRelatedRessourcesCountQuery,
@@ -17,9 +16,13 @@ import type {
   PersonGetResponse,
   ResourceAggResponse,
   TopicES,
-  TopicSearchResponse
 } from '../types/es';
+import type {
+  Topic
+} from '../types/app'
+import type { Endpoint as BackendpointType} from '../types/backend';
 import { Endpoint } from '../types/es';
+import { Endpoint as Backendpoint } from '../types/backend';
 import config from '../config';
 
 /**
@@ -72,15 +75,34 @@ export async function search(
 
   return result;
 }
+/**
+ *
+ * @param backendpoint available backend endpoint
+ * @param query        querystring
+ * @returns            json result to the query
+ */
+export async function backendQuery(
+  backendpoint: BackendpointType,
+  query: string
+) {
+  const response = await fetch(
+    `${config.backend}/${backendpoint}?q=${query}`,
+    {
+      method: 'GET'
+    }
+  );
+
+  const results = await response.json();
+  return results;
+}
 
 /**
  * Searches topics with a given query
  */
 export const topicSearchRequest = derived(query, async ($query) => {
-  const request = topicSearchQuery($query);
-  const result = await search('topics', request);
+  const results = await backendQuery(Backendpoint.topicsearch, $query);
 
-  return <TopicSearchResponse[]>(result?.hits.hits ?? []);
+  return <Topic[]>(results ?? []);
 });
 
 /**
@@ -92,7 +114,7 @@ export const resourcesExactMSearchRequest = derived(
     const topics = await $topicResult;
 
     // array of topic names
-    const topicIDs: string[] = map(topics, (t) => t._source['@id']);
+    const topicIDs: string[] = map(topics, (t) => t.id);
 
     // generate multiple queries from names
     const multiReq = multiQuery(topicIDs, topicRelatedRessourcesQuery, [
@@ -116,9 +138,9 @@ export const resourcesLooseMSearchRequest = derived(
     const topics = await $topicResult;
 
     // array of topic names
-    const topicNames: string[] = map(topics, '_source.preferredName');
+    const topicNames: string[] = map(topics, 'name');
 
-    // generate multiple queries from names
+    // generate multiple queries from namesresult
     const multiReq = multiQuery(
       topicNames,
       topicRelatedRessourcesQuery,
@@ -142,7 +164,7 @@ export const resourcesAltMSearchRequest = derived(
     const topics = await $topicResult;
 
     const altNames: string[] = compact(
-      flatten(map(topics, '_source.alternateName'))
+      flatten(map(topics, 'alternateName'))
     );
 
     // generate multiple queries and make broad search
@@ -277,7 +299,7 @@ export const topicRelationsSearchRequest = derived(
     const [topics, aggs] = await Promise.all([$topics, $aggs]);
 
     // array of topic names
-    const topicNames: string[] = map(topics, (t) => t._source['preferredName']);
+    const topicNames: string[] = map(topics, (t) => t.name);
     const relatedNames = aggs.map((t) => t.preferredName);
     const uniqNames = uniq([...topicNames, ...relatedNames]);
 
