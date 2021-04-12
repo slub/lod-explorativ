@@ -8,6 +8,7 @@
   import Suggestions from './components/Suggestions.svelte';
   import Layout from './components/Layout.svelte';
   import Navigation from './components/Navigation.svelte';
+  import Stats from './components/Stats.svelte';
 </script>
 
 <Layout>
@@ -18,6 +19,7 @@
   <div slot="left">
     <SearchInput />
     <Suggestions />
+    <Stats />
   </div>
   <Graph slot="main" />
 </Layout>

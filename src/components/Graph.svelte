@@ -34,7 +34,7 @@
 
     radiusScale = scaleSqrt()
       .domain([0, max(nodes, (n) => n.count)])
-      .range([5, 40]);
+      .range([0, 100]);
 
     edgeWidthScale = scaleLinear()
       .domain([0, max(links, (l) => l.weight)])
@@ -118,7 +118,8 @@
         >
           <circle r={radiusScale(count)} fill="#f00" fill-opacity="0.5" />
           <!-- TODO: do not call function radiusScale(count) twice -->
-          <text font-size="12" x={radiusScale(count) + 5}>{text}</text>
+          <text font-size="12" x={radiusScale(count) + 5}>{text} ({count})</text
+          >
         </g>
       {/each}
     </g>

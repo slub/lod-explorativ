@@ -77,6 +77,9 @@ function convertAggs(aggs: ResourceAggResponse) {
   return meta;
 }
 
+/**
+ * Returns all additionalTypes derived from topics
+ */
 export const additionalTypes = derived(topicSearchRequest, async (topicReq) => {
   const topics = await topicReq;
 
@@ -91,6 +94,16 @@ export const additionalTypes = derived(topicSearchRequest, async (topicReq) => {
   ).sort();
 
   return addTypes;
+});
+
+export const genres = derived(null, async () => {
+  const mock: [string, number][] = [
+    ['Amtliche Publikation', 1],
+    ['Anthologie', 2],
+    ['Autobiografie', 1]
+  ];
+
+  return mock;
 });
 
 /** Combines results from topic search in topic index and associated resources in resource index */
@@ -193,7 +206,7 @@ export const graph = derived(
     const nodes: GraphNode[] = [];
     const links: GraphLink[] = [];
 
-    let relatedTopicNames = [];
+    let relatedTopics: { name: string; count: number }[] = [];
 
     // create nodes for all top-level topics and collect related topics
     topics.forEach((primaryTopic) => {
@@ -210,13 +223,16 @@ export const graph = derived(
 
       nodes.push(primaryNode);
 
-      const relNames = Array.from(related.keys()).map((r) => r.preferredName);
+      const topicCounts = Array.from(related).map(([topic, count]) => ({
+        name: topic.preferredName,
+        count
+      }));
 
       // collect related topics to create these topics later,
       // so that we can give precedence to top-level topics
       // only add related nodes if conncted to the topic that matches the query
       if (name === $query) {
-        relatedTopicNames = [...relatedTopicNames, ...relNames];
+        relatedTopics = [...relatedTopics, ...topicCounts];
       }
 
       // create links from top-level topics to related topics
@@ -235,19 +251,19 @@ export const graph = derived(
     });
 
     // create related topic nodes if they haven't been created on the top-level
-    relatedTopicNames.forEach((relatedTopic) => {
+    relatedTopics.forEach(({ name, count }) => {
       // check if node already exists
-      const exists = nodes.find((x) => x.id === relatedTopic);
+      const exists = nodes.find((x) => x.id === name);
 
       if (!exists) {
         const secNode = {
-          id: relatedTopic,
-          // TODO: get counts for secondary topics
-          count: null,
+          id: name,
+          // TODO: decide whether this count should derived from the aggregation or from global ressource search
+          count,
           // TODO: add topic document
           doc: null,
           type: NodeType.secondary,
-          text: relatedTopic
+          text: name
         };
 
         nodes.push(secNode);
@@ -262,26 +278,6 @@ export const graph = derived(
       if (target) {
         let sourceNode = nodes.find((x) => x.id === source);
         let targetNode = nodes.find((x) => x.id === target);
-
-        // if (!sourceNode) {
-        //   nodes.push({
-        //     id: source,
-        //     count: null,
-        //     doc: null,
-        //     type: NodeType.secondary,
-        //     text: source
-        //   });
-        // }
-
-        // if (!targetNode) {
-        //   nodes.push({
-        //     id: target,
-        //     count: null,
-        //     doc: null,
-        //     type: NodeType.secondary,
-        //     text: target
-        //   });
-        // }
 
         if (sourceNode && targetNode) {
           const link: GraphLink = {
