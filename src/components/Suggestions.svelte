@@ -21,7 +21,7 @@
   }
 
   li {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
   }
 
   li:hover {

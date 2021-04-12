@@ -20,6 +20,13 @@ const aggs = {
       field: 'mentions.@id.keyword',
       size: 10
     }
+  },
+  genres: {
+    terms: {
+      field: 'genre.Text.keyword',
+      size: 40,
+      missing: 'Ohne Angabe'
+    }
   }
 };
 

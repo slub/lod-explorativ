@@ -86,9 +86,7 @@ export const additionalTypes = derived(topicSearchRequest, async (topicReq) => {
   const addTypes = uniq(
     compact(
       flatten(
-        topics.map((topic) =>
-          topic.additionalTypes?.map((type) => type.name)
-        )
+        topics.map((topic) => topic.additionalTypes?.map((type) => type.name))
       )
     )
   ).sort();
@@ -96,15 +94,28 @@ export const additionalTypes = derived(topicSearchRequest, async (topicReq) => {
   return addTypes;
 });
 
-export const genres = derived(null, async () => {
-  const mock: [string, number][] = [
-    ['Amtliche Publikation', 1],
-    ['Anthologie', 2],
-    ['Autobiografie', 1]
-  ];
+/**
+ * Returns top genres for selected topic
+ */
+export const currentTopicGenres = derived(
+  [query, resourcesLooseMSearchRequest],
+  async ([q, resourcesReq]) => {
+    const resources = await resourcesReq;
 
-  return mock;
-});
+    const queryAgg = resources.get(q);
+
+    if (!queryAgg) return [];
+
+    const genres = queryAgg.aggregations.genres;
+    const other = genres.sum_other_doc_count;
+    const genreCounts = genres.buckets.map(({ key, doc_count }) => [
+      key,
+      doc_count
+    ]);
+
+    return [...genreCounts, ['Weitere ...', other]];
+  }
+);
 
 /** Combines results from topic search in topic index and associated resources in resource index */
 export const topicsEnriched = derived(
@@ -258,7 +269,8 @@ export const graph = derived(
       if (!exists) {
         const secNode = {
           id: name,
-          // TODO: decide whether this count should derived from the aggregation or from global ressource search
+          // TODO: decide whether this count should derived from the aggregation
+          // or from global ressource search
           count,
           // TODO: add topic document
           doc: null,
