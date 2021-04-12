@@ -77,6 +77,9 @@ function convertAggs(aggs: ResourceAggResponse) {
   return meta;
 }
 
+/**
+ * Returns all additionalTypes derived from topics
+ */
 export const additionalTypes = derived(topicSearchRequest, async (topicReq) => {
   const topics = await topicReq;
 
@@ -91,6 +94,16 @@ export const additionalTypes = derived(topicSearchRequest, async (topicReq) => {
   ).sort();
 
   return addTypes;
+});
+
+export const genres = derived(null, async () => {
+  const mock: [string, number][] = [
+    ['Amtliche Publikation', 1],
+    ['Anthologie', 2],
+    ['Autobiografie', 1]
+  ];
+
+  return mock;
 });
 
 /** Combines results from topic search in topic index and associated resources in resource index */
