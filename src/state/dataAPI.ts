@@ -113,7 +113,9 @@ export const currentTopicGenres = derived(
       doc_count
     ]);
 
-    return [...genreCounts, ['Weitere ...', other]];
+    const result = [...genreCounts, ['Weitere ...', other]];
+
+    return <[string, number][]>result;
   }
 );
 

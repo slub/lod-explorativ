@@ -21,8 +21,8 @@ export const queries = [
   'Jugendkultur',
   'Pandemie',
   'Klima',
-  'Cyber',
-  'Journalist'
+  'Journalist',
+  'Abenteuer'
 ];
 
 export const query = writable(getQuery());
