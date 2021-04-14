@@ -119,6 +119,26 @@ export const currentTopicGenres = derived(
   }
 );
 
+export const currentTopicPublished = derived(
+  [query, resourcesLooseMSearchRequest],
+  async ([q, resourcesReq]) => {
+    const resources = await resourcesReq;
+
+    const queryAgg = resources.get(q);
+
+    if (!queryAgg) return [];
+
+    const published = queryAgg.aggregations.datePublished;
+
+    const dateCounts = published.buckets.map(({ key, doc_count }) => [
+      new Date(key).getFullYear(),
+      doc_count
+    ]);
+
+    return dateCounts;
+  }
+);
+
 /** Combines results from topic search in topic index and associated resources in resource index */
 export const topicsEnriched = derived(
   [

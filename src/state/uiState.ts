@@ -22,7 +22,8 @@ export const queries = [
   'Pandemie',
   'Klima',
   'Journalist',
-  'Abenteuer'
+  'Abenteuer',
+  'Comic'
 ];
 
 export const query = writable(getQuery());

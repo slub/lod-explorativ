@@ -10,7 +10,7 @@
   .layout {
     height: calc(100vh);
     display: grid;
-    grid-template-columns: 15% 70% 15%;
+    grid-template-columns: minmax(300px, 1fr) 3fr 1fr;
     grid-template-rows: 10% auto 20%;
     grid-template-areas:
       'header header header'
@@ -19,7 +19,7 @@
   }
 
   .layout div {
-    /* border: 1px solid rgba(0, 0, 0, 0.1); */
+    /* border: 1px solid rgba(255, 0, 0, 0.1); */
     padding: 2rem;
   }
 

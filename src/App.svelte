@@ -9,6 +9,7 @@
   import Layout from './components/Layout.svelte';
   import Navigation from './components/Navigation.svelte';
   import Stats from './components/Stats.svelte';
+  import Histogram from './components/Histogram.svelte';
 </script>
 
 <Layout>
@@ -22,6 +23,7 @@
     <Stats />
   </div>
   <Graph slot="main" />
+  <Histogram slot="bottom" />
 </Layout>
 
 <!-- <TopicList /> -->

@@ -15,10 +15,10 @@
 
 <h2>Statistik für {$query}</h2>
 
-<table>
-  {#await $currentTopicGenres}
-    <tr><td>Lade Genres...</td><td /><td /></tr>
-  {:then g}
+{#await $currentTopicGenres}
+  Lade Genres...
+{:then g}
+  <table>
     {#each g as [name, count]}
       <tr>
         <td>{name}</td>
@@ -26,8 +26,8 @@
         <td><span class="bar" style="width: {scale(count)}px" /></td>
       </tr>
     {/each}
-  {/await}
-</table>
+  </table>
+{/await}
 
 <style>
   td {
