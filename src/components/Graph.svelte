@@ -16,12 +16,8 @@
   import { graph } from '../state/dataAPI';
   import { query } from '../state/uiState';
 
-  let width = 800;
-  let height = 600;
-
-  $: svgHeight = height - 5;
-  $: svgWidth = width;
-
+  let width;
+  let height;
   let simulation;
   let radiusScale;
   let edgeWidthScale;
@@ -86,11 +82,7 @@
 </script>
 
 <div class="wrapper" bind:clientWidth={width} bind:clientHeight={height}>
-  <svg
-    width={svgWidth}
-    height={svgHeight}
-    viewBox="{-svgWidth / 2} {-svgHeight / 2} {svgWidth} {svgHeight}"
-  >
+  <svg {width} {height} viewBox="{-width / 2} {-height / 2} {width} {height}">
     <g stroke="#999" stroke-opacity={0.6}>
       {#each simLinks as { source, target, weight, type }}
         <line
@@ -133,6 +125,9 @@
 
   svg {
     overflow: visible;
+    position: absolute;
+    left: 0;
+    top: 0;
   }
   .node :hover {
     cursor: pointer;

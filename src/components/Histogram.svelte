@@ -1,15 +1,13 @@
 <script lang="ts">
+  import { scale } from 'svelte/transition';
   import { currentTopicPublished } from '../state/dataAPI';
   import { max, extent } from 'd3-array';
   import { scaleLinear } from 'd3-scale';
 
-  let w;
-  let h;
+  let width;
+  let height = 100;
+  let result = [];
 
-  $: height = h - 5;
-  $: width = w;
-
-  $: result = [];
   $: maxCount = max(result, (x) => x[1]);
   $: yearExtent = extent(result, (x) => x[0]);
   $: yScale = scaleLinear().domain([0, maxCount]).range([0, 30]);
@@ -21,9 +19,16 @@
   });
 </script>
 
-<div bind:clientWidth={w} bind:clientHeight={h}>
+<div bind:clientWidth={width}>
+  <!-- <div class="test" style="width: {width}px">{w} / {width}</div> -->
+
   {#if result.length > 0}
-    <svg {width} {height} viewBox="0 0 {width} {height}">
+    <svg
+      {width}
+      {height}
+      viewBox="0 0 {width} {height}"
+      transition:scale={{ duration: 0 }}
+    >
       {#each result as [year, count]}
         <rect
           x={xScale(year)}
@@ -41,8 +46,9 @@
 </div>
 
 <style>
-  div {
-    /* border: 1px solid grey; */
-    height: 100px;
+  svg {
+    position: absolute;
+    left: 0;
+    top: 0;
   }
 </style>
