@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { query } from '../state/uiState';
   import { currentTopicPublished } from '../state/dataAPI';
   import { max, extent } from 'd3-array';
   import { scaleLinear } from 'd3-scale';
@@ -10,28 +9,22 @@
   $: height = h - 5;
   $: width = w;
 
-  let yScale;
-  let xScale;
-  let ticks: number[];
+  $: result = [];
+  $: maxCount = max(result, (x) => x[1]);
+  $: yearExtent = extent(result, (x) => x[0]);
+  $: yScale = scaleLinear().domain([0, maxCount]).range([0, 30]);
+  $: xScale = scaleLinear().domain(yearExtent).range([0, width]);
+  $: ticks = xScale.ticks();
 
   currentTopicPublished.subscribe(async (value) => {
-    const counts = await value;
-    const maxCount = max(counts, (x) => x[1]);
-    const yearExtent = extent(counts, (x) => x[0]);
-
-    // TODO: make reactive
-    yScale = scaleLinear().domain([0, maxCount]).range([0, 30]);
-    xScale = scaleLinear().domain(yearExtent).range([0, width]);
-    ticks = xScale.ticks();
+    result = await value;
   });
 </script>
 
 <div bind:clientWidth={w} bind:clientHeight={h}>
-  {#await $currentTopicPublished}
-    Lade Histogram...
-  {:then g}
+  {#if result.length > 0}
     <svg {width} {height} viewBox="0 0 {width} {height}">
-      {#each g as [year, count]}
+      {#each result as [year, count]}
         <rect
           x={xScale(year)}
           y={height - 16 - yScale(count)}
@@ -44,7 +37,7 @@
         <text x={xScale(t)} y={height} text-anchor="middle">{t}</text>
       {/each}
     </svg>
-  {/await}
+  {/if}
 </div>
 
 <style>
