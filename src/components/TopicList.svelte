@@ -7,15 +7,13 @@
 <div class="topicList">
   <h2>Themen</h2>
 
-  {#await $topicsEnriched then topics}
-    <ul>
-      {#each topics as topic (topic.id)}
-        <li transition:fade>
-          <Topic {topic} />
-        </li>
-      {/each}
-    </ul>
-  {/await}
+  <ul>
+    {#each $topicsEnriched as topic (topic.id)}
+      <li transition:fade>
+        <Topic {topic} />
+      </li>
+    {/each}
+  </ul>
 </div>
 
 <!--

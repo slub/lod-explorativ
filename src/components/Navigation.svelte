@@ -8,11 +8,9 @@
 </script>
 
 <ul>
-  {#await $additionalTypes then types}
-    {#each types as type}
-      <li on:click={() => handleClick(type)}>{type}</li>
-    {/each}
-  {/await}
+  {#each $additionalTypes as type}
+    <li on:click={() => handleClick(type)}>{type}</li>
+  {/each}
 </ul>
 
 <style>

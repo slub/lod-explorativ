@@ -16,8 +16,9 @@
   import { graph } from '../state/dataAPI';
   import { query } from '../state/uiState';
 
-  let width;
-  let height;
+  let width = 400;
+  let height = 300;
+
   let simulation;
   let radiusScale;
   let edgeWidthScale;
@@ -25,12 +26,11 @@
   $: simNodes = <GraphNode[]>[];
   $: simLinks = <GraphLink[]>[];
 
-  graph.subscribe(async (value) => {
-    const { links, nodes } = await value;
+  graph.subscribe(async ({ links, nodes }) => {
+    console.log(nodes, links);
+    const maxCount = max(nodes, (n) => n.count);
 
-    radiusScale = scaleSqrt()
-      .domain([0, max(nodes, (n) => n.count)])
-      .range([0, 100]);
+    radiusScale = scaleSqrt().domain([0, maxCount]).range([0, 100]);
 
     edgeWidthScale = scaleLinear()
       .domain([0, max(links, (l) => l.weight)])

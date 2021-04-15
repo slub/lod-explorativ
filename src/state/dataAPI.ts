@@ -1,4 +1,4 @@
-import { compact, flatten, last, uniq, uniqBy } from 'lodash';
+import { compact, debounce, flatten, last, uniq, uniqBy } from 'lodash';
 import { derived } from 'svelte/store';
 import type { ResourceAggResponse } from 'types/es';
 import {
@@ -10,21 +10,27 @@ import {
   LinkType
 } from '../types/app';
 import {
-  topicSearchRequest,
-  authorMGetRequest,
-  resourcesAltMSearchRequest,
-  resourcesExactMSearchRequest,
-  resourcesLooseMSearchRequest,
-  geoMGetRequest,
-  topicsRelatedMGetRequest,
-  eventsMGetRequest,
-  topicRelationsSearchRequest
+  authorStore,
+  resourcesExact,
+  resourcesLoose,
+  resourcesLooseByAltName,
+  geoStore,
+  relatedTopicStore,
+  topicRelationStore,
+  topicStore,
+  eventStore
 } from './dataStore';
 import { query } from './uiState';
 
 /**
  * The dataAPI combines the results of the DataStore and provides the UI components with data.
  */
+
+// TODO: debouncing shouldn't be necessary anymore if we get atomic updates from the server
+const waitTopics = 100;
+const waitGraph = 500;
+let debounceTopics;
+let debounceGraph;
 
 /**
  * Replaces references to entities of different indices with real entity objects
@@ -80,13 +86,11 @@ function convertAggs(aggs: ResourceAggResponse) {
 /**
  * Returns all additionalTypes derived from topics
  */
-export const additionalTypes = derived(topicSearchRequest, async (topicReq) => {
-  const topics = await topicReq;
-
+export const additionalTypes = derived(topicStore, ($topics) => {
   const addTypes = uniq(
     compact(
       flatten(
-        topics.map((topic) => topic.additionalTypes?.map((type) => type.name))
+        $topics.map((topic) => topic.additionalTypes?.map((type) => type.name))
       )
     )
   ).sort();
@@ -97,158 +101,141 @@ export const additionalTypes = derived(topicSearchRequest, async (topicReq) => {
 /**
  * Returns top genres for selected topic
  */
-export const currentTopicGenres = derived(
-  [query, resourcesLooseMSearchRequest],
-  async ([q, resourcesReq]) => {
-    const resources = await resourcesReq;
+export const genres = derived(
+  [query, resourcesLoose],
+  ([$query, $resourcesLoose], set) => {
+    const aggregations = $resourcesLoose.get($query);
 
-    const queryAgg = resources.get(q);
+    if (aggregations) {
+      const genres = aggregations.aggregations.genres;
+      const other = genres.sum_other_doc_count;
+      const genreCounts = genres.buckets.map(({ key, doc_count }) => [
+        key,
+        doc_count
+      ]);
 
-    if (!queryAgg) return [];
+      const result = [...genreCounts, ['Weitere ...', other]];
 
-    const genres = queryAgg.aggregations.genres;
-    const other = genres.sum_other_doc_count;
-    const genreCounts = genres.buckets.map(({ key, doc_count }) => [
-      key,
-      doc_count
-    ]);
-
-    const result = [...genreCounts, ['Weitere ...', other]];
-
-    return <[string, number][]>result;
-  }
+      set(<[string, number][]>result);
+    } else {
+      set([]);
+    }
+  },
+  <[string, number][]>[]
 );
 
-export const currentTopicPublished = derived(
-  [query, resourcesLooseMSearchRequest],
-  async ([q, resourcesReq]) => {
-    const resources = await resourcesReq;
+/**
+ * Return the number of resources per year for selected topic
+ */
+export const datePublished = derived(
+  [query, resourcesLoose],
+  ([$query, $resourcesLoose], set) => {
+    const queryAgg = $resourcesLoose.get($query);
 
-    const queryAgg = resources.get(q);
+    if (queryAgg) {
+      const published = queryAgg.aggregations.datePublished;
 
-    if (!queryAgg) return [];
+      const dateCounts = published.buckets.map(({ key, doc_count }) => [
+        new Date(key).getFullYear(),
+        doc_count
+      ]);
 
-    const published = queryAgg.aggregations.datePublished;
-
-    const dateCounts = published.buckets.map(({ key, doc_count }) => [
-      new Date(key).getFullYear(),
-      doc_count
-    ]);
-
-    return dateCounts;
-  }
+      set(dateCounts);
+    } else {
+      set([]);
+    }
+  },
+  <number[][]>[]
 );
 
 /** Combines results from topic search in topic index and associated resources in resource index */
 export const topicsEnriched = derived(
   [
-    topicSearchRequest,
-    authorMGetRequest,
-    resourcesAltMSearchRequest,
-    resourcesExactMSearchRequest,
-    resourcesLooseMSearchRequest,
-    geoMGetRequest,
-    topicsRelatedMGetRequest,
-    eventsMGetRequest
+    authorStore,
+    resourcesLooseByAltName,
+    resourcesExact,
+    resourcesLoose,
+    geoStore,
+    relatedTopicStore,
+    eventStore,
+    topicStore
   ],
-  async ([
-    $topicResult,
-    $authors,
-    $altCounts,
-    $aggMapStrict,
-    $aggMapLoose,
-    $geo,
-    $topicsRelated,
-    $events
-  ]) => {
-    // wait until all data is loaded
-    const [
-      topics,
-      authors,
-      altCounts,
-      aggMapStrict,
-      aggMapLoose,
-      geo,
-      topicsRelated,
-      events
-    ] = await Promise.all([
-      $topicResult,
+  (
+    [
       $authors,
-      $altCounts,
-      $aggMapStrict,
-      $aggMapLoose,
+      $resourcesLooseByAltName,
+      $resourcesExact,
+      $resourcesLoose,
       $geo,
-      $topicsRelated,
-      $events
-    ]);
+      $relatedTopics,
+      $events,
+      $topics
+    ],
+    set
+  ) => {
+    const merged = $topics.map(
+      ({ name, additionalTypes, alternateName, description, id, score }) => {
+        // get aggregation results on resources index
+        const aggStrict = $resourcesExact.get(id);
+        const aggLoose = $resourcesLoose.get(name);
 
-    // merge results
-    const merged = topics.map((ret) => {
-      const {
-        name,
-        additionalTypes,
-        alternateName,
-        description,
-        id,
-        score
-      } = ret;
+        // TODO: preserve all alternateNames?
+        const altName = alternateName?.[0];
 
-      // get aggregation results on resources index
-      const aggStrict = aggMapStrict.get(id);
-      const aggLoose = aggMapLoose.get(name);
+        // create topic model
+        const topic: Topic = {
+          id,
+          score,
+          name,
+          alternateName: altName,
+          // create additionalType model
+          // TODO: replace references with topics
+          additionalTypes,
+          description,
+          aggregations: aggStrict ? convertAggs(aggStrict) : null,
+          aggregationsLoose: aggLoose ? convertAggs(aggLoose) : null,
+          altCount: $resourcesLooseByAltName.get(altName)?.hits.total.value,
+          authors: getEntities(aggStrict, $authors, 'topAuthors'),
+          locations: getEntities(aggStrict, $geo, 'mentions'),
+          related: getEntities(aggStrict, $relatedTopics, 'mentions'),
+          events: getEntities(aggStrict, $events, 'mentions')
+        };
 
-      // TODO: preserve all alternateNames?
-      const altName = alternateName?.[0];
+        return topic;
+      }
+    );
 
-      // create topic model
-      const topic: Topic = {
-        id,
-        score,
-        name,
-        alternateName: altName,
-        // create additionalType model
-        // TODO: replace references with topics
-        additionalTypes,
-        description,
-        aggregations: aggStrict ? convertAggs(aggStrict) : null,
-        aggregationsLoose: aggLoose ? convertAggs(aggLoose) : null,
-        altCount: altCounts.get(altName)?.hits.total.value,
-        authors: getEntities(aggStrict, authors, 'topAuthors'),
-        locations: getEntities(aggStrict, geo, 'mentions'),
-        related: getEntities(aggStrict, topicsRelated, 'mentions'),
-        events: getEntities(aggStrict, events, 'mentions')
-      };
+    // init debounced setter
+    if (!debounceTopics) {
+      debounceTopics = debounce((x) => {
+        set(x);
+      }, waitTopics);
+    }
 
-      return topic;
-    });
-
-    return merged;
-
-    // return orderBy(merged, 'aggregations.resourcesCount', ['desc']);
-  }
+    debounceTopics(merged);
+  },
+  <Topic[]>[]
 );
 
 /**
  * Returns graph structure for the visualization
  */
 export const graph = derived(
-  [topicRelationsSearchRequest, topicsEnriched, query],
-  async ([$relationsReq, $topicsReq, $query]) => {
-    const [relations, topics] = await Promise.all([$relationsReq, $topicsReq]);
-
+  [topicRelationStore, topicsEnriched, query],
+  ([$topicRelations, $topicsEnriched, $query], set) => {
     const nodes: GraphNode[] = [];
     const links: GraphLink[] = [];
 
     let relatedTopics: { name: string; count: number }[] = [];
 
     // create nodes for all top-level topics and collect related topics
-    topics.forEach((primaryTopic) => {
+    $topicsEnriched.forEach((primaryTopic) => {
       const { name, aggregationsLoose, related } = primaryTopic;
 
       // create graph node
       const primaryNode: GraphNode = {
         id: name,
-        count: aggregationsLoose?.docCount,
+        count: aggregationsLoose?.docCount || 0,
         doc: primaryTopic,
         type: NodeType.primary,
         text: name
@@ -256,31 +243,33 @@ export const graph = derived(
 
       nodes.push(primaryNode);
 
-      const topicCounts = Array.from(related).map(([topic, count]) => ({
-        name: topic.preferredName,
-        count
-      }));
+      if (related) {
+        const topicCounts = Array.from(related).map(([topic, count]) => ({
+          name: topic.preferredName,
+          count
+        }));
 
-      // collect related topics to create these topics later,
-      // so that we can give precedence to top-level topics
-      // only add related nodes if conncted to the topic that matches the query
-      if (name === $query) {
-        relatedTopics = [...relatedTopics, ...topicCounts];
+        // collect related topics to create these topics later,
+        // so that we can give precedence to top-level topics
+        // only add related nodes if conncted to the topic that matches the query
+        if (name === $query) {
+          relatedTopics = [...relatedTopics, ...topicCounts];
+        }
+
+        // create links from top-level topics to related topics
+        // related.forEach((weight, relatedTopic) => {
+        //   const link: GraphLink = {
+        //     id: `${primaryNode.id}-${relatedTopic.preferredName}`,
+        //     source: primaryNode.id,
+        //     target: relatedTopic.preferredName,
+        //     type: LinkType.MENTIONS_ID_LINK,
+        //     // TODO: use proper metric
+        //     weight
+        //   };
+
+        //   links.push(link);
+        // });
       }
-
-      // create links from top-level topics to related topics
-      // related.forEach((weight, relatedTopic) => {
-      //   const link: GraphLink = {
-      //     id: `${primaryNode.id}-${relatedTopic.preferredName}`,
-      //     source: primaryNode.id,
-      //     target: relatedTopic.preferredName,
-      //     type: LinkType.MENTIONS_ID_LINK,
-      //     // TODO: use proper metric
-      //     weight
-      //   };
-
-      //   links.push(link);
-      // });
     });
 
     // create related topic nodes if they haven't been created on the top-level
@@ -305,7 +294,7 @@ export const graph = derived(
     });
 
     // TODO: only add relation if it does not already exist (from top-level to related)
-    relations.forEach(({ key, doc_count }) => {
+    $topicRelations.forEach(({ key, doc_count }) => {
       const [source, target] = key.split('&');
 
       // target is undefined for cells ij with i == j
@@ -327,6 +316,14 @@ export const graph = derived(
       }
     });
 
-    return { links: compact(links), nodes: uniqBy(nodes, 'id') };
-  }
+    // init debounced setter
+    if (!debounceGraph) {
+      debounceGraph = debounce((x) => {
+        set(x);
+      }, waitGraph);
+    }
+
+    debounceGraph({ links: compact(links), nodes: uniqBy(nodes, 'id') });
+  },
+  <{ links: GraphLink[]; nodes: GraphNode[] }>{ links: [], nodes: [] }
 );
