@@ -228,20 +228,26 @@ export const graph = derived(
 
     let relatedTopics: { name: string; count: number }[] = [];
 
+    console.log('////// GRAPH');
+
     // create nodes for all top-level topics and collect related topics
     $topicsEnriched.forEach((primaryTopic) => {
       const { name, aggregationsLoose, related } = primaryTopic;
 
-      // create graph node
-      const primaryNode: GraphNode = {
-        id: name,
-        count: aggregationsLoose?.docCount || 0,
-        doc: primaryTopic,
-        type: NodeType.primary,
-        text: name
-      };
+      if (aggregationsLoose?.docCount > 0) {
+        // create graph node
+        const primaryNode: GraphNode = {
+          id: name,
+          count: aggregationsLoose?.docCount || 0,
+          doc: primaryTopic,
+          type: NodeType.primary,
+          text: name
+        };
 
-      nodes.push(primaryNode);
+        nodes.push(primaryNode);
+
+        console.log('primary', primaryNode.text);
+      }
 
       if (related) {
         const topicCounts = Array.from(related).map(([topic, count]) => ({
@@ -268,6 +274,7 @@ export const graph = derived(
         //   };
 
         //   links.push(link);
+        //   console.log(link.source, '---->', link.target);
         // });
       }
     });
@@ -288,6 +295,8 @@ export const graph = derived(
           type: NodeType.secondary,
           text: name
         };
+
+        console.log('sec', secNode.id);
 
         nodes.push(secNode);
       }
@@ -312,6 +321,8 @@ export const graph = derived(
           };
 
           links.push(link);
+
+          console.log(link.source, '---->', link.target);
         }
       }
     });

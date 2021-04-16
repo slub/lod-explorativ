@@ -19,62 +19,64 @@
   let width = 400;
   let height = 300;
 
-  let simulation;
-  let radiusScale;
-  let edgeWidthScale;
+  $: simNodes = [];
+  $: simLinks = [];
+  $: maxCount = max($graph.nodes, (n) => n.count);
 
-  $: simNodes = <GraphNode[]>[];
-  $: simLinks = <GraphLink[]>[];
+  $: radiusScale = scaleSqrt().domain([0, maxCount]).range([0, 100]);
+  // $: edgeWidthScale = scaleLinear()
+  //   .domain([0, max($graph.links, (l) => l.weight)])
+  //   .range([1, 10]);
 
-  graph.subscribe(async ({ links, nodes }) => {
-    console.log(nodes, links);
-    const maxCount = max(nodes, (n) => n.count);
+  // FORCES
+  $: link = forceLink($graph.links)
+    .id((d: GraphLink) => d.id)
+    .strength(0);
 
-    radiusScale = scaleSqrt().domain([0, maxCount]).range([0, 100]);
+  $: radial = forceRadial((d: GraphNode) =>
+    d.text === $query
+      ? 0
+      : d.type === NodeType.secondary
+      ? null
+      : Math.min(width, height) / 2
+  ).strength(0.1);
 
-    edgeWidthScale = scaleLinear()
-      .domain([0, max(links, (l) => l.weight)])
-      .range([1, 10]);
+  let collide = forceCollide()
+    .strength(0.1)
+    .radius((d: GraphNode) => Math.max(radiusScale(d.count) * 2, 20))
+    .iterations(3);
+  let charge = forceManyBody(-300).strength((d: GraphNode) =>
+    d.type === NodeType.primary ? -10 : -400
+  );
+  let x = forceX();
+  let y = forceY();
+  let center = forceCenter();
 
-    const link = forceLink(links).id((d: GraphLink) => d.id);
-    // .distance(300);
-    // .strength((d: GraphLink) =>
-    //   d.type === LinkType.MENTIONS_ID_LINK ? 1 : 0
-    // )
-    // .distance((d: GraphLink) =>
-    //   d.type === LinkType.MENTIONS_ID_LINK ? 100 : 400
-    // );
+  // SIMULATION
 
-    // Create simulation
-    simulation = forceSimulation(nodes)
-      .force('link', link)
-      .force(
-        'charge',
-        forceManyBody(-300).strength((d: GraphNode) =>
-          d.type === NodeType.primary ? -10 : -400
-        )
-        // .distanceMax(200)
-      )
-      .force(
-        'collide',
-        forceCollide()
-          .strength(0.1)
-          .radius((d: GraphNode) => Math.max(radiusScale(d.count) * 2, 20))
-          .iterations(3)
-      )
-      .force('x', forceX())
-      .force('y', forceY())
-      .force('center', forceCenter())
-      .force(
-        'radial',
-        forceRadial((d: GraphNode) => (d.text === $query ? 0 : height / 2))
-      );
-
-    simulation.on('tick', (x) => {
+  $: simulation = forceSimulation()
+    .on('tick', (x) => {
       simNodes = simulation.nodes();
       simLinks = link.links();
-    });
-  });
+    })
+    .stop();
+
+  $: n = $graph.nodes.map((n) => ({ ...n, r: radiusScale(n.count) }));
+
+  // ADD FORCES
+  $: simulation.nodes(n);
+  $: simulation.force('collide', collide);
+  $: simulation.force('link', link);
+  $: simulation.force('radial', radial);
+  // $: simulation.force('y', y)
+  // $: simulation.force('x', x)
+  // $: simulation.force('center', center)
+  // $: simulation.force('charge', charge)
+
+  $: if ($graph || width || height) {
+    simulation.alpha(1);
+    simulation.restart();
+  }
 
   function handleClick(name) {
     query.set(name);
@@ -98,7 +100,7 @@
     </g>
 
     <g>
-      {#each simNodes as { id, doc, text, x, y, count, type } (id)}
+      {#each simNodes as { id, doc, text, x, y, count, type, r } (id)}
         <g
           transform="translate({x}, {y})"
           class="node"
@@ -108,9 +110,18 @@
           class:selected={text === $query}
           on:click={() => handleClick(text)}
         >
-          <circle r={radiusScale(count)} fill="#f00" fill-opacity="0.5" />
-          <!-- TODO: do not call function radiusScale(count) twice -->
-          <text font-size="12" x={radiusScale(count) + 5}>{text} ({count})</text
+          <circle {r} fill="#f00" fill-opacity="0.5" />
+          <text
+            alignment-baseline="middle"
+            font-size="12"
+            x={text === $query
+              ? 0
+              : Math.abs(x) < width / 2
+              ? 0
+              : Math.sign(x) * (r + 5)}
+            y={text === $query ? 0 : Math.sign(y) * (r + 15)}
+            text-anchor={text === $query ? 'middle' : x < 0 ? 'end' : 'start'}
+            >{text} ({count})</text
           >
         </g>
       {/each}
