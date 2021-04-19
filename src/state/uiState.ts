@@ -24,7 +24,8 @@ export const queries = [
   'Journalist',
   'Abenteuer',
   'Comic',
-  'Medienkunst'
+  'Medienkunst',
+  'Zootiere'
 ];
 
 export const query = writable(getQuery());

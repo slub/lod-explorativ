@@ -1,4 +1,12 @@
-import { compact, debounce, flatten, last, uniq, uniqBy } from 'lodash';
+import {
+  compact,
+  debounce,
+  flatten,
+  isArray,
+  last,
+  uniq,
+  uniqBy
+} from 'lodash';
 import { derived } from 'svelte/store';
 import type { ResourceAggResponse } from 'types/es';
 import {
@@ -7,7 +15,8 @@ import {
   ResourceAggregation,
   Topic,
   NodeType,
-  LinkType
+  LinkType,
+  Resource
 } from '../types/app';
 import {
   authorStore,
@@ -176,7 +185,7 @@ export const topicsEnriched = derived(
     const merged = $topics.map(
       ({ name, additionalTypes, alternateName, description, id, score }) => {
         // get aggregation results on resources index
-        const aggStrict = $resourcesExact.get(id);
+        const aggStrict = $resourcesExact.get(name);
         const aggLoose = $resourcesLoose.get(name);
 
         // TODO: preserve all alternateNames?
@@ -228,7 +237,7 @@ export const graph = derived(
 
     let relatedTopics: { name: string; count: number }[] = [];
 
-    console.log('////// GRAPH');
+    // console.log('////// GRAPH');
 
     // create nodes for all top-level topics and collect related topics
     $topicsEnriched.forEach((primaryTopic) => {
@@ -246,7 +255,7 @@ export const graph = derived(
 
         nodes.push(primaryNode);
 
-        console.log('primary', primaryNode.text);
+        // console.log('primary', primaryNode.text);
       }
 
       if (related) {
@@ -274,7 +283,7 @@ export const graph = derived(
         //   };
 
         //   links.push(link);
-        //   console.log(link.source, '---->', link.target);
+        // console.log(link.source, '---->', link.target);
         // });
       }
     });
@@ -296,7 +305,7 @@ export const graph = derived(
           text: name
         };
 
-        console.log('sec', secNode.id);
+        // console.log('sec', secNode.id);
 
         nodes.push(secNode);
       }
@@ -322,7 +331,7 @@ export const graph = derived(
 
           links.push(link);
 
-          console.log(link.source, '---->', link.target);
+          // console.log(link.source, '---->', link.target);
         }
       }
     });
@@ -337,4 +346,65 @@ export const graph = derived(
     debounceGraph({ links: compact(links), nodes: uniqBy(nodes, 'id') });
   },
   <{ links: GraphLink[]; nodes: GraphNode[] }>{ links: [], nodes: [] }
+);
+
+/**
+ * Returns the topic with same name as the current query
+ */
+export const selectedTopic = derived(
+  [query, topicsEnriched],
+  ([$query, $topicsEnriched]) => {
+    const topic = $topicsEnriched.find((t) => t.name === $query);
+    return topic;
+  }
+);
+
+/**
+ * Returns top resources for the current query
+ */
+export const resources = derived(
+  [selectedTopic, resourcesExact],
+  ([$selectedTopic, $resourcesExact], set) => {
+    if ($selectedTopic) {
+      const result = $resourcesExact.get($selectedTopic.name);
+
+      if (result) {
+        // console.log('resources: ', result.hits.total, result.hits.max_score);
+        const appResources = result.hits.hits.map(({ _score, _source }) => {
+          const {
+            preferredName,
+            author,
+            datePublished: dp,
+            inLanguage,
+            description
+          } = _source;
+
+          // TODO: simplify in backend?
+          const date = !!dp
+            ? isArray(dp)
+              ? dp[0]['@value']
+              : dp['@value']
+            : null;
+
+          const appResource: Resource = {
+            title: preferredName,
+            yearPublished: date ? new Date(date).getFullYear() : null,
+            authors: author,
+            description: description ? description.join(';') : null,
+            inLanguage,
+            score: _score
+          };
+
+          return appResource;
+        });
+
+        set(appResources);
+      } else {
+        set([]);
+      }
+    } else {
+      set([]);
+    }
+  },
+  <Resource[]>[]
 );

@@ -4,16 +4,16 @@ export default {
   // backend: 'http://localhost:8080/explore',
   search: {
     resources: [
-      'mentions.name',
       'preferredName',
-      'partOfSeries.name',
-      'about.name',
-      'about.keywords',
       'description',
       'alternativeHeadline',
-      'author.name',
       'nameShort',
-      'nameSub'
+      'nameSub',
+      'author.name',
+      'mentions.name',
+      'partOfSeries.name',
+      'about.name',
+      'about.keywords'
     ]
   }
 };

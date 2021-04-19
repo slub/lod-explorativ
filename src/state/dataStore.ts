@@ -5,7 +5,8 @@ import { query } from './uiState';
 import {
   topicRelatedRessourcesQuery,
   topicRelatedRessourcesCountQuery,
-  topicRelationsQuery
+  topicRelationsQuery,
+  topicRelatedRessourcesFilterQuery
 } from '../queries/resources';
 import { multiQuery } from '../queries/helper';
 import type {
@@ -99,7 +100,11 @@ export const topicStore = derived(
   query,
   ($query, set) => {
     backendQuery(Backendpoint.topicsearch, $query).then((result) => {
-      set(result);
+      if (result.message) {
+        console.warn(result.message);
+      } else {
+        set(result);
+      }
     });
   },
   <Topic[]>[]
@@ -113,18 +118,21 @@ export const resourcesExact = derived(
   ($topics, set) => {
     // array of topic names
     const topicIDs: string[] = uniq(map($topics, (t) => t.id));
+    const topicNames: string[] = uniq(map($topics, 'name'));
 
-    if (topicIDs.length > 0) {
+    if (topicNames.length > 0) {
       // generate multiple queries from names
-      const multiReq = multiQuery(topicIDs, topicRelatedRessourcesQuery, [
-        'mentions.@id'
-      ]);
+      const multiReq = multiQuery(
+        topicNames,
+        topicRelatedRessourcesFilterQuery,
+        config.search.resources
+      );
 
       search('resources', multiReq, Endpoint.msearch).then((result) => {
         const responses: ResourceAggResponse[] = result.responses;
 
         // relate responses with queries
-        set(new Map(zip(topicIDs, responses)));
+        set(new Map(zip(topicNames, responses)));
       });
     } else {
       set(new Map());

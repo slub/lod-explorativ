@@ -38,6 +38,15 @@ export interface Topic {
   events: Map<EventES, number>;
 }
 
+export interface Resource {
+  title: string;
+  authors: { name: string }[];
+  yearPublished: number;
+  description: string;
+  inLanguage: string[];
+  score: number;
+}
+
 export interface EntityCount {
   docCount: number;
 }

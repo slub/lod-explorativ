@@ -32,6 +32,36 @@ const aggs = {
   }
 };
 
+export function topicRelatedRessourcesFilterQuery(
+  query: string,
+  fields: string[]
+) {
+  return {
+    size: 15,
+    query: {
+      bool: {
+        must: [
+          {
+            multi_match: {
+              query,
+              fields,
+              type: 'phrase'
+            }
+          }
+        ],
+        filter: [
+          {
+            term: {
+              'mentions.name.keyword': query
+            }
+          }
+        ]
+      }
+    },
+    aggs
+  };
+}
+
 export function topicRelatedRessourcesQuery(query: string, fields: string[]) {
   return {
     size: 0,

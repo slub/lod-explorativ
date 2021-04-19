@@ -9,16 +9,22 @@ export interface IsBasedOn {
   '@type': string;
 }
 
-export interface Publisher {
+export interface PublisherSameAs {
   '@id': string;
   abbr: string;
   preferredName: string;
 }
 
+export interface PublisherResource {
+  name: string;
+  '@type': string;
+  location: Location;
+}
+
 export interface SameAs {
   '@id': string;
   isBasedOn: IsBasedOn;
-  publisher: Publisher;
+  publisher: PublisherSameAs;
 }
 
 export interface Reference {
@@ -32,6 +38,13 @@ export interface Identifier {
   '@type': string;
   propertyID: string;
   value: string;
+}
+
+export interface Mention {
+  '@id': string;
+  '@type': string;
+  name: string;
+  sameAs: string;
 }
 
 export interface About {
@@ -51,12 +64,24 @@ export interface Aggregation {
   sum_other_doc_count: number;
 }
 
+export interface Hit {
+  _id: string;
+  _index: string;
+  _score: number;
+  _source: any;
+  _type: string;
+}
+
+export interface ResourceHit extends Hit {
+  _source: ResourceES;
+}
+
 export interface ResourceAggResponse {
   aggregations: {
     [name: string]: Aggregation;
   };
   hits: {
-    hits: any[];
+    hits: ResourceHit[];
     max_score: number;
     total: {
       value: number;
@@ -102,6 +127,37 @@ export interface Entity {
   _isil: string;
 }
 
+export interface Offer {
+  '@type': string;
+  availability: string;
+  offeredBy: {
+    '@id': string;
+    '@type': string;
+    branchCode: string;
+    name: string;
+  };
+}
+
+export interface Location {
+  name: string;
+  type: string;
+}
+
+export interface ResourceES extends Entity {
+  alternativeHeadline: string;
+  author: { name: string }[];
+  dateModified: string;
+  datePublished: Date | Date[];
+  description: string[];
+  inLanguage: string[];
+  isbn: string[];
+  mentions: Mention[];
+  nameShort: string;
+  nameSub: string;
+  offers: Offer;
+  publisher: PublisherResource;
+}
+
 export interface EventES extends Entity {
   alternateName: string;
   name: {
@@ -123,7 +179,6 @@ export interface TopicES extends Entity {
   alternateName: string[];
   description: string;
 }
-
 export interface PersonES extends Entity {
   birthDate?: Date;
   deathDate?: Date;
