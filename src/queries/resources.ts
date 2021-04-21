@@ -32,12 +32,22 @@ const aggs = {
   }
 };
 
+const sort = [
+  '_score',
+  {
+    'datePublished.@value': {
+      order: 'desc'
+    }
+  }
+];
+
 export function topicRelatedRessourcesFilterQuery(
   query: string,
   fields: string[]
 ) {
   return {
     size: 15,
+    sort,
     query: {
       bool: {
         must: [
@@ -64,7 +74,8 @@ export function topicRelatedRessourcesFilterQuery(
 
 export function topicRelatedRessourcesQuery(query: string, fields: string[]) {
   return {
-    size: 0,
+    size: 15,
+    sort,
     query: {
       multi_match: {
         query,

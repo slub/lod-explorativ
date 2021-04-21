@@ -25,7 +25,9 @@ export const queries = [
   'Abenteuer',
   'Comic',
   'Medienkunst',
-  'Zootiere'
+  'Zootiere',
+  'Malerei',
+  'D3.js'
 ];
 
 export const query = writable(getQuery());

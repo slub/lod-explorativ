@@ -6,7 +6,7 @@
 
 <ul>
   {#each $resources as { title, yearPublished, score }}
-    <li>{title}</li>
+    <li>[{yearPublished ?? '-'}] {title}</li>
   {/each}
 </ul>
 

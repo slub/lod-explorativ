@@ -4,13 +4,15 @@ export default {
   // backend: 'http://localhost:8080/explore',
   search: {
     resources: [
-      'preferredName',
+      // TODO: fine-tune boost factor
+      'preferredName^2',
       'description',
       'alternativeHeadline',
       'nameShort',
       'nameSub',
       'author.name',
-      'mentions.name',
+      // TODO: only boot mentions on loose query
+      'mentions.name^3',
       'partOfSeries.name',
       'about.name',
       'about.keywords'

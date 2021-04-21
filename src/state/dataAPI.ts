@@ -366,6 +366,7 @@ export const resources = derived(
   [selectedTopic, resourcesExact],
   ([$selectedTopic, $resourcesExact], set) => {
     if ($selectedTopic) {
+      // TODO: also get resources from loose query and combine results
       const result = $resourcesExact.get($selectedTopic.name);
 
       if (result) {
