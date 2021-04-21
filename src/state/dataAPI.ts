@@ -363,11 +363,10 @@ export const selectedTopic = derived(
  * Returns top resources for the current query
  */
 export const resources = derived(
-  [selectedTopic, resourcesExact],
-  ([$selectedTopic, $resourcesExact], set) => {
+  [selectedTopic, resourcesLoose],
+  ([$selectedTopic, $resourcesLoose], set) => {
     if ($selectedTopic) {
-      // TODO: also get resources from loose query and combine results
-      const result = $resourcesExact.get($selectedTopic.name);
+      const result = $resourcesLoose.get($selectedTopic.name);
 
       if (result) {
         // console.log('resources: ', result.hits.total, result.hits.max_score);
