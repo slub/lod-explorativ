@@ -320,7 +320,15 @@ export const graph = derived(
         let sourceNode = nodes.find((x) => x.id === source);
         let targetNode = nodes.find((x) => x.id === target);
 
-        if (sourceNode && targetNode) {
+        // FIXME: prevent bi-directional links (duplicates)
+        if (
+          sourceNode &&
+          targetNode &&
+          sourceNode.type === NodeType.secondary &&
+          targetNode.type === NodeType.secondary &&
+          source !== $query &&
+          target !== $query
+        ) {
           const link: GraphLink = {
             id: source + '-' + target,
             source,
