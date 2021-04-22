@@ -10,8 +10,10 @@ const aggs = {
   datePublished: {
     date_histogram: {
       field: 'datePublished.@value',
-      calendar_interval: 'year',
-      min_doc_count: 1
+      // calendar_interval: '1y',
+      fixed_interval: 365 * 5 + 'd',
+      min_doc_count: 1,
+      format: 'yyyy'
     }
   },
   mentions: {
