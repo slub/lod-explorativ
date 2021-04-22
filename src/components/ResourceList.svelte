@@ -6,7 +6,7 @@
 
 <ul>
   {#each $resources as { title, yearPublished, score }}
-    <li>[{yearPublished ?? '-'}] {title}</li>
+    <li {title}>[{yearPublished ?? '-'}] {title}</li>
   {/each}
 </ul>
 
@@ -20,5 +20,14 @@
     margin-bottom: 0.25rem;
     border-bottom: 1px solid lightgray;
     padding-bottom: 0.25rem;
+    /* max-height: 120px; */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .title {
+    text-overflow: ellipsis;
   }
 </style>

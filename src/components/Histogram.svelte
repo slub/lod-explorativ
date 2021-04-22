@@ -6,17 +6,27 @@
 
   let width = 400;
   let height = 100;
+  let padH = 16;
+  let barWidth = 4;
 
+  $: paddingBottom = height - 16;
   $: maxCount = max($datePublished, (x) => x[1]);
   $: yearExtent = extent($datePublished, (x) => x[0]);
-  $: yScale = scaleLinear().domain([0, maxCount]).range([0, 30]);
-  $: xScale = scaleLinear().domain(yearExtent).range([0, width]);
-  $: ticks = xScale.ticks();
+  $: yScale = scaleLinear()
+    .domain([0, maxCount])
+    .range([2, height - 48]);
+  $: xScale = scaleLinear()
+    .domain(yearExtent)
+    .range([padH, width - padH])
+    .nice();
+  $: ticks = xScale.ticks(8);
+
+  $: {
+    console.log($datePublished);
+  }
 </script>
 
 <div bind:clientWidth={width}>
-  <!-- <div class="test" style="width: {width}px">{w} / {width}</div> -->
-
   <svg
     {width}
     {height}
@@ -25,13 +35,20 @@
   >
     {#each $datePublished as [year, count]}
       <rect
-        x={xScale(year)}
-        y={height - 16 - yScale(count)}
-        width={8}
+        x={xScale(year) - barWidth / 2}
+        y={paddingBottom - yScale(count)}
+        width={barWidth}
         height={yScale(count)}
         fill="grey"
       />
     {/each}
+    <line
+      x1="0"
+      y1={paddingBottom}
+      x2={width}
+      y2={paddingBottom}
+      stroke="lightgrey"
+    />
     {#each ticks as t}
       <text x={xScale(t)} y={height} text-anchor="middle">{t}</text>
     {/each}

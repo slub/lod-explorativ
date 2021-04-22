@@ -8,11 +8,9 @@ const aggs = {
     }
   },
   datePublished: {
-    date_histogram: {
+    auto_date_histogram: {
       field: 'datePublished.@value',
-      // calendar_interval: '1y',
-      fixed_interval: 365 * 5 + 'd',
-      min_doc_count: 1,
+      buckets: 100,
       format: 'yyyy'
     }
   },

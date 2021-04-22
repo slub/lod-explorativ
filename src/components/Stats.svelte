@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { fade, fly } from 'svelte/transition';
+  import { fade } from 'svelte/transition';
   import { scaleLinear } from 'd3-scale';
   import { max } from 'd3-array';
   import { genres } from '../state/dataAPI';
