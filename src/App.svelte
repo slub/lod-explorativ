@@ -18,11 +18,11 @@
     <Title {name} />
     <Navigation />
   </div>
-  <div slot="left">
+  <svelte:fragment slot="left">
     <SearchInput />
     <Suggestions />
     <Stats />
-  </div>
+  </svelte:fragment>
   <Graph slot="main" />
   <Histogram slot="bottom" />
   <ResourceList slot="right" />

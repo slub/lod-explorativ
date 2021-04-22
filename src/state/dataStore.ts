@@ -24,6 +24,7 @@ import type { Endpoint as BackendpointType } from '../types/backend';
 import { Endpoint } from '../types/es';
 import { Endpoint as Backendpoint } from '../types/backend';
 import config from '../config';
+import { topicSearchQuery } from '../queries/topics';
 
 /**
  * The dataStore listens to UI state changes and fetches new data if required.
@@ -85,8 +86,12 @@ export async function backendQuery(
   backendpoint: BackendpointType,
   query: string
 ) {
+  const body = topicSearchQuery(query);
+
   const response = await fetch(`${config.backend}/${backendpoint}?q=${query}`, {
-    method: 'GET'
+    method: 'POST',
+    headers: createHeaders(),
+    body: JSON.stringify({ body })
   });
 
   const results = await response.json();
