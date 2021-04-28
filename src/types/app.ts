@@ -44,6 +44,7 @@ export interface Resource {
   description: string;
   inLanguage: string[];
   score: number;
+  topics: string[];
 }
 
 export interface EntityCount {

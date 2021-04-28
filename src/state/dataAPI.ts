@@ -336,66 +336,78 @@ export const selectedTopic = derived(
 );
 
 /**
+ * Returns the aggregation results for the current query depending on the search mode (phrase/topic match)
+ */
+export const selectedTopicAggregations = derived(
+  [selectedTopic, aggregationStore, searchMode],
+  ([$topic, $aggs, $mode]) => {
+    if ($topic) {
+      const agg =
+        $mode === SearchMode.topic ? $aggs.topicMatch : $aggs.phraseMatch;
+      const topicName = $topic.name;
+      return agg.get(topicName);
+    }
+    return null;
+  }
+);
+
+/**
  * Returns top resources for the selected topic
  */
 export const resources = derived(
-  [selectedTopic, aggregationStore],
-  ([$selectedTopic, $aggs], set) => {
-    if ($selectedTopic) {
-      const topic = $aggs.phraseMatch.get($selectedTopic.name);
+  selectedTopicAggregations,
+  ($agg, set) => {
+    if ($agg) {
+      const appResources = $agg.hits.hits.map(({ _score, _source }) => {
+        const {
+          preferredName,
+          author,
+          datePublished: dp,
+          inLanguage,
+          description,
+          mentions = []
+        } = _source;
 
-      if (topic) {
-        const appResources = topic.hits.hits.map(({ _score, _source }) => {
-          const {
-            preferredName,
-            author,
-            datePublished: dp,
-            inLanguage,
-            description
-          } = _source;
+        // TODO: simplify in backend?
+        const date = !!dp
+          ? isArray(dp)
+            ? dp[0]['@value']
+            : dp['@value']
+          : null;
 
-          // TODO: simplify in backend?
-          const date = !!dp
-            ? isArray(dp)
-              ? dp[0]['@value']
-              : dp['@value']
-            : null;
+        const appResource: Resource = {
+          title: preferredName,
+          yearPublished: date ? new Date(date).getFullYear() : null,
+          authors: author,
+          description: description ? description.join(';') : null,
+          inLanguage,
+          score: _score,
+          topics: uniq(
+            mentions.filter((m) => /topics/.test(m['@id'])).map((m) => m.name)
+          )
+        };
 
-          const appResource: Resource = {
-            title: preferredName,
-            yearPublished: date ? new Date(date).getFullYear() : null,
-            authors: author,
-            description: description ? description.join(';') : null,
-            inLanguage,
-            score: _score
-          };
+        return appResource;
+      });
 
-          return appResource;
-        });
-
-        set(appResources);
-      } else {
-        // reset store if topic wasn't found
-        set([]);
-      }
+      set(appResources);
     } else {
+      // reset store if topic wasn't found
       set([]);
     }
   },
   <Resource[]>[]
 );
 
+/**
+ * Return the authors for the current query or the selected topic
+ */
 export const authors = derived(
-  [selectedTopic, aggregationStore, authorStore, searchMode],
-  ([$selectedTopic, $aggs, $authorStore, $searchMode], set) => {
-    if ($selectedTopic) {
-      const resStore =
-        $searchMode === SearchMode.topic ? $aggs.topicMatch : $aggs.phraseMatch;
-      const aggs = resStore.get($selectedTopic.name);
-      if (aggs) {
-        const authorEnt = getEntities(aggs, $authorStore, 'topAuthors');
-        set(authorEnt);
-      }
+  [selectedTopicAggregations, authorStore],
+  ([$aggs, $authorStore], set) => {
+    if ($aggs) {
+      const authorEnt = getEntities($aggs, $authorStore, 'topAuthors');
+      set(authorEnt);
     } else {
       // reset store if no topic is selected
       set(new Map());

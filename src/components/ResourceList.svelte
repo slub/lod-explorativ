@@ -1,14 +1,32 @@
 <script lang="ts">
+  import { query, searchMode, SearchMode } from '../state/uiState';
   import { resources } from '../state/dataAPI';
+  import Chip from './Chip.svelte';
   import Tooltip from './Tooltip.svelte';
 </script>
 
 <h2>Ressourcen</h2>
 
-<ul>
-  {#each $resources as { title, yearPublished, description }}
-    <li {title}>
+<ul class="resourceList">
+  {#each $resources as { title, yearPublished, description, topics }}
+    <li class="resourceItem" {title}>
       <Tooltip title={description}>[{yearPublished ?? '-'}] {title}</Tooltip>
+      <ul class="topicList">
+        {#each topics as topic}
+          <!-- do not show selected topic if SearchMode is 'topic'
+            as it exists for all elements  -->
+          {#if $searchMode == SearchMode.phrase || topic !== $query}
+            <li
+              class="topicItem"
+              on:click={() => {
+                query.set(topic);
+              }}
+            >
+              <Chip name={topic} />
+            </li>
+          {/if}
+        {/each}
+      </ul>
     </li>
   {/each}
 </ul>
@@ -18,15 +36,29 @@
     list-style: none;
     padding: 0;
   }
+  .resourceList {
+    max-height: 40vh;
+    overflow-y: auto;
+  }
 
-  li {
+  .topicList {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+
+  .resourceItem {
     margin-bottom: 0.25rem;
     border-bottom: 1px solid lightgray;
     padding-bottom: 0.25rem;
-    /* max-height: 120px; */
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  .topicItem {
+    margin: 2px;
+    cursor: pointer;
   }
 </style>
