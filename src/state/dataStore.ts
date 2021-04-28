@@ -1,7 +1,7 @@
 import { derived } from 'svelte/store';
 import base64 from 'base-64';
 import { flatten, map, uniq, zip } from 'lodash';
-import { query } from './uiState';
+import { query, SearchMode, searchMode } from './uiState';
 import {
   topicRelatedRessourcesQuery,
   topicRelationsQuery,
@@ -222,20 +222,22 @@ export const authorStore = derived(
 /**
  * Helper function that uses IDs from aggregation results to request the contained entities
  *
- * @param index name of index
- * @param aggMap ElasticSearch aggregation result
+ * @param index   Name of index
+ * @param aggMap  ElasticSearch aggregation result
+ * @param aggName Name of the aggregation to use
  * @returns index documents
  */
 async function getMentionsByIndex<T>(
   index: string,
-  aggMap: Map<string, ResourceAggResponse>
+  aggMap: Map<string, ResourceAggResponse>,
+  aggName: string = 'mentions'
 ): Promise<T[]> {
   const aggregations = Array.from(aggMap.values());
 
   const ids = uniq(
     flatten(
       aggregations.map((agg) =>
-        agg.aggregations.mentions.buckets.map((mention) => mention.key)
+        agg.aggregations[aggName].buckets.map((mention) => mention.key)
       )
     )
   )
@@ -274,9 +276,13 @@ export const geoStore = derived(
  * Derived store contains topic-related topics (exact matching)
  */
 export const relatedTopicStore = derived(
-  aggregationStore,
-  ($aggs, set) => {
-    getMentionsByIndex<TopicES>('topics', $aggs.topicMatch).then((topics) => {
+  [aggregationStore, searchMode],
+  ([$aggs, $mode], set) => {
+    getMentionsByIndex<TopicES>(
+      'topics',
+      $mode === SearchMode.topic ? $aggs.topicMatch : $aggs.phraseMatch,
+      'topRelatedTopics'
+    ).then((topics) => {
       set(topics);
     });
   },

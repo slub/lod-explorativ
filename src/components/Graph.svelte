@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { scaleLinear, scaleSqrt } from 'd3-scale';
+  import { scale, draw } from 'svelte/transition';
+  import { scaleSqrt, scaleLinear } from 'd3-scale';
   import { max } from 'd3-array';
   import {
     forceSimulation,
@@ -24,14 +25,14 @@
   $: maxCount = max($graph.nodes, (n) => n.count);
 
   $: radiusScale = scaleSqrt().domain([0, maxCount]).range([0, 100]);
-  // $: edgeWidthScale = scaleLinear()
-  //   .domain([0, max($graph.links, (l) => l.weight)])
-  //   .range([1, 10]);
+  $: edgeWidthScale = scaleLinear()
+    .domain([0, max($graph.links, (l) => l.weight)])
+    .range([1, 10]);
 
   // FORCES
   $: link = forceLink($graph.links)
     .id((d: GraphLink) => d.id)
-    .strength(0);
+    .strength(0.1);
 
   $: radial = forceRadial((d: GraphNode) =>
     d.text === $query
@@ -90,11 +91,12 @@
         <line
           class:mentions_name_link={type === LinkType.MENTIONS_NAME_LINK}
           class:mentions_id_link={type === LinkType.MENTIONS_ID_LINK}
-          stroke-width={1}
+          stroke-width={edgeWidthScale(weight)}
           x1={source.x}
           y1={source.y}
           x2={target.x}
           y2={target.y}
+          transition:draw
         />
       {/each}
     </g>
@@ -109,6 +111,8 @@
           class:zeroHits={count === 0}
           class:selected={text === $query}
           on:click={() => handleClick(text)}
+          in:scale={{ duration: 1000 }}
+          out:scale={{ duration: 300 }}
         >
           <circle {r} fill="#f00" fill-opacity="0.5" />
           <text

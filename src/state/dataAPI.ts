@@ -1,5 +1,13 @@
 import { derived } from 'svelte/store';
-import { compact, debounce, flatten, isArray, uniq, uniqBy } from 'lodash';
+import {
+  compact,
+  debounce,
+  flatten,
+  isArray,
+  maxBy,
+  uniq,
+  uniqBy
+} from 'lodash';
 import type { PersonES, ResourceAggResponse } from 'types/es';
 import {
   GraphLink,
@@ -155,14 +163,20 @@ export const topicsEnriched = derived(
     geoStore,
     relatedTopicStore,
     eventStore,
-    topicStore
+    topicStore,
+    searchMode
   ],
-  ([$authors, $aggs, $geo, $relatedTopics, $events, $topics], set) => {
+  (
+    [$authors, $aggs, $geo, $relatedTopics, $events, $topics, $searchMode],
+    set
+  ) => {
     const merged = $topics.map(
       ({ name, additionalTypes, alternateName, description, id, score }) => {
         // get aggregation results on resources index
         const aggTopicMatch = $aggs.topicMatch.get(name);
         const aggPhraseMatch = $aggs.phraseMatch.get(name);
+        const agg =
+          $searchMode === SearchMode.topic ? aggTopicMatch : aggPhraseMatch;
 
         // TODO: preserve all alternateNames?
         const altName = alternateName?.[0];
@@ -183,7 +197,7 @@ export const topicsEnriched = derived(
             : null,
           authors: getEntities(aggPhraseMatch, $authors, 'topAuthors'),
           locations: getEntities(aggTopicMatch, $geo, 'mentions'),
-          related: getEntities(aggTopicMatch, $relatedTopics, 'mentions'),
+          related: getEntities(agg, $relatedTopics, 'topRelatedTopics'),
           events: getEntities(aggTopicMatch, $events, 'mentions')
         };
 
@@ -282,6 +296,7 @@ export const graph = derived(
     });
 
     // TODO: only add relation if it does not already exist (from top-level to related)
+
     $topicRelations.forEach(({ key, doc_count }) => {
       const [source, target] = key.split('&');
 
@@ -303,6 +318,7 @@ export const graph = derived(
             id: source + '-' + target,
             source,
             target,
+            // TODO: use scale for mapping
             weight: doc_count,
             type: LinkType.MENTIONS_NAME_LINK
           };

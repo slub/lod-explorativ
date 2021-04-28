@@ -16,8 +16,14 @@ const aggs = {
   },
   mentions: {
     terms: {
-      // TODO: use id
       field: 'mentions.@id.keyword',
+      size: 10
+    }
+  },
+  topRelatedTopics: {
+    terms: {
+      field: 'mentions.@id.keyword',
+      include: '.*topics.*',
       size: 10
     }
   },
