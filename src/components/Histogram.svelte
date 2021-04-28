@@ -20,10 +20,6 @@
     .range([padH, width - padH])
     .nice();
   $: ticks = xScale.ticks(8);
-
-  $: {
-    console.log($datePublished);
-  }
 </script>
 
 <div bind:clientWidth={width}>

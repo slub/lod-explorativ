@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { Topic } from 'types/es';
+  import type { TopicES } from 'types/es';
 
-  export let topics: Map<Topic, number>;
+  export let topics: Map<TopicES, number>;
 </script>
 
 <div class="container">

@@ -1,7 +1,6 @@
 <script lang="ts">
   export let name: string;
 
-  import TopicList from './components/TopicList.svelte';
   import SearchInput from './components/SearchInput.svelte';
   import Graph from './components/Graph.svelte';
   import Title from './components/Title.svelte';
@@ -11,6 +10,7 @@
   import Stats from './components/Stats.svelte';
   import Histogram from './components/Histogram.svelte';
   import ResourceList from './components/ResourceList.svelte';
+  import AuthorList from './components/AuthorList.svelte';
 </script>
 
 <Layout>
@@ -25,7 +25,10 @@
   </svelte:fragment>
   <Graph slot="main" />
   <Histogram slot="bottom" />
-  <ResourceList slot="right" />
+  <svelte:fragment slot="right">
+    <ResourceList />
+    <AuthorList />
+  </svelte:fragment>
 </Layout>
 
 <!-- <TopicList /> -->

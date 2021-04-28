@@ -1,6 +1,11 @@
 import { random } from 'lodash';
 import { writable } from 'svelte/store';
 
+export enum SearchMode {
+  phrase = 'phrase',
+  topic = 'topic'
+}
+
 /**
  * Returns the search query from the URL. Function returns a random query if no query is set.
  */
@@ -39,3 +44,5 @@ query.subscribe((value) => {
   url.search = params.toString();
   window.history.pushState({}, value, url.href);
 });
+
+export const searchMode = writable('phrase');

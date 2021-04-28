@@ -21,8 +21,7 @@
     events,
     id,
     score,
-    description,
-    altCount
+    description
   } = topic;
 
   const { mentions, docCount } = aggregations;
@@ -57,9 +56,7 @@
 
   {#if !!alternateName && alternateName !== name}
     <p>
-      Die Suche nach dem alternativen Namen „{alternateName}“ ergibt
-      <span class="count">{altCount}</span>
-      Treffer.
+      Die Suche nach dem alternativen Namen „{alternateName}“ wurde entfernt.
     </p>
   {/if}
 
@@ -71,7 +68,7 @@
   {/if}
 
   {#if authors.size > 0}
-    <AuthorList {authors} />
+    <AuthorList />
   {/if}
 
   {#if locations.size > 0}

@@ -31,7 +31,6 @@ export interface Topic {
   additionalTypes: AdditionalType[];
   aggregations: ResourceAggregation;
   aggregationsLoose: ResourceAggregation;
-  altCount: number;
   authors: Map<PersonES, number>;
   locations: Map<GeoES, number>;
   related: Map<TopicES, number>;

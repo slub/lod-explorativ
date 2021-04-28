@@ -1,14 +1,6 @@
-import {
-  compact,
-  debounce,
-  flatten,
-  isArray,
-  last,
-  uniq,
-  uniqBy
-} from 'lodash';
 import { derived } from 'svelte/store';
-import type { ResourceAggResponse } from 'types/es';
+import { compact, debounce, flatten, isArray, uniq, uniqBy } from 'lodash';
+import type { PersonES, ResourceAggResponse } from 'types/es';
 import {
   GraphLink,
   GraphNode,
@@ -20,16 +12,14 @@ import {
 } from '../types/app';
 import {
   authorStore,
-  resourcesExact,
-  resourcesLoose,
-  resourcesLooseByAltName,
+  aggregationStore,
   geoStore,
   relatedTopicStore,
   topicRelationStore,
   topicStore,
   eventStore
 } from './dataStore';
-import { query } from './uiState';
+import { query, SearchMode, searchMode } from './uiState';
 
 /**
  * The dataAPI combines the results of the DataStore and provides the UI components with data.
@@ -111,12 +101,12 @@ export const additionalTypes = derived(topicStore, ($topics) => {
  * Returns top genres for selected topic
  */
 export const genres = derived(
-  [query, resourcesLoose],
-  ([$query, $resourcesLoose], set) => {
-    const aggregations = $resourcesLoose.get($query);
+  [query, aggregationStore],
+  ([$query, $aggs], set) => {
+    const agg = $aggs.phraseMatch.get($query);
 
-    if (aggregations) {
-      const genres = aggregations.aggregations.genres;
+    if (agg) {
+      const genres = agg.aggregations.genres;
       const other = genres.sum_other_doc_count;
       const genreCounts = genres.buckets.map(({ key, doc_count }) => [
         key,
@@ -137,9 +127,9 @@ export const genres = derived(
  * Return the number of resources per year for selected topic
  */
 export const datePublished = derived(
-  [query, resourcesLoose],
-  ([$query, $resourcesLoose], set) => {
-    const queryAgg = $resourcesLoose.get($query);
+  [query, aggregationStore],
+  ([$query, $aggs], set) => {
+    const queryAgg = $aggs.phraseMatch.get($query);
 
     if (queryAgg) {
       const published = queryAgg.aggregations.datePublished;
@@ -161,32 +151,18 @@ export const datePublished = derived(
 export const topicsEnriched = derived(
   [
     authorStore,
-    resourcesLooseByAltName,
-    resourcesExact,
-    resourcesLoose,
+    aggregationStore,
     geoStore,
     relatedTopicStore,
     eventStore,
     topicStore
   ],
-  (
-    [
-      $authors,
-      $resourcesLooseByAltName,
-      $resourcesExact,
-      $resourcesLoose,
-      $geo,
-      $relatedTopics,
-      $events,
-      $topics
-    ],
-    set
-  ) => {
+  ([$authors, $aggs, $geo, $relatedTopics, $events, $topics], set) => {
     const merged = $topics.map(
       ({ name, additionalTypes, alternateName, description, id, score }) => {
         // get aggregation results on resources index
-        const aggStrict = $resourcesExact.get(name);
-        const aggLoose = $resourcesLoose.get(name);
+        const aggTopicMatch = $aggs.topicMatch.get(name);
+        const aggPhraseMatch = $aggs.phraseMatch.get(name);
 
         // TODO: preserve all alternateNames?
         const altName = alternateName?.[0];
@@ -201,13 +177,14 @@ export const topicsEnriched = derived(
           // TODO: replace references with topics
           additionalTypes,
           description,
-          aggregations: aggStrict ? convertAggs(aggStrict) : null,
-          aggregationsLoose: aggLoose ? convertAggs(aggLoose) : null,
-          altCount: $resourcesLooseByAltName.get(altName)?.hits.total.value,
-          authors: getEntities(aggStrict, $authors, 'topAuthors'),
-          locations: getEntities(aggStrict, $geo, 'mentions'),
-          related: getEntities(aggStrict, $relatedTopics, 'mentions'),
-          events: getEntities(aggStrict, $events, 'mentions')
+          aggregations: aggTopicMatch ? convertAggs(aggTopicMatch) : null,
+          aggregationsLoose: aggPhraseMatch
+            ? convertAggs(aggPhraseMatch)
+            : null,
+          authors: getEntities(aggPhraseMatch, $authors, 'topAuthors'),
+          locations: getEntities(aggTopicMatch, $geo, 'mentions'),
+          related: getEntities(aggTopicMatch, $relatedTopics, 'mentions'),
+          events: getEntities(aggTopicMatch, $events, 'mentions')
         };
 
         return topic;
@@ -237,8 +214,6 @@ export const graph = derived(
 
     let relatedTopics: { name: string; count: number }[] = [];
 
-    // console.log('////// GRAPH');
-
     // create nodes for all top-level topics and collect related topics
     $topicsEnriched.forEach((primaryTopic) => {
       const { name, aggregationsLoose, related } = primaryTopic;
@@ -254,8 +229,6 @@ export const graph = derived(
         };
 
         nodes.push(primaryNode);
-
-        // console.log('primary', primaryNode.text);
       }
 
       if (related) {
@@ -283,7 +256,6 @@ export const graph = derived(
         //   };
 
         //   links.push(link);
-        // console.log(link.source, '---->', link.target);
         // });
       }
     });
@@ -304,8 +276,6 @@ export const graph = derived(
           type: NodeType.secondary,
           text: name
         };
-
-        // console.log('sec', secNode.id);
 
         nodes.push(secNode);
       }
@@ -338,8 +308,6 @@ export const graph = derived(
           };
 
           links.push(link);
-
-          // console.log(link.source, '---->', link.target);
         }
       }
     });
@@ -368,17 +336,16 @@ export const selectedTopic = derived(
 );
 
 /**
- * Returns top resources for the current query
+ * Returns top resources for the selected topic
  */
 export const resources = derived(
-  [selectedTopic, resourcesLoose],
-  ([$selectedTopic, $resourcesLoose], set) => {
+  [selectedTopic, aggregationStore],
+  ([$selectedTopic, $aggs], set) => {
     if ($selectedTopic) {
-      const result = $resourcesLoose.get($selectedTopic.name);
+      const topic = $aggs.phraseMatch.get($selectedTopic.name);
 
-      if (result) {
-        // console.log('resources: ', result.hits.total, result.hits.max_score);
-        const appResources = result.hits.hits.map(({ _score, _source }) => {
+      if (topic) {
+        const appResources = topic.hits.hits.map(({ _score, _source }) => {
           const {
             preferredName,
             author,
@@ -408,6 +375,7 @@ export const resources = derived(
 
         set(appResources);
       } else {
+        // reset store if topic wasn't found
         set([]);
       }
     } else {
@@ -415,4 +383,23 @@ export const resources = derived(
     }
   },
   <Resource[]>[]
+);
+
+export const authors = derived(
+  [selectedTopic, aggregationStore, authorStore, searchMode],
+  ([$selectedTopic, $aggs, $authorStore, $searchMode], set) => {
+    if ($selectedTopic) {
+      const resStore =
+        $searchMode === SearchMode.topic ? $aggs.topicMatch : $aggs.phraseMatch;
+      const aggs = resStore.get($selectedTopic.name);
+      if (aggs) {
+        const authorEnt = getEntities(aggs, $authorStore, 'topAuthors');
+        set(authorEnt);
+      }
+    } else {
+      // reset store if no topic is selected
+      set(new Map());
+    }
+  },
+  <Map<PersonES, number>>new Map()
 );

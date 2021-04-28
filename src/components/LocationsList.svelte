@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { Geo } from 'types/es';
+  import type { GeoES } from 'types/es';
 
-  export let locations: Map<Geo, number>;
+  export let locations: Map<GeoES, number>;
 </script>
 
 <div class="container">

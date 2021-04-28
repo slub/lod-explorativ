@@ -1,12 +1,12 @@
 <script lang="ts">
   import { fade } from 'svelte/transition';
-  export let title = '';
+  export let title;
   let show = false;
   let x = 0;
   let y = 0;
 
   function handleMouseOver(e) {
-    show = true;
+    if (title) show = true;
     x = e.pageX;
     y = e.pageY - 32;
   }

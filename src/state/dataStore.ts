@@ -1,10 +1,9 @@
 import { derived } from 'svelte/store';
 import base64 from 'base-64';
-import { compact, flatten, map, set, uniq, zip } from 'lodash';
+import { flatten, map, uniq, zip } from 'lodash';
 import { query } from './uiState';
 import {
   topicRelatedRessourcesQuery,
-  topicRelatedRessourcesCountQuery,
   topicRelationsQuery,
   topicRelatedRessourcesFilterQuery
 } from '../queries/resources';
@@ -118,110 +117,86 @@ export const topicStore = derived(
 /**
  * Searches topic names in `mentions.name` field of `resources` index and returns aggregations.
  */
-export const resourcesExact = derived(
+export const aggregationStore = derived(
   topicStore,
   ($topics, set) => {
     // array of topic names
-    const topicIDs: string[] = uniq(map($topics, (t) => t.id));
+
     const topicNames: string[] = uniq(map($topics, 'name'));
 
     if (topicNames.length > 0) {
       // generate multiple queries from names
-      const multiReq = multiQuery(
+      const topicMatchQuery = multiQuery(
         topicNames,
         topicRelatedRessourcesFilterQuery,
         config.search.resources
       );
 
-      search('resources', multiReq, Endpoint.msearch).then((result) => {
-        const responses: ResourceAggResponse[] = result.responses;
-
-        // relate responses with queries
-        set(new Map(zip(topicNames, responses)));
-      });
-    } else {
-      set(new Map());
-    }
-  },
-  <Map<string, ResourceAggResponse>>new Map()
-);
-
-/**
- * Searches topic names in multiple fields of `resources` index and returns aggregations.
- */
-export const resourcesLoose = derived(
-  topicStore,
-  ($topics, set) => {
-    // array of topic names
-    const topicNames: string[] = uniq(map($topics, 'name'));
-
-    if (topicNames.length > 0) {
-      // generate multiple queries from namesresult
-      const multiReq = multiQuery(
+      const phraseMatchQuery = multiQuery(
         topicNames,
         topicRelatedRessourcesQuery,
         config.search.resources
       );
 
-      search('resources', multiReq, Endpoint.msearch).then((result) => {
-        const responses: ResourceAggResponse[] = result.responses;
+      let topicMatch;
+      let phraseMatch;
 
+      const topicReq = search(
+        'resources',
+        topicMatchQuery,
+        Endpoint.msearch
+      ).then((result) => {
+        const responses: ResourceAggResponse[] = result.responses;
         // relate responses with queries
-        set(new Map(zip(topicNames, responses)));
+        topicMatch = new Map(zip(topicNames, responses));
       });
-    } else {
-      set(new Map());
+
+      const phraseReq = search(
+        'resources',
+        phraseMatchQuery,
+        Endpoint.msearch
+      ).then((result) => {
+        const responses: ResourceAggResponse[] = result.responses;
+        phraseMatch = new Map(zip(topicNames, responses));
+      });
+
+      Promise.all([topicReq, phraseReq]).then(() => {
+        set({
+          phraseMatch,
+          topicMatch
+        });
+      });
     }
   },
-  <Map<string, ResourceAggResponse>>new Map()
-);
-
-/**
- * Returns the number of ressources which contain the topic alternate name
- */
-export const resourcesLooseByAltName = derived(
-  topicStore,
-  ($topics, set) => {
-    const altNames: string[] = uniq(
-      compact(flatten(map($topics, 'alternateName')))
-    );
-
-    if (altNames.length > 0) {
-      // generate multiple queries and make broad search
-      const multiReq = multiQuery(
-        altNames,
-        topicRelatedRessourcesCountQuery,
-        config.search.resources
-      );
-
-      search('resources', multiReq, Endpoint.msearch).then((result) => {
-        const responses: ResourceAggResponse[] = result.responses;
-
-        // relate responses with queries
-        set(new Map(zip(altNames, responses)));
-      });
-    } else {
-      set(new Map());
+  <
+    {
+      phraseMatch: Map<string, ResourceAggResponse>;
+      topicMatch: Map<string, ResourceAggResponse>;
     }
-  },
-  <Map<string, ResourceAggResponse>>new Map()
+  >{ phraseMatch: new Map(), topicMatch: new Map() }
 );
 
 // TODO: similar to `getMentionsByIndex` function, could be combined
 export const authorStore = derived(
-  resourcesExact,
-  ($resourcesExact, set) => {
-    const aggregations = Array.from($resourcesExact.values());
+  [aggregationStore],
+  ([$aggs], set) => {
+    const aggsLoose = Array.from($aggs.phraseMatch.values());
+    const aggsExact = Array.from($aggs.topicMatch.values());
 
-    const ids = uniq(
-      flatten(
-        aggregations.map((agg) =>
-          agg.aggregations.topAuthors.buckets.map((author) =>
-            author.key.replace('https://data.slub-dresden.de/persons/', '')
+    const getAuthorIDs = (aggs) =>
+      uniq(
+        flatten(
+          aggs.map((agg) =>
+            agg.aggregations.topAuthors.buckets.map((author) =>
+              author.key.replace('https://data.slub-dresden.de/persons/', '')
+            )
           )
         )
-      )
-    );
+      );
+
+    const looseIDs = getAuthorIDs(aggsLoose);
+    const exactIDs = getAuthorIDs(aggsExact);
+    const ids = [...looseIDs, ...exactIDs];
 
     if (ids.length > 0) {
       // property name must be `ids`
@@ -234,6 +209,7 @@ export const authorStore = derived(
 
         // only return found persons
         const persons = docs.filter((pDoc) => pDoc.found).map((d) => d._source);
+
         set(persons);
       });
     } else {
@@ -285,9 +261,9 @@ async function getMentionsByIndex<T>(
  * Derived store contains topic-related places (exact matching)
  */
 export const geoStore = derived(
-  resourcesExact,
-  ($resourcesExact, set) => {
-    getMentionsByIndex<GeoES>('geo', $resourcesExact).then((places) => {
+  aggregationStore,
+  ($aggs, set) => {
+    getMentionsByIndex<GeoES>('geo', $aggs.topicMatch).then((places) => {
       set(places);
     });
   },
@@ -298,9 +274,9 @@ export const geoStore = derived(
  * Derived store contains topic-related topics (exact matching)
  */
 export const relatedTopicStore = derived(
-  resourcesExact,
-  ($resourcesExact, set) => {
-    getMentionsByIndex<TopicES>('topics', $resourcesExact).then((topics) => {
+  aggregationStore,
+  ($aggs, set) => {
+    getMentionsByIndex<TopicES>('topics', $aggs.topicMatch).then((topics) => {
       set(topics);
     });
   },
@@ -311,9 +287,9 @@ export const relatedTopicStore = derived(
  * Derived store contains topic-related events (exact matching)
  */
 export const eventStore = derived(
-  resourcesExact,
-  ($resourcesExact, set) => {
-    getMentionsByIndex<EventES>('events', $resourcesExact).then((events) => {
+  aggregationStore,
+  ($aggs, set) => {
+    getMentionsByIndex<EventES>('events', $aggs.topicMatch).then((events) => {
       set(events);
     });
   },

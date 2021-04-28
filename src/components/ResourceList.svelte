@@ -1,12 +1,15 @@
 <script lang="ts">
   import { resources } from '../state/dataAPI';
+  import Tooltip from './Tooltip.svelte';
 </script>
 
 <h2>Ressourcen</h2>
 
 <ul>
-  {#each $resources as { title, yearPublished, score }}
-    <li {title}>[{yearPublished ?? '-'}] {title}</li>
+  {#each $resources as { title, yearPublished, description }}
+    <li {title}>
+      <Tooltip title={description}>[{yearPublished ?? '-'}] {title}</Tooltip>
+    </li>
   {/each}
 </ul>
 
@@ -25,9 +28,5 @@
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
-  }
-
-  .title {
-    text-overflow: ellipsis;
   }
 </style>

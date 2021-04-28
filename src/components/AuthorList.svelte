@@ -1,20 +1,34 @@
 <script lang="ts">
-  import type { Person } from 'types/es';
-
-  export let authors: Map<Person, number>;
+  import { authors } from '../state/dataAPI';
+  import Tooltip from './Tooltip.svelte';
 </script>
 
-<div class="container">
-  <h4>Top Autoren</h4>
-  <ul class="authorList">
-    {#each Array.from(authors) as [author, count]}
-      <li>{author.preferredName} ({count})</li>
-    {/each}
-  </ul>
-</div>
+<h2>Autoren</h2>
+
+<ul>
+  {#each Array.from($authors) as [author, count]}
+    <li>
+      <Tooltip title={author.hasOccupation?.map((o) => o.name).join(', ')}
+        >[{count}] {author.preferredName}</Tooltip
+      >
+    </li>
+  {/each}
+</ul>
 
 <style>
-  .container {
-    margin-bottom: 2rem;
+  ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  li {
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid lightgray;
+    padding-bottom: 0.25rem;
+    /* max-height: 120px; */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 </style>
