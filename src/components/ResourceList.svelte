@@ -1,15 +1,16 @@
 <script lang="ts">
+  import { fade } from 'svelte/transition';
   import { query, searchMode, SearchMode } from '../state/uiState';
   import { resources } from '../state/dataAPI';
   import Chip from './Chip.svelte';
   import Tooltip from './Tooltip.svelte';
 </script>
 
-<h2>Ressourcen</h2>
+<h2>{$resources.total} Ressourcen</h2>
 
 <ul class="resourceList">
-  {#each $resources as { title, yearPublished, description, topics }}
-    <li class="resourceItem" {title}>
+  {#each $resources.items as { title, yearPublished, description, topics }}
+    <li transition:fade class="resourceItem" {title}>
       <Tooltip title={description}>[{yearPublished ?? '-'}] {title}</Tooltip>
       <ul class="topicList">
         {#each topics as topic}

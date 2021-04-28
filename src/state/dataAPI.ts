@@ -390,13 +390,16 @@ export const resources = derived(
         return appResource;
       });
 
-      set(appResources);
+      set({ total: $agg.hits.total.value, items: appResources });
     } else {
       // reset store if topic wasn't found
-      set([]);
+      set({ total: 0, items: [] });
     }
   },
-  <Resource[]>[]
+  {
+    total: <number>null,
+    items: <Resource[]>[]
+  }
 );
 
 /**

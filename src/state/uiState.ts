@@ -33,7 +33,8 @@ export const queries = [
   'Zootiere',
   'Malerei',
   'D3.js',
-  'Belagerung'
+  'Belagerung',
+  'Sakralbau'
 ];
 
 export const query = writable(getQuery());

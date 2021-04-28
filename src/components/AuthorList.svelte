@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { fade } from 'svelte/transition';
   import { authors } from '../state/dataAPI';
   import Tooltip from './Tooltip.svelte';
 </script>
@@ -7,7 +8,7 @@
 
 <ul>
   {#each Array.from($authors) as [author, count]}
-    <li>
+    <li transition:fade>
       <Tooltip title={author.hasOccupation?.map((o) => o.name).join(', ')}
         >[{count}] {author.preferredName}</Tooltip
       >
