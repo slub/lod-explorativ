@@ -22,7 +22,7 @@ import {
   authorStore,
   aggregationStore,
   geoStore,
-  relatedTopicStore,
+  mentionedTopicStore,
   topicRelationStore,
   topicStore,
   eventStore
@@ -161,7 +161,7 @@ export const topicsEnriched = derived(
     authorStore,
     aggregationStore,
     geoStore,
-    relatedTopicStore,
+    mentionedTopicStore,
     eventStore,
     topicStore,
     searchMode
@@ -197,7 +197,7 @@ export const topicsEnriched = derived(
             : null,
           authors: getEntities(aggPhraseMatch, $authors, 'topAuthors'),
           locations: getEntities(aggTopicMatch, $geo, 'mentions'),
-          related: getEntities(agg, $relatedTopics, 'topRelatedTopics'),
+          related: getEntities(agg, $relatedTopics, 'topMentionedTopics'),
           events: getEntities(aggTopicMatch, $events, 'mentions')
         };
 

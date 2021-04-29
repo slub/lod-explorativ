@@ -46,4 +46,4 @@ query.subscribe((value) => {
   window.history.pushState({}, value, url.href);
 });
 
-export const searchMode = writable('phrase');
+export const searchMode = writable(SearchMode.topic);

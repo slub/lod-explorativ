@@ -16,6 +16,7 @@
   import { LinkType, NodeType } from 'types/app';
   import { graph } from '../state/dataAPI';
   import { query } from '../state/uiState';
+  import { fill } from 'lodash';
 
   let width = 400;
   let height = 300;
@@ -56,8 +57,21 @@
   // SIMULATION
 
   $: simulation = forceSimulation()
-    .on('tick', (x) => {
-      simNodes = simulation.nodes();
+    .on('tick', () => {
+      simNodes = simulation.nodes().map((node) => {
+        const { r, x, y, text } = node;
+        return {
+          ...node,
+          textX:
+            text === $query
+              ? 0
+              : Math.abs(x) < width / 2
+              ? 0
+              : Math.sign(x) * (r + 5),
+          textY: text === $query ? 24 : Math.sign(y) * (r + 15),
+          textAnchor: text === $query ? 'middle' : x < 0 ? 'end' : 'start'
+        };
+      });
       simLinks = link.links();
     })
     .stop();
@@ -102,7 +116,7 @@
     </g>
 
     <g>
-      {#each simNodes as { id, doc, text, x, y, count, type, r } (id)}
+      {#each simNodes as { id, doc, text, x, y, count, type, r, textX, textY, textAnchor } (id)}
         <g
           transform="translate({x}, {y})"
           class="node"
@@ -115,17 +129,51 @@
           out:scale={{ duration: 300 }}
         >
           <circle {r} fill="#f00" fill-opacity="0.5" />
+          <!-- Halo -->
           <text
             alignment-baseline="middle"
-            font-size="12"
-            x={text === $query
-              ? 0
-              : Math.abs(x) < width / 2
-              ? 0
-              : Math.sign(x) * (r + 5)}
-            y={text === $query ? 0 : Math.sign(y) * (r + 15)}
-            text-anchor={text === $query ? 'middle' : x < 0 ? 'end' : 'start'}
-            >{text} ({count})</text
+            font-size="14"
+            x={textX}
+            y={textY}
+            text-anchor={textAnchor}
+            stroke-width={6}
+            stroke="white"
+            stroke-opacity={0.7}
+            fill="transparent"
+            stroke-linecap="butt"
+            stroke-linejoin="miter">{text}</text
+          >
+          <!-- Label -->
+          <text
+            alignment-baseline="middle"
+            font-size="14"
+            x={textX}
+            y={textY}
+            text-anchor={textAnchor}
+            fill="dimGrey"
+            font-style={type === NodeType.primary ? 'normal' : 'italic'}
+            >{text}</text
+          >
+          <!-- Count Halo -->
+          <text
+            alignment-baseline="middle"
+            font-size="14"
+            text-anchor="middle"
+            font-weight="bold"
+            fill="transparent"
+            stroke-linecap="butt"
+            stroke-linejoin="miter"
+            stroke-width={4}
+            stroke="grey">{count}</text
+          >
+          <!-- Count -->
+          <text
+            alignment-baseline="middle"
+            font-size="14"
+            text-anchor="middle"
+            font-weight="bold"
+            fill="white"
+            fill-opacity={1}>{count}</text
           >
         </g>
       {/each}
@@ -148,17 +196,8 @@
     cursor: pointer;
   }
   .primary circle {
-    fill: transparent;
+    fill: lightgray;
     stroke: grey;
-  }
-
-  text {
-    font-size: 14px;
-  }
-
-  .secondary text {
-    fill: grey;
-    font-style: italic;
   }
 
   .secondary circle {

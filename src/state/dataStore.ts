@@ -275,13 +275,13 @@ export const geoStore = derived(
 /**
  * Derived store contains topic-related topics (exact matching)
  */
-export const relatedTopicStore = derived(
+export const mentionedTopicStore = derived(
   [aggregationStore, searchMode],
   ([$aggs, $mode], set) => {
     getMentionsByIndex<TopicES>(
       'topics',
       $mode === SearchMode.topic ? $aggs.topicMatch : $aggs.phraseMatch,
-      'topRelatedTopics'
+      'topMentionedTopics'
     ).then((topics) => {
       set(topics);
     });
@@ -306,12 +306,12 @@ export const eventStore = derived(
  * Derived store contains relations between primary and secondary topics
  */
 export const topicRelationStore = derived(
-  [query, topicStore, relatedTopicStore],
-  ([$query, $topics, $topicsRelatedMGetRequest], set) => {
+  [query, topicStore, mentionedTopicStore],
+  ([$query, $topics, $mentionedTopics], set) => {
     // array of topic names
     const topicNames: string[] = map($topics, (t) => t.name);
-    const relatedNames = $topicsRelatedMGetRequest.map((t) => t.preferredName);
-    const uniqNames = uniq([...topicNames, ...relatedNames]);
+    const mentionedNames = $mentionedTopics.map((t) => t.preferredName);
+    const uniqNames = uniq([...topicNames, ...mentionedNames]);
 
     if (uniqNames.length > 0) {
       // generate multiple queries from names

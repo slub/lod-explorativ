@@ -20,7 +20,7 @@ const aggs = {
       size: 10
     }
   },
-  topRelatedTopics: {
+  topMentionedTopics: {
     terms: {
       field: 'mentions.@id.keyword',
       include: '.*topics.*',
