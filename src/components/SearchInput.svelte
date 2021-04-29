@@ -1,6 +1,6 @@
 <script lang="ts">
   import { debounce } from 'lodash';
-  import { query, searchMode } from '../state/uiState';
+  import { query, searchMode, queryExtension } from '../state/uiState';
 
   const handleChange = debounce((e) => {
     query.set(e.target.value);
@@ -17,6 +17,13 @@
   value={$query}
   on:input={handleChange}
 />
+
+{#if $queryExtension}
+  <div>
+    & {$queryExtension}
+    <button on:click={() => queryExtension.set(null)}>entfernen</button>
+  </div>
+{/if}
 
 <div>
   <input

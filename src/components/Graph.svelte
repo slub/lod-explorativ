@@ -15,8 +15,7 @@
   import type { GraphNode, GraphLink } from 'types/app';
   import { LinkType, NodeType } from 'types/app';
   import { graph } from '../state/dataAPI';
-  import { query } from '../state/uiState';
-  import { fill } from 'lodash';
+  import { query, queryExtension } from '../state/uiState';
 
   let width = 400;
   let height = 300;
@@ -94,7 +93,16 @@
   }
 
   function handleClick(name) {
-    query.set(name);
+    // reset query extension
+    if (name === $query) {
+      queryExtension.set(null);
+      // refinement query becomes primary query
+    } else if (name === $queryExtension) {
+      query.set(name);
+      queryExtension.set(null);
+    } else {
+      queryExtension.set(name);
+    }
   }
 </script>
 
@@ -124,6 +132,7 @@
           class:secondary={type === NodeType.secondary}
           class:zeroHits={count === 0}
           class:selected={text === $query}
+          class:highlight={text === $queryExtension}
           on:click={() => handleClick(text)}
           in:scale={{ duration: 1000 }}
           out:scale={{ duration: 300 }}
@@ -206,9 +215,15 @@
   }
 
   .selected circle {
-    stroke: black;
+    stroke: lightgrey;
     stroke-width: 2px;
-    fill: white;
+    fill: rgb(161, 216, 209);
+  }
+
+  .highlight circle {
+    stroke: lightgrey;
+    fill: rgb(163, 216, 161);
+    stroke-width: 2px;
   }
 
   .selected text {

@@ -47,3 +47,4 @@ query.subscribe((value) => {
 });
 
 export const searchMode = writable(SearchMode.topic);
+export const queryExtension = writable(null);

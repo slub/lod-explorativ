@@ -1,11 +1,11 @@
 import { derived } from 'svelte/store';
 import base64 from 'base-64';
 import { flatten, map, uniq, zip } from 'lodash';
-import { query, SearchMode, searchMode } from './uiState';
+import { query, SearchMode, searchMode, queryExtension } from './uiState';
 import {
-  topicRelatedRessourcesQuery,
-  topicRelationsQuery,
-  topicRelatedRessourcesFilterQuery
+  simpleResourceQuery,
+  matrixResourceQuery,
+  filteredResourceQuery
 } from '../queries/resources';
 import { multiQuery } from '../queries/helper';
 import type {
@@ -118,8 +118,8 @@ export const topicStore = derived(
  * Searches topic names in `mentions.name` field of `resources` index and returns aggregations.
  */
 export const aggregationStore = derived(
-  topicStore,
-  ($topics, set) => {
+  [topicStore, queryExtension],
+  ([$topics, $queryExtension], set) => {
     // array of topic names
 
     const topicNames: string[] = uniq(map($topics, 'name'));
@@ -128,14 +128,16 @@ export const aggregationStore = derived(
       // generate multiple queries from names
       const topicMatchQuery = multiQuery(
         topicNames,
-        topicRelatedRessourcesFilterQuery,
-        config.search.resources
+        filteredResourceQuery,
+        config.search.resources,
+        $queryExtension
       );
 
       const phraseMatchQuery = multiQuery(
         topicNames,
-        topicRelatedRessourcesQuery,
-        config.search.resources
+        simpleResourceQuery,
+        config.search.resources,
+        $queryExtension
       );
 
       let topicMatch;
@@ -306,8 +308,8 @@ export const eventStore = derived(
  * Derived store contains relations between primary and secondary topics
  */
 export const topicRelationStore = derived(
-  [query, topicStore, mentionedTopicStore],
-  ([$query, $topics, $mentionedTopics], set) => {
+  [query, queryExtension, topicStore, mentionedTopicStore],
+  ([$query, $queryExtension, $topics, $mentionedTopics], set) => {
     // array of topic names
     const topicNames: string[] = map($topics, (t) => t.name);
     const mentionedNames = $mentionedTopics.map((t) => t.preferredName);
@@ -315,10 +317,11 @@ export const topicRelationStore = derived(
 
     if (uniqNames.length > 0) {
       // generate multiple queries from names
-      const req = topicRelationsQuery(
+      const req = matrixResourceQuery(
         $query,
         uniqNames,
-        config.search.resources
+        config.search.resources,
+        $queryExtension
       );
 
       search('resources', req, Endpoint.search).then(

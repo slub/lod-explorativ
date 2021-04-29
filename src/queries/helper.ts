@@ -1,15 +1,16 @@
 /**
- *
- * @param queries list of queries
- * @param queryFn function returns sub query object
- * @param fields  fields in which to search
+ * @param queries         list of queries
+ * @param queryFn         query template function
+ * @param fields          fields in which to search
+ * @param queryExtension  second query for result refinement
  */
 export function multiQuery(
   queries: string[],
   queryFn: Function,
-  fields: string[]
+  fields: string[],
+  queryExtension: string
 ) {
   return queries
-    .map((q) => `{}\n${JSON.stringify(queryFn(q, fields))}\n`)
+    .map((q) => `{}\n${JSON.stringify(queryFn(q, fields, queryExtension))}\n`)
     .join('');
 }

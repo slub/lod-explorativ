@@ -1,4 +1,4 @@
-import { take } from 'lodash';
+import { compact, take } from 'lodash';
 
 const aggs = {
   topAuthors: {
@@ -47,24 +47,44 @@ const sort = [
   }
 ];
 
-export function topicRelatedRessourcesFilterQuery(
+function multiMatch(queries, fields) {
+  return compact(queries).map((query) => ({
+    multi_match: {
+      query,
+      fields,
+      type: 'phrase'
+    }
+  }));
+}
+
+export function simpleResourceQuery(
   query: string,
-  fields: string[]
+  fields: string[],
+  queryExtension: string
 ) {
   return {
     size: 15,
     sort,
     query: {
       bool: {
-        must: [
-          {
-            multi_match: {
-              query,
-              fields,
-              type: 'phrase'
-            }
-          }
-        ],
+        must: multiMatch([query, queryExtension], fields)
+      }
+    },
+    aggs
+  };
+}
+
+export function filteredResourceQuery(
+  query: string,
+  fields: string[],
+  queryExtension: string
+) {
+  return {
+    size: 15,
+    sort,
+    query: {
+      bool: {
+        must: multiMatch([query, queryExtension], fields),
         filter: [
           {
             term: {
@@ -78,37 +98,6 @@ export function topicRelatedRessourcesFilterQuery(
   };
 }
 
-export function topicRelatedRessourcesQuery(query: string, fields: string[]) {
-  return {
-    size: 15,
-    sort,
-    query: {
-      multi_match: {
-        query,
-        fields,
-        type: 'phrase'
-      }
-    },
-    aggs
-  };
-}
-
-export function topicRelatedRessourcesCountQuery(
-  query: string,
-  fields: string[]
-) {
-  return {
-    size: 0,
-    query: {
-      multi_match: {
-        query,
-        fields,
-        type: 'phrase'
-      }
-    }
-  };
-}
-
 /**
  * Return an ES adjacency matrix query
  *
@@ -117,10 +106,11 @@ export function topicRelatedRessourcesCountQuery(
  * @param fields fields in which to search `query`
  * @returns ES adjacency matrix query
  */
-export function topicRelationsQuery(
+export function matrixResourceQuery(
   query: string,
   topicIDs: string[],
-  fields: string[]
+  fields: string[],
+  queryExtension: string
 ) {
   const filters = {};
 
@@ -140,10 +130,8 @@ export function topicRelationsQuery(
   return {
     size: 0,
     query: {
-      multi_match: {
-        query,
-        fields,
-        type: 'phrase'
+      bool: {
+        must: multiMatch([query, queryExtension], fields)
       }
     },
     aggs: {
