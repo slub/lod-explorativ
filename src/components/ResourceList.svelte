@@ -1,6 +1,11 @@
 <script lang="ts">
   import { fade } from 'svelte/transition';
-  import { query, searchMode, SearchMode } from '../state/uiState';
+  import {
+    query,
+    queryExtension,
+    searchMode,
+    SearchMode
+  } from '../state/uiState';
   import { resources } from '../state/dataAPI';
   import Chip from './Chip.svelte';
   import Tooltip from './Tooltip.svelte';
@@ -21,6 +26,7 @@
               class="topicItem"
               on:click={() => {
                 query.set(topic);
+                queryExtension.set(null);
               }}
             >
               <Chip name={topic} />

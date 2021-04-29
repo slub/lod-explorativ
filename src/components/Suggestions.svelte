@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { query, queries } from '../state/uiState';
+  import { query, queries, queryExtension } from '../state/uiState';
 
   function handleClick(q) {
     query.set(q);
+    queryExtension.set(null);
   }
 </script>
 
