@@ -137,7 +137,7 @@
           in:scale={{ duration: 1000 }}
           out:scale={{ duration: 300 }}
         >
-          <circle {r} fill="#f00" fill-opacity="0.5" />
+          <circle {r} />
           <!-- Halo -->
           <text
             alignment-baseline="middle"
@@ -204,6 +204,10 @@
   .node :hover {
     cursor: pointer;
   }
+
+  circle {
+    fill-opacity: 0.5;
+  }
   .primary circle {
     fill: lightgray;
     stroke: grey;
@@ -216,14 +220,16 @@
 
   .selected circle {
     stroke: lightgrey;
-    stroke-width: 2px;
-    fill: rgb(161, 216, 209);
+    stroke-width: 4px;
+    fill: rgb(163, 216, 161);
+    fill-opacity: 0.6;
   }
 
   .highlight circle {
     stroke: lightgrey;
     fill: rgb(163, 216, 161);
     stroke-width: 2px;
+    fill-opacity: 0.3;
   }
 
   .selected text {
