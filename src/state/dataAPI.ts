@@ -186,19 +186,18 @@ export const topicsEnriched = derived(
           id,
           score,
           name,
+          count: agg?.hits.total.value ?? 0,
           alternateName: altName,
-          // create additionalType model
-          // TODO: replace references with topics
           additionalTypes,
           description,
           aggregations: aggTopicMatch ? convertAggs(aggTopicMatch) : null,
           aggregationsLoose: aggPhraseMatch
             ? convertAggs(aggPhraseMatch)
             : null,
-          authors: getEntities(aggPhraseMatch, $authors, 'topAuthors'),
-          locations: getEntities(aggTopicMatch, $geo, 'mentions'),
+          authors: getEntities(agg, $authors, 'topAuthors'),
+          locations: getEntities(agg, $geo, 'mentions'),
           related: getEntities(agg, $relatedTopics, 'topMentionedTopics'),
-          events: getEntities(aggTopicMatch, $events, 'mentions')
+          events: getEntities(agg, $events, 'mentions')
         };
 
         return topic;
@@ -230,13 +229,13 @@ export const graph = derived(
 
     // create nodes for all top-level topics and collect related topics
     $topicsEnriched.forEach((primaryTopic) => {
-      const { name, aggregationsLoose, related } = primaryTopic;
+      const { name, count, related } = primaryTopic;
 
-      if (aggregationsLoose?.docCount > 0) {
+      if (count > 0) {
         // create graph node
         const primaryNode: GraphNode = {
           id: name,
-          count: aggregationsLoose?.docCount || 0,
+          count,
           doc: primaryTopic,
           type: NodeType.primary,
           text: name

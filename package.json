@@ -3,11 +3,9 @@
   "version": "1.0.0",
   "scripts": {
     "build": "rollup -c",
-    "server": "rollup -c -w",
+    "dev": "rollup -c -w",
     "start": "sirv public",
-    "validate": "svelte-check",
-    "dev": "run-p server tlapse",
-    "tlapse": "wait-on http://localhost:5000 && tlapse localhost:5000 --every 15m --viewport 1920x1200"
+    "validate": "svelte-check"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^17.1.0",
@@ -15,7 +13,6 @@
     "@rollup/plugin-typescript": "^8.2.0",
     "@tsconfig/svelte": "^1.0.0",
     "@types/lodash": "npm:@types/lodash-es",
-    "npm-run-all": "^4.1.5",
     "rollup": "^2.39.1",
     "rollup-plugin-css-only": "^3.1.0",
     "rollup-plugin-livereload": "^2.0.0",
@@ -24,10 +21,8 @@
     "svelte": "^3.0.0",
     "svelte-check": "^1.0.0",
     "svelte-preprocess": "^4.0.0",
-    "tlapse": "^1.1.0",
     "tslib": "^2.0.0",
-    "typescript": "^4.1.5",
-    "wait-on": "^5.3.0"
+    "typescript": "^4.1.5"
   },
   "dependencies": {
     "base-64": "^1.0.0",
