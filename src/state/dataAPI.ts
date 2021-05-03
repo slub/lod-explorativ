@@ -27,7 +27,9 @@ import {
   topicStore,
   eventStore
 } from './dataStore';
-import { query, SearchMode, searchMode } from './uiState';
+import { query, queryExtension, SearchMode, searchMode } from './uiState';
+
+const { PRIMARY_NODE, SECONDARY_NODE, AUTHOR_NODE } = NodeType;
 
 /**
  * The dataAPI combines the results of the DataStore and provides the UI components with data.
@@ -220,8 +222,8 @@ export const topicsEnriched = derived(
  * Returns graph structure for the visualization
  */
 export const graph = derived(
-  [topicRelationStore, topicsEnriched, query],
-  ([$topicRelations, $topicsEnriched, $query], set) => {
+  [topicRelationStore, topicsEnriched, query, queryExtension],
+  ([$topicRelations, $topicsEnriched, $query, $queryExtension], set) => {
     const nodes: GraphNode[] = [];
     const links: GraphLink[] = [];
 
@@ -229,7 +231,7 @@ export const graph = derived(
 
     // create nodes for all top-level topics and collect related topics
     $topicsEnriched.forEach((primaryTopic) => {
-      const { name, count, related } = primaryTopic;
+      const { name, count, related, authors } = primaryTopic;
 
       if (count > 0) {
         // create graph node
@@ -237,11 +239,42 @@ export const graph = derived(
           id: name,
           count,
           doc: primaryTopic,
-          type: NodeType.primary,
+          type: PRIMARY_NODE,
           text: name
         };
 
         nodes.push(primaryNode);
+
+        // create author nodes
+        // if (name === $query || name === $queryExtension) {
+        //   for (let [{ preferredName: name }, count] of authors) {
+        //     let node = nodes.find((n) => n.id === name);
+
+        //     if (!node) {
+        //       const authorNode: GraphNode = {
+        //         id: name,
+        //         count,
+        //         doc: primaryTopic,
+        //         type: AUTHOR_NODE,
+        //         text: name.split(',')[0]
+        //       };
+
+        //       nodes.push(authorNode);
+        //       node = authorNode;
+        //     }
+
+        //     // link author to topic
+        //     const link: GraphLink = {
+        //       id: primaryNode.id + '-' + node.id,
+        //       source: primaryNode.id,
+        //       target: node.id,
+        //       weight: count,
+        //       type: LinkType.TOPIC_AUTHOR
+        //     };
+
+        //     links.push(link);
+        //   }
+        // }
       }
 
       if (related) {
@@ -286,7 +319,7 @@ export const graph = derived(
           count,
           // TODO: add topic document
           doc: null,
-          type: NodeType.secondary,
+          type: SECONDARY_NODE,
           text: name
         };
 
@@ -308,8 +341,8 @@ export const graph = derived(
         if (
           sourceNode &&
           targetNode &&
-          sourceNode.type === NodeType.secondary &&
-          targetNode.type === NodeType.secondary &&
+          sourceNode.type === SECONDARY_NODE &&
+          targetNode.type === SECONDARY_NODE &&
           source !== $query &&
           target !== $query
         ) {

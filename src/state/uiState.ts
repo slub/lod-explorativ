@@ -34,7 +34,8 @@ export const queries = [
   'Malerei',
   'D3.js',
   'Belagerung',
-  'Sakralbau'
+  'Sakralbau',
+  'Visualisierung'
 ];
 
 export const query = writable(getQuery());

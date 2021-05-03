@@ -60,12 +60,14 @@ export interface AdditionalType {
 
 export enum LinkType {
   MENTIONS_ID_LINK = 'MENTIONS_ID_LINK',
-  MENTIONS_NAME_LINK = 'MENTIONS_NAME_LINK'
+  MENTIONS_NAME_LINK = 'MENTIONS_NAME_LINK',
+  TOPIC_AUTHOR = 'topicAuthor'
 }
 
 export enum NodeType {
-  primary = 'primary',
-  secondary = 'secondary'
+  PRIMARY_NODE = 'PRIMARY_NODE',
+  SECONDARY_NODE = 'SECONDARY_NODE',
+  AUTHOR_NODE = 'AUTHOR_NODE'
 }
 
 export interface GraphLink {
