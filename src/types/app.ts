@@ -25,13 +25,13 @@ export interface ResourceAggregation {
 export interface Topic {
   id: string;
   name: string;
-  alternateName: string;
   description: string;
   score: number;
   count: number;
   additionalTypes: AdditionalType[];
   aggregations: ResourceAggregation;
   aggregationsLoose: ResourceAggregation;
+  datePublished: DatePublished[];
   authors: Map<PersonES, number>;
   locations: Map<GeoES, number>;
   related: Map<TopicES, number>;
@@ -86,4 +86,5 @@ export interface GraphNode {
   count: number;
   x?: number;
   y?: number;
+  datePublished: DatePublished[];
 }

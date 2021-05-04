@@ -115,6 +115,7 @@ export const additionalTypes = derived(topicStore, ($topicStore) => {
 export const genres = derived(
   [query, aggregationStore],
   ([$query, $aggs], set) => {
+    // TODO: use global resource aggregation
     const agg = $aggs.phraseMatch.get($query);
 
     if (agg) {
@@ -141,6 +142,7 @@ export const genres = derived(
 export const datePublished = derived(
   [query, aggregationStore],
   ([$query, $aggs], set) => {
+    // TODO: use global resource aggregation
     const queryAgg = $aggs.phraseMatch.get($query);
 
     if (queryAgg) {
@@ -174,40 +176,6 @@ export const topicsEnriched = derived(
     [$authors, $aggs, $geo, $relatedTopics, $events, $topicStore, $searchMode],
     set
   ) => {
-    const merged = $topicStore.items.map(
-      ({ name, additionalTypes, alternateName, description, id, score }) => {
-        // get aggregation results on resources index
-        const aggTopicMatch = $aggs.topicMatch.get(name);
-        const aggPhraseMatch = $aggs.phraseMatch.get(name);
-        const agg =
-          $searchMode === SearchMode.topic ? aggTopicMatch : aggPhraseMatch;
-
-        // TODO: preserve all alternateNames?
-        const altName = alternateName?.[0];
-
-        // create topic model
-        const topic: Topic = {
-          id,
-          score,
-          name,
-          count: agg?.hits.total.value ?? 0,
-          alternateName: altName,
-          additionalTypes,
-          description,
-          aggregations: aggTopicMatch ? convertAggs(aggTopicMatch) : null,
-          aggregationsLoose: aggPhraseMatch
-            ? convertAggs(aggPhraseMatch)
-            : null,
-          authors: getEntities(agg, $authors, 'topAuthors'),
-          locations: getEntities(agg, $geo, 'mentions'),
-          related: getEntities(agg, $relatedTopics, 'topMentionedTopics'),
-          events: getEntities(agg, $events, 'mentions')
-        };
-
-        return topic;
-      }
-    );
-
     // init debounced setter
     if (!debounceTopics) {
       debounceTopics = debounce((x) => {
@@ -215,7 +183,46 @@ export const topicsEnriched = derived(
       }, waitTopics);
     }
 
-    debounceTopics(merged);
+    if (!$topicStore.pending) {
+      const merged = $topicStore.items.map(
+        ({ name, additionalTypes, description, id, score }) => {
+          // get aggregation results on resources index
+          const aggTopicMatch = $aggs.topicMatch.get(name);
+          const aggPhraseMatch = $aggs.phraseMatch.get(name);
+          debugger;
+          // search mode dependent aggregations results
+          const aggMode =
+            $searchMode === SearchMode.topic ? aggTopicMatch : aggPhraseMatch;
+
+          const datePublished = aggMode
+            ? convertAggs(aggMode).datePublished.filter((d) => d.count > 0)
+            : [];
+
+          // create topic model
+          const topic: Topic = {
+            id,
+            score,
+            name,
+            count: aggMode?.hits.total.value ?? 0,
+            additionalTypes,
+            description,
+            aggregations: aggTopicMatch ? convertAggs(aggTopicMatch) : null,
+            aggregationsLoose: aggPhraseMatch
+              ? convertAggs(aggPhraseMatch)
+              : null,
+            datePublished,
+            authors: getEntities(aggMode, $authors, 'topAuthors'),
+            locations: getEntities(aggMode, $geo, 'mentions'),
+            related: getEntities(aggMode, $relatedTopics, 'topMentionedTopics'),
+            events: getEntities(aggMode, $events, 'mentions')
+          };
+
+          return topic;
+        }
+      );
+
+      debounceTopics(merged);
+    }
   },
   <Topic[]>[]
 );
@@ -233,50 +240,53 @@ export const graph = derived(
 
     // create nodes for all top-level topics and collect related topics
     $topicsEnriched.forEach((primaryTopic) => {
-      const { name, count, related, authors } = primaryTopic;
+      const { name, count, related, authors, datePublished } = primaryTopic;
 
       if (count > 0) {
+        debugger;
         // create graph node
         const primaryNode: GraphNode = {
           id: name,
           count,
           doc: primaryTopic,
           type: PRIMARY_NODE,
-          text: name
+          text: name,
+          datePublished
         };
 
         nodes.push(primaryNode);
 
         // create author nodes
-        // if (name === $query || name === $queryExtension) {
-        //   for (let [{ preferredName: name }, count] of authors) {
-        //     let node = nodes.find((n) => n.id === name);
+        if (name === $query || name === $queryExtension) {
+          for (let [{ preferredName: name }, count] of authors) {
+            let node = nodes.find((n) => n.id === name);
 
-        //     if (!node) {
-        //       const authorNode: GraphNode = {
-        //         id: name,
-        //         count,
-        //         doc: primaryTopic,
-        //         type: AUTHOR_NODE,
-        //         text: name.split(',')[0]
-        //       };
+            if (!node) {
+              const authorNode: GraphNode = {
+                id: name,
+                count,
+                doc: primaryTopic,
+                type: AUTHOR_NODE,
+                text: name.split(',')[0],
+                datePublished: null
+              };
 
-        //       nodes.push(authorNode);
-        //       node = authorNode;
-        //     }
+              nodes.push(authorNode);
+              node = authorNode;
+            }
 
-        //     // link author to topic
-        //     const link: GraphLink = {
-        //       id: primaryNode.id + '-' + node.id,
-        //       source: primaryNode.id,
-        //       target: node.id,
-        //       weight: count,
-        //       type: LinkType.TOPIC_AUTHOR
-        //     };
+            // link author to topic
+            // const link: GraphLink = {
+            //   id: primaryNode.id + '-' + node.id,
+            //   source: primaryNode.id,
+            //   target: node.id,
+            //   weight: count,
+            //   type: LinkType.TOPIC_AUTHOR
+            // };
 
-        //     links.push(link);
-        //   }
-        // }
+            // links.push(link);
+          }
+        }
       }
 
       if (related) {

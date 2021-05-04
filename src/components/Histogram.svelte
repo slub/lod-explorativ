@@ -23,19 +23,15 @@
 </script>
 
 <div bind:clientWidth={width}>
-  <svg
-    {width}
-    {height}
-    viewBox="0 0 {width} {height}"
-    transition:scale={{ duration: 0 }}
-  >
-    {#each $datePublished as [year, count]}
+  <svg {width} {height} viewBox="0 0 {width} {height}">
+    {#each $datePublished as [year, count] (year)}
       <rect
-        x={xScale(year) - barWidth / 2}
-        y={paddingBottom - yScale(count)}
+        transform="translate({xScale(year) - barWidth / 2},{paddingBottom -
+          yScale(count)})"
         width={barWidth}
         height={yScale(count)}
         fill="grey"
+        transition:scale
       />
     {/each}
     <line

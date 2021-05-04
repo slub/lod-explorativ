@@ -6,10 +6,10 @@ export default {
     resources: [
       'preferredName^2',
       'description',
-      'alternativeHeadline',
+      // 'alternativeHeadline',
       'nameShort',
       'nameSub',
-      'author.name',
+      // 'author.name',
       // boosting on mentions gives explicitly linked resources precedence
       'mentions.name^3',
       'partOfSeries.name',

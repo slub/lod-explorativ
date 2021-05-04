@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { scale, draw } from 'svelte/transition';
+  import { scale, draw, fade } from 'svelte/transition';
   import { scaleSqrt, scaleLinear } from 'd3-scale';
-  import { max } from 'd3-array';
+  import { max, extent } from 'd3-array';
   import {
     forceSimulation,
     forceLink,
@@ -16,6 +16,7 @@
   import { LinkType, NodeType } from 'types/app';
   import { graph } from '../state/dataAPI';
   import { query, queryExtension } from '../state/uiState';
+  import { flatten, map } from 'lodash';
 
   const { PRIMARY_NODE, SECONDARY_NODE, AUTHOR_NODE } = NodeType;
 
@@ -26,11 +27,19 @@
   $: simNodes = [];
   $: simLinks = [];
   $: maxCount = max($graph.nodes, (n) => n.count);
+  $: yearExtent = extent(
+    flatten(map($graph.nodes, (n) => n.datePublished?.map((d) => d.year)))
+  );
 
-  $: radiusScale = scaleSqrt().domain([0, maxCount]).range([0, 100]);
+  // SCALES
+  $: radiusScale = scaleSqrt().domain([0, maxCount]).range([0, 40]);
   $: edgeWidthScale = scaleLinear()
     .domain([0, max($graph.links, (l) => l.weight)])
     .range([1, 10]);
+  $: histoScale = scaleLinear()
+    .domain(yearExtent)
+    .range([0.1 * Math.PI, 1.9 * Math.PI]);
+  $: colorScale = scaleLinear().domain(yearExtent).range(['blue', 'red']);
 
   // FORCES
   $: link = forceLink($graph.links)
@@ -38,8 +47,10 @@
     .strength(0);
 
   $: radial = forceRadial((d: GraphNode) => {
-    return d.type === PRIMARY_NODE ? shortSide * 0.5 : shortSide * 0.45;
-  }); //.strength(0.1);
+    const r =
+      d.type === PRIMARY_NODE ? 0.5 : d.type === AUTHOR_NODE ? 0.3 : 0.45;
+    return shortSide * r;
+  });
 
   let collide = forceCollide()
     .strength(0.1)
@@ -54,49 +65,80 @@
 
   // SIMULATION
 
+  // updated nodes on each simulation tick
   $: simulation = forceSimulation().on('tick', () => {
     simNodes = simulation.nodes().map((node) => {
-      const { r, x, y, text } = node;
+      const { r, x, y, text, datePublished } = node;
       const isSelected = text === $query;
+      const isHighlighted = text === $queryExtension;
+      const isSH = isSelected || isHighlighted;
+
       return {
         ...node,
         x: isSelected ? 0 : x,
         y: isSelected ? 0 : y,
-        textX: isSelected
-          ? 0
-          : Math.abs(x) < width / 2
-          ? 0
-          : Math.sign(x) * (r + 5),
-        textY: isSelected ? 24 : Math.sign(y) * (r + 15),
-        textAnchor: isSelected ? 'middle' : x < 0 ? 'end' : 'start'
+        textX: isSH ? 0 : Math.abs(x) < width / 2 ? 0 : Math.sign(x) * (r + 5),
+        textY: isSH ? 24 : Math.sign(y) * (r + 15),
+        textAnchor: isSH ? 'middle' : x < 0 ? 'end' : 'start'
       };
     });
     simLinks = link.links();
   });
-  // .stop();
 
-  // add radius to nodes
+  // Update nodes if data changes
   $: newNodes = $graph.nodes.map((n) => {
     // restore previous node position
     const prev = newNodes.find((x) => x.text === n.text);
     const x = prev?.x || undefined;
     const y = prev?.y || undefined;
-    const vx = prev?.vx || undefined;
-    const vy = prev?.vy || undefined;
+    // const vx = prev?.vx || undefined;
+    // const vy = prev?.vy || undefined;
+    const r = n.id === $query ? shortSide * 0.4 : radiusScale(n.count);
+    const dates = n.datePublished?.map(({ year, count }) => {
+      const pos = histoScale(year);
+      const dr = radiusScale(count);
+      const rsub = r - dr;
+      const x = Math.sin(pos);
+      const y = -Math.cos(pos);
+      const a = {
+        dx: x * r,
+        dy: y * r,
+        // px: x * rsub,
+        // py: y * rsub,
+        dr,
+        dc: colorScale(year)
+      };
+      return a;
+    });
+
+    // let datePath;
+
+    // if (dates) {
+    //   const p = path();
+    //   const { px, py } = dates[0];
+    //   p.moveTo(px, py);
+    //   dates.forEach(({ px, py }) => {
+    //     p.lineTo(px, py);
+    //   });
+    //   datePath = p.toString();
+    // }
+
     return {
       ...n,
       x,
       y,
-      vx,
-      vy,
-      r: n.id === $query ? shortSide * 0.4 : radiusScale(n.count)
+      // vx,
+      // vy,
+      r,
+      dates
+      // datePath
     };
   });
 
   // ADD FORCES
   $: simulation.nodes(newNodes);
   $: simulation.force('collide', collide);
-  // $: simulation.force('link', link);
+  $: simulation.force('link', link);
   $: simulation.force('radial', radial);
   // $: simulation.force('y', y)
   // $: simulation.force('x', x)
@@ -140,7 +182,7 @@
     </g>
 
     <g>
-      {#each simNodes as { id, doc, text, x, y, count, type, r, textX, textY, textAnchor } (id)}
+      {#each simNodes as { id, text, x, y, count, type, r, textX, textY, textAnchor, dates, datePath } (id)}
         <g
           transform="translate({x}, {y})"
           class="node {type}"
@@ -150,7 +192,30 @@
           on:click={() => handleClick(id)}
           out:scale={{ duration: 300 }}
         >
-          <circle {r} in:scale={{ duration: 500 }} />
+          <circle class="circle" {r} in:scale={{ duration: 500 }} />
+          {#if dates}
+            {#each dates as { dx, dy, dr, dc }, i (i)}
+              <circle
+                r={dr}
+                cx={dx}
+                cy={dy}
+                fill={dc}
+                fill-opacity="0.2"
+                transition:fade
+              />
+            {/each}
+          {/if}
+
+          <!-- {#if datePath}
+            <path
+              d={datePath}
+              fill="none"
+              stroke="lightgrey"
+              stroke-width={1}
+              transition:draw
+            />
+          {/if} -->
+
           <!-- Halo -->
           <text
             alignment-baseline="middle"
@@ -220,41 +285,45 @@
     cursor: pointer;
   }
 
-  circle {
+  .circle {
     fill-opacity: 0.5;
   }
-  .PRIMARY_NODE circle {
+  .PRIMARY_NODE .circle {
     fill: lightgray;
     stroke: grey;
   }
 
-  .SECONDARY_NODE circle {
+  .SECONDARY_NODE .circle {
     fill: black;
     stroke: transparent;
   }
 
-  .AUTHOR_NODE circle {
+  .AUTHOR_NODE .circle {
     fill: white;
     stroke-dasharray: 2 2;
     stroke: black;
   }
 
-  .selected circle {
+  .selected .circle {
     stroke: lightgrey;
     stroke-width: 4px;
     fill: white;
     fill-opacity: 0.6;
   }
 
-  .highlight circle {
-    stroke: lightgrey;
-    fill: rgb(221, 135, 120);
-    stroke-width: 0;
-    fill-opacity: 0.3;
+  .highlight .circle {
+    stroke: grey;
+    fill: transparent;
+    stroke-width: 4px;
   }
 
   .selected text {
     font-size: 18px;
+    font-weight: bold;
+  }
+
+  .highlight text {
+    font-size: 16px;
     font-weight: bold;
   }
   .zeroHits {
