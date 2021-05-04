@@ -79,7 +79,6 @@
   $: newNodes = $graph.nodes.map((n) => {
     // restore previous node position
     const prev = newNodes.find((x) => x.text === n.text);
-    console.log(prev);
     const x = prev?.x || undefined;
     const y = prev?.y || undefined;
     const vx = prev?.vx || undefined;

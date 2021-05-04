@@ -47,12 +47,20 @@ const sort = [
   }
 ];
 
-function multiMatch(queries, fields) {
+function phraseCondition(queries, fields) {
   return compact(queries).map((query) => ({
     multi_match: {
       query,
       fields,
       type: 'phrase'
+    }
+  }));
+}
+
+function filterCondition(queries) {
+  return compact(queries).map((query) => ({
+    term: {
+      'mentions.name.keyword': query
     }
   }));
 }
@@ -67,7 +75,10 @@ export function simpleResourceQuery(
     sort,
     query: {
       bool: {
-        must: multiMatch([query, queryExtension], fields)
+        must: phraseCondition([query, queryExtension], fields)
+        // TODO: add additional filters
+        // { match: { inLanguage: 'ger' } }
+        // { match: { genre.Text: 'Film' } }
       }
     },
     aggs
@@ -84,14 +95,9 @@ export function filteredResourceQuery(
     sort,
     query: {
       bool: {
-        must: multiMatch([query, queryExtension], fields),
-        filter: [
-          {
-            term: {
-              'mentions.name.keyword': query
-            }
-          }
-        ]
+        // add both query terms not only as filter, but also as phrase query to enable scoring
+        must: phraseCondition([query, queryExtension], fields),
+        filter: filterCondition([query, queryExtension])
       }
     },
     aggs
@@ -131,7 +137,7 @@ export function matrixResourceQuery(
     size: 0,
     query: {
       bool: {
-        must: multiMatch([query, queryExtension], fields)
+        must: phraseCondition([query, queryExtension], fields)
       }
     },
     aggs: {
