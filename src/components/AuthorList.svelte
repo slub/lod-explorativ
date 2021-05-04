@@ -7,7 +7,7 @@
 <h2>Autoren</h2>
 
 <ul>
-  {#each Array.from($authors) as [author, count]}
+  {#each $authors as [author, count] (author['@id'])}
     <li transition:fade>
       <Tooltip title={author.hasOccupation?.map((o) => o.name).join(', ')}
         >[{count}] {author.preferredName}</Tooltip

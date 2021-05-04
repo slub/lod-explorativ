@@ -4,7 +4,7 @@ import {
   debounce,
   flatten,
   isArray,
-  maxBy,
+  orderBy,
   uniq,
   uniqBy
 } from 'lodash';
@@ -460,11 +460,12 @@ export const authors = derived(
   ([$aggs, $authorStore], set) => {
     if ($aggs) {
       const authorEnt = getEntities($aggs, $authorStore, 'topAuthors');
-      set(authorEnt);
+      const pairs = orderBy(Array.from(authorEnt), '1', 'desc');
+      set(pairs);
     } else {
       // reset store if no topic is selected
-      set(new Map());
+      set([]);
     }
   },
-  <Map<PersonES, number>>new Map()
+  <[PersonES, number][]>[]
 );
