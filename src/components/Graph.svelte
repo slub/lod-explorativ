@@ -93,10 +93,6 @@
     };
   });
 
-  $: if (newNodes) {
-    console.log('updating nodes', newNodes);
-  }
-
   // ADD FORCES
   $: simulation.nodes(newNodes);
   $: simulation.force('collide', collide);
@@ -110,7 +106,6 @@
   $: if (newNodes || width || height) {
     simulation.alpha(1);
     simulation.restart();
-    console.log('restart simulation', newNodes);
   }
 
   function handleClick(name) {

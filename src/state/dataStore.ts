@@ -1,4 +1,4 @@
-import { derived } from 'svelte/store';
+import { derived, get } from 'svelte/store';
 import base64 from 'base-64';
 import { flatten, map, uniq, zip } from 'lodash';
 import { query, SearchMode, searchMode, queryExtension } from './uiState';
@@ -99,15 +99,16 @@ export async function backendQuery(
 export const topicStore = derived(
   query,
   ($query, set) => {
+    set({ pending: true, items: get(topicStore).items });
     backendQuery(Backendpoint.topicsearch, $query).then((result) => {
       if (result.message) {
         console.warn(result.message);
       } else {
-        set(result);
+        set({ pending: false, items: result });
       }
     });
   },
-  <Topic[]>[]
+  { pending: false, items: <Topic[]>[] }
 );
 
 /**
@@ -115,12 +116,14 @@ export const topicStore = derived(
  */
 export const aggregationStore = derived(
   [topicStore, queryExtension],
-  ([$topics, $queryExtension], set) => {
+  ([$topicsStore, $queryExtension], set) => {
     // array of topic names
 
-    const topicNames: string[] = uniq(map($topics, 'name'));
+    const topics = $topicsStore.items;
+    const isPending = $topicsStore.pending;
+    const topicNames: string[] = uniq(map(topics, 'name'));
 
-    if (topicNames.length > 0) {
+    if (!isPending && topicNames.length > 0) {
       let topicMatch;
       let phraseMatch;
 
@@ -306,9 +309,10 @@ export const eventStore = derived(
  */
 export const topicRelationStore = derived(
   [query, queryExtension, topicStore, mentionedTopicStore],
-  ([$query, $queryExtension, $topics, $mentionedTopics], set) => {
+  ([$query, $queryExtension, $topicsStore, $mentionedTopics], set) => {
     // array of topic names
-    const topicNames: string[] = map($topics, (t) => t.name);
+    const topics = $topicsStore.items;
+    const topicNames: string[] = map(topics, (t) => t.name);
     const mentionedNames = $mentionedTopics.map((t) => t.preferredName);
     const uniqNames = uniq([...topicNames, ...mentionedNames]);
 

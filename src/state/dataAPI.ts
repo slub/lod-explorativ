@@ -95,11 +95,13 @@ function convertAggs(aggs: ResourceAggResponse) {
 /**
  * Returns all additionalTypes derived from topics
  */
-export const additionalTypes = derived(topicStore, ($topics) => {
+export const additionalTypes = derived(topicStore, ($topicStore) => {
   const addTypes = uniq(
     compact(
       flatten(
-        $topics.map((topic) => topic.additionalTypes?.map((type) => type.name))
+        $topicStore.items.map((topic) =>
+          topic.additionalTypes?.map((type) => type.name)
+        )
       )
     )
   ).sort();
@@ -169,10 +171,10 @@ export const topicsEnriched = derived(
     searchMode
   ],
   (
-    [$authors, $aggs, $geo, $relatedTopics, $events, $topics, $searchMode],
+    [$authors, $aggs, $geo, $relatedTopics, $events, $topicStore, $searchMode],
     set
   ) => {
-    const merged = $topics.map(
+    const merged = $topicStore.items.map(
       ({ name, additionalTypes, alternateName, description, id, score }) => {
         // get aggregation results on resources index
         const aggTopicMatch = $aggs.topicMatch.get(name);
