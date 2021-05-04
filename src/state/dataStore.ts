@@ -2,11 +2,7 @@ import { derived } from 'svelte/store';
 import base64 from 'base-64';
 import { flatten, map, uniq, zip } from 'lodash';
 import { query, SearchMode, searchMode, queryExtension } from './uiState';
-import {
-  simpleResourceQuery,
-  matrixResourceQuery,
-  filteredResourceQuery
-} from '../queries/resources';
+import { resourceMatrixQuery, resourceAggQuery } from '../queries/resources';
 import { multiQuery } from '../queries/helper';
 import type {
   Endpoint as EndpointType,
@@ -125,23 +121,24 @@ export const aggregationStore = derived(
     const topicNames: string[] = uniq(map($topics, 'name'));
 
     if (topicNames.length > 0) {
-      // generate multiple queries from names
-      const topicMatchQuery = multiQuery(
-        topicNames,
-        filteredResourceQuery,
-        config.search.resources,
-        $queryExtension
-      );
-
-      const phraseMatchQuery = multiQuery(
-        topicNames,
-        simpleResourceQuery,
-        config.search.resources,
-        $queryExtension
-      );
-
       let topicMatch;
       let phraseMatch;
+
+      const args = {
+        fields: config.search.resources,
+        queryExtension: $queryExtension
+      };
+
+      // generate multiple queries from names
+      const topicMatchQuery = multiQuery(topicNames, resourceAggQuery, {
+        ...args,
+        filter: true
+      });
+
+      const phraseMatchQuery = multiQuery(topicNames, resourceAggQuery, {
+        ...args,
+        filter: false
+      });
 
       const topicReq = search(
         'resources',
@@ -317,7 +314,7 @@ export const topicRelationStore = derived(
 
     if (uniqNames.length > 0) {
       // generate multiple queries from names
-      const req = matrixResourceQuery(
+      const req = resourceMatrixQuery(
         $query,
         uniqNames,
         config.search.resources,

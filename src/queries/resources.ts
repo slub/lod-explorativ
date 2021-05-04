@@ -65,31 +65,15 @@ function filterCondition(queries) {
   }));
 }
 
-export function simpleResourceQuery(
+export function resourceAggQuery(
   query: string,
-  fields: string[],
-  queryExtension: string
+  args: {
+    fields: string[];
+    queryExtension: string;
+    filter: boolean;
+  }
 ) {
-  return {
-    size: 15,
-    sort,
-    query: {
-      bool: {
-        must: phraseCondition([query, queryExtension], fields)
-        // TODO: add additional filters
-        // { match: { inLanguage: 'ger' } }
-        // { match: { genre.Text: 'Film' } }
-      }
-    },
-    aggs
-  };
-}
-
-export function filteredResourceQuery(
-  query: string,
-  fields: string[],
-  queryExtension: string
-) {
+  const { queryExtension, fields, filter } = args;
   return {
     size: 15,
     sort,
@@ -97,7 +81,7 @@ export function filteredResourceQuery(
       bool: {
         // add both query terms not only as filter, but also as phrase query to enable scoring
         must: phraseCondition([query, queryExtension], fields),
-        filter: filterCondition([query, queryExtension])
+        filter: filter ? filterCondition([query, queryExtension]) : null
       }
     },
     aggs
@@ -112,7 +96,7 @@ export function filteredResourceQuery(
  * @param fields fields in which to search `query`
  * @returns ES adjacency matrix query
  */
-export function matrixResourceQuery(
+export function resourceMatrixQuery(
   query: string,
   topicIDs: string[],
   fields: string[],

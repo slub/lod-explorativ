@@ -7,10 +7,13 @@
 export function multiQuery(
   queries: string[],
   queryFn: Function,
-  fields: string[],
-  queryExtension: string
+  args: {
+    fields: string[];
+    queryExtension: string;
+    filter: boolean;
+  }
 ) {
   return queries
-    .map((q) => `{}\n${JSON.stringify(queryFn(q, fields, queryExtension))}\n`)
+    .map((q) => `{}\n${JSON.stringify(queryFn(q, args))}\n`)
     .join('');
 }
