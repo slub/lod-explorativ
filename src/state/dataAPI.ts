@@ -243,7 +243,6 @@ export const graph = derived(
       const { name, count, related, authors, datePublished } = primaryTopic;
 
       if (count > 0) {
-        debugger;
         // create graph node
         const primaryNode: GraphNode = {
           id: name,

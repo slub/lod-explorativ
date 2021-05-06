@@ -24,7 +24,7 @@
 
 <div bind:clientWidth={width}>
   <svg {width} {height} viewBox="0 0 {width} {height}">
-    {#each $datePublished as [year, count] (year)}
+    {#each $datePublished as [year, count]}
       <rect
         transform="translate({xScale(year) - barWidth / 2},{paddingBottom -
           yScale(count)})"
