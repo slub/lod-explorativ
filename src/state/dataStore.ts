@@ -26,6 +26,8 @@ import { topicSearchQuery } from '../queries/topics';
  * It is also responsible for parsing and transforming the responses.
  */
 
+const apiMethod = 'POST';
+
 /**
  * Returns object with basic request headers
  *
@@ -74,19 +76,25 @@ export async function search(
 /**
  *
  * @param backendpoint available backend endpoint
- * @param query        querystring
+ * @param query        query string or ES query object
  * @returns            json result to the query
  */
 export async function backendQuery(
   backendpoint: BackendpointType,
-  query: string
+  query: Object | string,
+  isPost: boolean
 ) {
-  const body = topicSearchQuery(query);
+  const queryString = !isPost ? `?${query}` : '';
+  const url = `${config.backend}/${backendpoint}${queryString}`;
 
-  const response = await fetch(`${config.backend}/${backendpoint}?q=${query}`, {
-    method: 'POST',
+  const response = await fetch(url, {
+    method: isPost ? 'POST' : 'GET',
     headers: createHeaders(),
-    body: JSON.stringify({ body })
+    body: isPost
+      ? typeof query === 'object'
+        ? JSON.stringify(query)
+        : query
+      : null
   });
 
   const results = await response.json();
@@ -100,7 +108,12 @@ export const topicStore = derived(
   query,
   ($query, set) => {
     set({ pending: true, items: get(topicStore).items });
-    backendQuery(Backendpoint.topicsearch, $query).then((result) => {
+
+    // TODO: remove ES query, will automatically switch to GET endpoint
+    const isPost = apiMethod === 'POST';
+    const q = isPost ? { body: topicSearchQuery($query) } : `q=${$query}`;
+
+    backendQuery(Backendpoint.topicsearch, q, isPost).then((result) => {
       if (result.message) {
         console.warn(result.message);
       } else {
@@ -127,21 +140,37 @@ export const aggregationStore = derived(
       let topicMatch;
       let phraseMatch;
 
-      const args = {
+      const queryArgs = {
         fields: config.search.resources,
         queryExtension: $queryExtension
       };
 
       // generate multiple queries from names
       const topicMatchQuery = multiQuery(topicNames, resourceAggQuery, {
-        ...args,
+        ...queryArgs,
         filter: true
       });
 
       const phraseMatchQuery = multiQuery(topicNames, resourceAggQuery, {
-        ...args,
+        ...queryArgs,
         filter: false
       });
+
+      // const backendQuery = {
+      //   queries: {
+      //     topicMatch: resourceAggQuery('$subject', {
+      //       ...queryArgs,
+      //       filter: true
+      //     }),
+      //     phraseMatch: resourceAggQuery('$subject', {
+      //       ...queryArgs,
+      //       filter: false
+      //     })
+      //   },
+      //   topics: topicNames
+      // };
+
+      // console.log(JSON.stringify(backendQuery, null, 2));
 
       const topicReq = search(
         'resources',

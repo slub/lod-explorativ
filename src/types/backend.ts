@@ -1,3 +1,4 @@
 export enum Endpoint {
-    topicsearch = 'topicsearch'
-  }
+  topicsearch = 'topicsearch',
+  aggregations = 'aggregations'
+}
