@@ -26,7 +26,12 @@ import { topicSearchQuery } from '../queries/topics';
  * It is also responsible for parsing and transforming the responses.
  */
 
-const apiMethod = 'POST';
+enum Method {
+  POST = 'POST',
+  GET = 'GET'
+}
+
+const apiMethod = Method.POST;
 
 /**
  * Returns object with basic request headers
@@ -48,7 +53,7 @@ export function createHeaders(props = {}) {
  * @param query     ElasticSearch query
  * @param endpoint  ElasticSearch endpoint
  */
-export async function search(
+export async function esSearch(
   index: string,
   query: Object | string,
   endpoint: EndpointType = Endpoint.search
@@ -79,22 +84,19 @@ export async function search(
  * @param query        query string or ES query object
  * @returns            json result to the query
  */
-export async function backendQuery(
+export async function backendSearch(
   backendpoint: BackendpointType,
   query: Object | string,
-  isPost: boolean
+  method: Method
 ) {
-  const queryString = !isPost ? `?${query}` : '';
+  const isPost = method === Method.POST;
+  const queryString = isPost ? '' : `?${query}`;
   const url = `${config.backend}/${backendpoint}${queryString}`;
 
   const response = await fetch(url, {
-    method: isPost ? 'POST' : 'GET',
+    method,
     headers: createHeaders(),
-    body: isPost
-      ? typeof query === 'object'
-        ? JSON.stringify(query)
-        : query
-      : null
+    body: isPost ? JSON.stringify(query) : null
   });
 
   const results = await response.json();
@@ -110,10 +112,13 @@ export const topicStore = derived(
     set({ pending: true, items: get(topicStore).items });
 
     // TODO: remove ES query, will automatically switch to GET endpoint
-    const isPost = apiMethod === 'POST';
-    const q = isPost ? { body: topicSearchQuery($query) } : `q=${$query}`;
 
-    backendQuery(Backendpoint.topicsearch, q, isPost).then((result) => {
+    const q =
+      apiMethod === Method.POST
+        ? { body: topicSearchQuery($query) }
+        : `q=${$query}`;
+
+    backendSearch(Backendpoint.topicsearch, q, Method.POST).then((result) => {
       if (result.message) {
         console.warn(result.message);
       } else {
@@ -156,23 +161,22 @@ export const aggregationStore = derived(
         filter: false
       });
 
-      // const backendQuery = {
-      //   queries: {
-      //     topicMatch: resourceAggQuery('$subject', {
-      //       ...queryArgs,
-      //       filter: true
-      //     }),
-      //     phraseMatch: resourceAggQuery('$subject', {
-      //       ...queryArgs,
-      //       filter: false
-      //     })
-      //   },
-      //   topics: topicNames
-      // };
+      // TODO: use backend
+      const backendQuery = {
+        queryTemplate: {
+          topicMatch: resourceAggQuery('$subject', {
+            ...queryArgs,
+            filter: true
+          }),
+          phraseMatch: resourceAggQuery('$subject', {
+            ...queryArgs,
+            filter: false
+          })
+        },
+        topics: topicNames
+      };
 
-      // console.log(JSON.stringify(backendQuery, null, 2));
-
-      const topicReq = search(
+      const topicReq = esSearch(
         'resources',
         topicMatchQuery,
         Endpoint.msearch
@@ -182,7 +186,7 @@ export const aggregationStore = derived(
         topicMatch = new Map(zip(topicNames, responses));
       });
 
-      const phraseReq = search(
+      const phraseReq = esSearch(
         'resources',
         phraseMatchQuery,
         Endpoint.msearch
@@ -190,6 +194,13 @@ export const aggregationStore = derived(
         const responses: ResourceAggResponse[] = result.responses;
         phraseMatch = new Map(zip(topicNames, responses));
       });
+
+      console.log(backendQuery);
+      backendSearch(Backendpoint.aggregations, backendQuery, apiMethod).then(
+        (result) => {
+          console.log('INTEGRATION TEST', result);
+        }
+      );
 
       Promise.all([topicReq, phraseReq]).then(() => {
         set({
@@ -235,7 +246,7 @@ export const authorStore = derived(
         ids
       };
 
-      search('persons', body, Endpoint.mget).then((result) => {
+      esSearch('persons', body, Endpoint.mget).then((result) => {
         const docs: PersonGetResponse[] = result.docs;
 
         // only return found persons
@@ -282,7 +293,7 @@ async function getMentionsByIndex<T>(
     ids
   };
 
-  const result = await search(index, body, Endpoint.mget);
+  const result = await esSearch(index, body, Endpoint.mget);
   const docs: GetResponse[] = result.docs;
 
   const foundItems = docs.filter((pDoc) => pDoc.found).map((d) => d._source);
@@ -354,7 +365,7 @@ export const topicRelationStore = derived(
         $queryExtension
       );
 
-      search('resources', req, Endpoint.search).then(
+      esSearch('resources', req, Endpoint.search).then(
         (result: ResourceAggResponse) => {
           set(result.aggregations.topicsAM.buckets);
         }
