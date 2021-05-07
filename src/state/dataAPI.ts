@@ -110,33 +110,6 @@ export const additionalTypes = derived(topicStore, ($topicStore) => {
 });
 
 /**
- * Returns top genres for selected topic
- */
-export const genres = derived(
-  [query, aggregationStore],
-  ([$query, $aggs], set) => {
-    // TODO: use global resource aggregation
-    const agg = $aggs.phraseMatch.get($query);
-
-    if (agg) {
-      const genres = agg.aggregations.genres;
-      const other = genres.sum_other_doc_count;
-      const genreCounts = genres.buckets.map(({ key, doc_count }) => [
-        key,
-        doc_count
-      ]);
-
-      const result = [...genreCounts, ['Weitere ...', other]];
-
-      set(<[string, number][]>result);
-    } else {
-      set([]);
-    }
-  },
-  <[string, number][]>[]
-);
-
-/**
  * Return the number of resources per year for selected topic
  */
 export const datePublished = derived(
@@ -477,4 +450,30 @@ export const authors = derived(
     }
   },
   <[PersonES, number][]>[]
+);
+
+/**
+ * Returns top genres for selected topic
+ */
+export const genres = derived(
+  [query, selectedTopicAggregations],
+  ([$query, $agg], set) => {
+    // TODO: use global resource aggregation
+
+    if ($agg) {
+      const genres = $agg.aggregations.genres;
+      const other = genres.sum_other_doc_count;
+      const genreCounts = genres.buckets.map(({ key, doc_count }) => [
+        key,
+        doc_count
+      ]);
+
+      const result = [...genreCounts, ['Weitere ...', other]];
+
+      set(<[string, number][]>result);
+    } else {
+      set([]);
+    }
+  },
+  <[string, number][]>[]
 );
