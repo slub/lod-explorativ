@@ -7,6 +7,12 @@ const aggs = {
       size: 10
     }
   },
+  topContributors: {
+    terms: {
+      field: 'contributor.@id.keyword',
+      size: 10
+    }
+  },
   datePublished: {
     auto_date_histogram: {
       field: 'datePublished.@value',
