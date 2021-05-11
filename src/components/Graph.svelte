@@ -1,8 +1,10 @@
 <script lang="ts">
+  import { spring } from 'svelte/motion';
   import { forceSimulation, forceLink, forceRadial } from 'd3-force';
   import type { GraphLink } from 'types/app';
   import { graph } from '../state/dataAPI';
   import { query } from '../state/uiState';
+  import pannable from '../pannable';
 
   let width = 400;
   let height = 300;
@@ -11,30 +13,33 @@
   let simLinks = [];
 
   let status = 'finished';
-  let update = true;
 
+  let enableRadial = true;
   let radialStrength = 0.5;
-  let linkStrength = 0.5;
-  let radius = 300;
+  let radiusFrac = 1;
+
   let enableLinks = true;
+  let linkStrength = 0.5;
 
-  $: shortSide = Math.min(width, height);
+  $: radius = Math.round((Math.min(width, height) / 2) * radiusFrac);
 
-  $: color = !!shortSide && randomColor();
+  ///////////////////////////////////////////////////////
+  // SIMULATION: NODES & LINKS
+  ///////////////////////////////////////////////////////
 
   const simulation = forceSimulation()
     .on('tick', () => {
       status = 'running';
-      if (update) {
-        simNodes = nodes;
-        simLinks = links;
-      }
+      simNodes = nodes;
+      simLinks = links;
     })
     .on('end', () => {
       status = 'finished';
     });
 
+  // Simulation nodes
   $: nodes = $graph.nodes.map((n) => {
+    // check previous node position
     const prev = nodes.find((x) => x.text === n.text);
     const x = prev?.x;
     const y = prev?.y;
@@ -43,15 +48,20 @@
       ...n,
       x,
       y,
-      r: n.id === $query ? 50 : 5,
-      color
+      r: n.id === $query ? 50 : 5
     };
   });
+
+  // Simulation links, update links if nodes change
   $: links = !!nodes && $graph.links.map((l) => ({ ...l }));
 
+  // Update simulation nodes
   $: simulation.nodes(nodes);
 
-  $: link = enableLinks
+  ///////////////////////////////////////////////////////
+  // FORCES
+  ///////////////////////////////////////////////////////
+  $: linkForce = enableLinks
     ? forceLink(links)
         .id((d: GraphLink) => {
           return d.id;
@@ -59,10 +69,12 @@
         .strength(linkStrength)
     : null;
 
-  $: radial = forceRadial(radius).strength(radialStrength);
+  $: radialForce = enableRadial
+    ? forceRadial(radius).strength(radialStrength)
+    : null;
 
-  $: simulation.force('link', link);
-  $: simulation.force('radial', radial);
+  $: simulation.force('link', linkForce);
+  $: simulation.force('radial', radialForce);
 
   $: if (width || height) {
     refresh();
@@ -73,41 +85,37 @@
     simulation.restart();
   }
 
-  function randomColor() {
-    const r = Math.round(Math.random() * 255);
-    const g = Math.round(Math.random() * 255);
-    const b = Math.round(Math.random() * 255);
+  const coords = spring(
+    { x: 0, y: 0 },
+    {
+      stiffness: 0.2,
+      damping: 0.4
+    }
+  );
 
-    return `rgb(${r},${g},${b})`;
+  function handlePanMove(event) {
+    coords.update(($coords) => ({
+      x: $coords.x + event.detail.dx,
+      y: $coords.y + event.detail.dy
+    }));
   }
 </script>
 
 <div class="wrapper" bind:clientWidth={width} bind:clientHeight={height}>
-  <div class="control">
-    <div>{width}x{height}</div>
-    <div>short: {shortSide}</div>
-    <div>color: <span style="background: {color}">{color}</span></div>
-    <div>graphNodes: {$graph.nodes.length}</div>
-    <div>graphLinks: {$graph.links.length}</div>
+  <div class="control" style="transform:translate({$coords.x}px,{$coords.y}px)">
+    <div class="pan" use:pannable on:panmove={handlePanMove}>↔</div>
+    <div>size: {width} x {height}</div>
     <div>nodes: {nodes.length}</div>
     <div>links: {links.length}</div>
-    <div>simNodes: {simNodes.length}</div>
-    <div>simLinks: {simLinks.length}</div>
-    <div>status: {status}</div>
-    <div>update: {update.toString()}</div>
-
-    <div>
-      Enable links
-      <input
-        type="checkbox"
-        bind:checked={enableLinks}
-        on:change={refresh}
-        min="0"
-        max="1"
-        step="0.1"
-      />
+    <div
+      class="status"
+      style="background: {status === 'running' ? 'orange' : 'green'}"
+    >
+      status: {status}
     </div>
-    <div>
+
+    <div class="force_container">
+      <input type="checkbox" bind:checked={enableRadial} on:change={refresh} />
       Radial strength: {radialStrength}
       <input
         type="range"
@@ -117,40 +125,30 @@
         max="1"
         step="0.1"
       />
-    </div>
-    <div>
-      Link strength: {linkStrength}
+      radius: {radius}
       <input
         type="range"
-        bind:value={linkStrength}
+        bind:value={radiusFrac}
         on:change={refresh}
         min="0"
         max="1"
         step="0.1"
       />
+      <div />
     </div>
-    <div>
-      radius: {radius}
+    <div class="force_container">
+      <input type="checkbox" bind:checked={enableLinks} on:change={refresh} />
+      Link strength: {linkStrength}
       <input
         type="range"
-        bind:value={radius}
+        bind:value={linkStrength}
         on:change={refresh}
+        disabled={!enableLinks}
         min="0"
-        max="500"
-        step="10"
+        max="1"
+        step="0.1"
       />
     </div>
-
-    <button
-      on:mousedown={() => {
-        if (link.links().length > 0) {
-          link.links([]);
-        } else {
-          link.links(links);
-        }
-        refresh();
-      }}>remove links</button
-    >
   </div>
   <svg {width} {height} viewBox="{-width / 2} {-height / 2} {width} {height}">
     <g>
@@ -160,15 +158,15 @@
           y1={source.y}
           x2={target.x}
           y2={target.y}
-          stroke={source.color}
+          stroke="#000"
         />
       {/each}
     </g>
 
     <g>
-      {#each simNodes as { id, x, y, color, r } (id)}
+      {#each simNodes as { id, x, y, r } (id)}
         <g transform="translate({x}, {y})">
-          <circle {r} fill={color} />
+          <circle {r} fill="#000" />
         </g>
       {/each}
     </g>
@@ -180,11 +178,18 @@
     height: 100%;
   }
 
+  .status {
+    color: white;
+    padding: 2px 4px;
+    display: inline-block;
+  }
+
   .control {
     position: absolute;
     background: rgba(255, 255, 255, 0.8);
     padding: 0.5rem;
     z-index: 10;
+    user-select: none;
   }
 
   svg {
@@ -196,5 +201,18 @@
 
   input {
     display: block;
+  }
+
+  input[type='checkbox'] {
+    display: inline;
+  }
+
+  .force_container {
+    margin: 2rem 0;
+    border-bottom: 1px solid lightgray;
+  }
+
+  .pan {
+    cursor: grab;
   }
 </style>
