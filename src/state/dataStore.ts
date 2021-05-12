@@ -1,4 +1,4 @@
-import { derived, get } from 'svelte/store';
+import { derived, get, writable } from 'svelte/store';
 import base64 from 'base-64';
 import { flatten, map, uniq, zip } from 'lodash';
 import { query, SearchMode, searchMode, queryExtension } from './uiState';
@@ -32,6 +32,9 @@ enum Method {
 }
 
 const apiMethod = Method.POST;
+
+const topicsPending = writable(false);
+const aggsPending = writable(false);
 
 /**
  * Returns object with basic request headers
@@ -103,14 +106,27 @@ export async function backendSearch(
   return results;
 }
 
+export const isPending = derived(
+  [topicsPending, aggsPending],
+  ([$topicsPending, $aggsPending]) => {
+    console.log(
+      'STORE: pending, topics:',
+      $topicsPending,
+      'aggs:',
+      $aggsPending
+    );
+    return [$topicsPending, $aggsPending].some((x) => x === true);
+  }
+);
+
 /**
  * Searches topics with a given query
  */
 export const topicStore = derived(
   query,
   ($query, set) => {
-    set({ pending: true, items: get(topicStore).items });
-
+    topicsPending.set(true);
+    console.log('STORE: requesting topics, query:', $query);
     // TODO: remove ES query, will automatically switch to GET endpoint
 
     const q =
@@ -122,26 +138,27 @@ export const topicStore = derived(
       if (result.message) {
         console.warn(result.message);
       } else {
-        set({ pending: false, items: result });
+        set(result);
+        topicsPending.set(false);
+        console.log('STORE: received topics', result.length);
       }
     });
   },
-  { pending: false, items: <Topic[]>[] }
+  <Topic[]>[]
 );
 
 /**
  * Searches topic names in `mentions.name` field of `resources` index and returns aggregations.
  */
 export const aggregationStore = derived(
-  [topicStore, queryExtension],
-  ([$topicsStore, $queryExtension], set) => {
+  [topicStore, queryExtension, topicsPending],
+  ([$topicsStore, $queryExtension, $topicsPending], set) => {
     // array of topic names
 
-    const topics = $topicsStore.items;
-    const isPending = $topicsStore.pending;
+    const topics = $topicsStore;
     const topicNames: string[] = uniq(map(topics, 'name'));
 
-    if (!isPending && topicNames.length > 0) {
+    if (!$topicsPending && topicNames.length > 0) {
       let topicMatch;
       let phraseMatch;
 
@@ -176,6 +193,8 @@ export const aggregationStore = derived(
         topics: topicNames
       };
 
+      console.log('STORE: requesting aggregations');
+      aggsPending.set(true);
       const topicReq = esSearch(
         'resources',
         topicMatchQuery,
@@ -195,19 +214,23 @@ export const aggregationStore = derived(
         phraseMatch = new Map(zip(topicNames, responses));
       });
 
-      console.log(backendQuery);
-      backendSearch(Backendpoint.aggregations, backendQuery, apiMethod).then(
-        (result) => {
-          console.log('INTEGRATION TEST', result);
-        }
-      );
+      // console.log(backendQuery);
+      // backendSearch(Backendpoint.aggregations, backendQuery, apiMethod).then(
+      //   (result) => {
+      //     console.log('STORE: INTEGRATION TEST', result);
+      //   }
+      // );
 
       Promise.all([topicReq, phraseReq]).then(() => {
+        console.log('STORE: received aggregations', topicNames.length);
+        aggsPending.set(false);
         set({
           phraseMatch,
           topicMatch
         });
       });
+    } else {
+      console.log('STORE: Aggregations waiting for topic results');
     }
   },
   <
@@ -351,7 +374,7 @@ export const topicRelationStore = derived(
   [query, queryExtension, topicStore, mentionedTopicStore],
   ([$query, $queryExtension, $topicsStore, $mentionedTopics], set) => {
     // array of topic names
-    const topics = $topicsStore.items;
+    const topics = $topicsStore;
     const topicNames: string[] = map(topics, (t) => t.name);
     const mentionedNames = $mentionedTopics.map((t) => t.preferredName);
     const uniqNames = uniq([...topicNames, ...mentionedNames]);

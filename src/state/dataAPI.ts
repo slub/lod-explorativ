@@ -1,4 +1,4 @@
-import { derived } from 'svelte/store';
+import { derived, get } from 'svelte/store';
 import {
   compact,
   debounce,
@@ -25,7 +25,8 @@ import {
   mentionedTopicStore,
   topicRelationStore,
   topicStore,
-  eventStore
+  eventStore,
+  isPending
 } from './dataStore';
 import { query, queryExtension, SearchMode, searchMode } from './uiState';
 
@@ -99,7 +100,7 @@ export const additionalTypes = derived(topicStore, ($topicStore) => {
   const addTypes = uniq(
     compact(
       flatten(
-        $topicStore.items.map((topic) =>
+        $topicStore.map((topic) =>
           topic.additionalTypes?.map((type) => type.name)
         )
       )
@@ -109,34 +110,10 @@ export const additionalTypes = derived(topicStore, ($topicStore) => {
   return addTypes;
 });
 
-/**
- * Return the number of resources per year for selected topic
- */
-export const datePublished = derived(
-  [query, aggregationStore],
-  ([$query, $aggs], set) => {
-    // TODO: use global resource aggregation
-    const queryAgg = $aggs.phraseMatch.get($query);
-
-    if (queryAgg) {
-      const published = queryAgg.aggregations.datePublished;
-
-      const dateCounts = published.buckets.map(({ key, doc_count }) => [
-        new Date(key).getFullYear(),
-        doc_count
-      ]);
-
-      set(dateCounts);
-    } else {
-      set([]);
-    }
-  },
-  <number[][]>[]
-);
-
 /** Combines results from topic search in topic index and associated resources in resource index */
 export const topicsEnriched = derived(
   [
+    isPending,
     authorStore,
     aggregationStore,
     geoStore,
@@ -146,7 +123,16 @@ export const topicsEnriched = derived(
     searchMode
   ],
   (
-    [$authors, $aggs, $geo, $relatedTopics, $events, $topicStore, $searchMode],
+    [
+      $isPending,
+      $authors,
+      $aggs,
+      $geo,
+      $relatedTopics,
+      $events,
+      $topicStore,
+      $searchMode
+    ],
     set
   ) => {
     // init debounced setter
@@ -156,8 +142,9 @@ export const topicsEnriched = derived(
       }, waitTopics);
     }
 
-    if (!$topicStore.pending) {
-      const merged = $topicStore.items.map(
+    if (!$isPending) {
+      console.log('API: merging topics');
+      const merged = $topicStore.map(
         ({ name, additionalTypes, description, id, score }) => {
           // get aggregation results on resources index
           const aggTopicMatch = $aggs.topicMatch.get(name);
@@ -195,6 +182,8 @@ export const topicsEnriched = derived(
       );
 
       debounceTopics(merged);
+    } else {
+      console.log('API: waiting for topics');
     }
   },
   <Topic[]>[]
@@ -204,154 +193,159 @@ export const topicsEnriched = derived(
  * Returns graph structure for the visualization
  */
 export const graph = derived(
-  [topicRelationStore, topicsEnriched, query, queryExtension],
-  ([$topicRelations, $topicsEnriched, $query, $queryExtension], set) => {
-    const nodes: GraphNode[] = [];
-    const links: GraphLink[] = [];
+  [topicRelationStore, topicsEnriched, query, queryExtension, isPending],
+  (
+    [$topicRelations, $topicsEnriched, $query, $queryExtension, $isPending],
+    set
+  ) => {
+    if (!$isPending) {
+      const nodes: GraphNode[] = [];
+      const links: GraphLink[] = [];
 
-    let relatedTopics: { name: string; count: number }[] = [];
+      let relatedTopics: { name: string; count: number }[] = [];
 
-    // create nodes for all top-level topics and collect related topics
-    $topicsEnriched.forEach((primaryTopic) => {
-      const { name, count, related, authors, datePublished } = primaryTopic;
+      // create nodes for all top-level topics and collect related topics
+      $topicsEnriched.forEach((primaryTopic) => {
+        const { name, count, related, authors, datePublished } = primaryTopic;
 
-      if (count > 0) {
-        // create graph node
-        const primaryNode: GraphNode = {
-          id: name,
-          count,
-          doc: primaryTopic,
-          type: PRIMARY_NODE,
-          text: name,
-          datePublished
-        };
-
-        nodes.push(primaryNode);
-
-        // create author nodes
-        if (name === $query || name === $queryExtension) {
-          for (let [{ preferredName: name }, count] of authors) {
-            let node = nodes.find((n) => n.id === name);
-
-            if (!node) {
-              const authorNode: GraphNode = {
-                id: name,
-                count,
-                doc: primaryTopic,
-                type: AUTHOR_NODE,
-                text: name.split(',')[0],
-                datePublished: null
-              };
-
-              nodes.push(authorNode);
-              node = authorNode;
-            }
-
-            // link author to topic
-            // const link: GraphLink = {
-            //   id: primaryNode.id + '-' + node.id,
-            //   source: primaryNode.id,
-            //   target: node.id,
-            //   weight: count,
-            //   type: LinkType.TOPIC_AUTHOR
-            // };
-
-            // links.push(link);
-          }
-        }
-      }
-
-      if (related) {
-        const topicCounts = Array.from(related).map(([topic, count]) => ({
-          name: topic.preferredName,
-          count
-        }));
-
-        // collect related topics to create these topics later,
-        // so that we can give precedence to top-level topics
-        // only add related nodes if conncted to the topic that matches the query
-        if (name === $query) {
-          relatedTopics = [...relatedTopics, ...topicCounts];
-        }
-
-        // create links from top-level topics to related topics
-        // related.forEach((weight, relatedTopic) => {
-        //   const link: GraphLink = {
-        //     id: `${primaryNode.id}-${relatedTopic.preferredName}`,
-        //     source: primaryNode.id,
-        //     target: relatedTopic.preferredName,
-        //     type: LinkType.MENTIONS_ID_LINK,
-        //     // TODO: use proper metric
-        //     weight
-        //   };
-
-        //   links.push(link);
-        // });
-      }
-    });
-
-    // create related topic nodes if they haven't been created on the top-level
-    relatedTopics.forEach(({ name, count }) => {
-      // check if node already exists
-      const exists = nodes.find((x) => x.id === name);
-
-      if (!exists) {
-        const secNode = {
-          id: name,
-          // TODO: decide whether this count should derived from the aggregation
-          // or from global ressource search
-          count,
-          // TODO: add topic document
-          doc: null,
-          type: SECONDARY_NODE,
-          text: name
-        };
-
-        nodes.push(secNode);
-      }
-    });
-
-    // TODO: only add relation if it does not already exist (from top-level to related)
-
-    $topicRelations.forEach(({ key, doc_count }) => {
-      const [source, target] = key.split('&');
-
-      // target is undefined for cells ij with i == j
-      if (target) {
-        let sourceNode = nodes.find((x) => x.id === source);
-        let targetNode = nodes.find((x) => x.id === target);
-
-        // FIXME: prevent bi-directional links (duplicates)
-        if (
-          sourceNode &&
-          targetNode &&
-          sourceNode.type === SECONDARY_NODE &&
-          targetNode.type === SECONDARY_NODE &&
-          source !== $query &&
-          target !== $query
-        ) {
-          const link: GraphLink = {
-            id: source + '-' + target,
-            source,
-            target,
-            // TODO: use scale for mapping
-            weight: doc_count,
-            type: LinkType.MENTIONS_NAME_LINK
+        if (count > 0) {
+          // create graph node
+          const primaryNode: GraphNode = {
+            id: name,
+            count,
+            doc: primaryTopic,
+            type: PRIMARY_NODE,
+            text: name,
+            datePublished
           };
 
-          links.push(link);
+          nodes.push(primaryNode);
+
+          // create author nodes
+          if (name === $query || name === $queryExtension) {
+            for (let [{ preferredName: name }, count] of authors) {
+              let node = nodes.find((n) => n.id === name);
+
+              if (!node) {
+                const authorNode: GraphNode = {
+                  id: name,
+                  count,
+                  doc: primaryTopic,
+                  type: AUTHOR_NODE,
+                  text: name.split(',')[0],
+                  datePublished: null
+                };
+
+                nodes.push(authorNode);
+                node = authorNode;
+              }
+
+              // link author to topic
+              // const link: GraphLink = {
+              //   id: primaryNode.id + '-' + node.id,
+              //   source: primaryNode.id,
+              //   target: node.id,
+              //   weight: count,
+              //   type: LinkType.TOPIC_AUTHOR
+              // };
+
+              // links.push(link);
+            }
+          }
         }
+
+        if (related) {
+          const topicCounts = Array.from(related).map(([topic, count]) => ({
+            name: topic.preferredName,
+            count
+          }));
+
+          // collect related topics to create these topics later,
+          // so that we can give precedence to top-level topics
+          // only add related nodes if conncted to the topic that matches the query
+          if (name === $query) {
+            relatedTopics = [...relatedTopics, ...topicCounts];
+          }
+
+          // create links from top-level topics to related topics
+          // related.forEach((weight, relatedTopic) => {
+          //   const link: GraphLink = {
+          //     id: `${primaryNode.id}-${relatedTopic.preferredName}`,
+          //     source: primaryNode.id,
+          //     target: relatedTopic.preferredName,
+          //     type: LinkType.MENTIONS_ID_LINK,
+          //     // TODO: use proper metric
+          //     weight
+          //   };
+
+          //   links.push(link);
+          // });
+        }
+      });
+
+      // create related topic nodes if they haven't been created on the top-level
+      relatedTopics.forEach(({ name, count }) => {
+        // check if node already exists
+        const exists = nodes.find((x) => x.id === name);
+
+        if (!exists) {
+          const secNode = {
+            id: name,
+            // TODO: decide whether this count should derived from the aggregation
+            // or from global ressource search
+            count,
+            // TODO: add topic document
+            doc: null,
+            type: SECONDARY_NODE,
+            text: name
+          };
+
+          nodes.push(secNode);
+        }
+      });
+
+      // TODO: only add relation if it does not already exist (from top-level to related)
+
+      $topicRelations.forEach(({ key, doc_count }) => {
+        const [source, target] = key.split('&');
+
+        // target is undefined for cells ij with i == j
+        if (target) {
+          let sourceNode = nodes.find((x) => x.id === source);
+          let targetNode = nodes.find((x) => x.id === target);
+
+          // FIXME: prevent bi-directional links (duplicates)
+          if (
+            sourceNode &&
+            targetNode &&
+            sourceNode.type === SECONDARY_NODE &&
+            targetNode.type === SECONDARY_NODE &&
+            source !== $query &&
+            target !== $query
+          ) {
+            const link: GraphLink = {
+              id: source + '-' + target,
+              source,
+              target,
+              // TODO: use scale for mapping
+              weight: doc_count,
+              type: LinkType.MENTIONS_NAME_LINK
+            };
+
+            links.push(link);
+          }
+        }
+      });
+
+      // init debounced setter
+      if (!debounceGraph) {
+        debounceGraph = debounce((x) => {
+          set(x);
+        }, waitGraph);
       }
-    });
 
-    // init debounced setter
-    if (!debounceGraph) {
-      debounceGraph = debounce((x) => {
-        set(x);
-      }, waitGraph);
+      debounceGraph({ links: compact(links), nodes: uniqBy(nodes, 'id') });
     }
-
-    debounceGraph({ links: compact(links), nodes: uniqBy(nodes, 'id') });
   },
   <{ links: GraphLink[]; nodes: GraphNode[] }>{ links: [], nodes: [] }
 );
@@ -360,10 +354,17 @@ export const graph = derived(
  * Returns the topic with same name as the current query
  */
 export const selectedTopic = derived(
-  [query, topicsEnriched],
-  ([$query, $topicsEnriched]) => {
-    const topic = $topicsEnriched.find((t) => t.name === $query);
-    return topic;
+  [query, topicsEnriched, isPending],
+  ([$query, $topicsEnriched, $isPending], set) => {
+    if (!$isPending) {
+      const topic = $topicsEnriched.find((t) => t.name === $query);
+      if (topic) {
+        console.log('API: Selected topic:', topic ? topic.name : '-');
+        set(topic);
+      } else {
+        console.log('API: Selected topic, NOT resetting');
+      }
+    }
   }
 );
 
@@ -371,16 +372,25 @@ export const selectedTopic = derived(
  * Returns the aggregation results for the current query depending on the search mode (phrase/topic match)
  */
 export const selectedTopicAggregations = derived(
-  [selectedTopic, aggregationStore, searchMode],
-  ([$topic, $aggs, $mode]) => {
-    if ($topic) {
+  [selectedTopic, aggregationStore, searchMode, isPending],
+  ([$topic, $aggs, $mode, $isPending], set) => {
+    if ($topic && !$isPending) {
+      console.log(
+        'API: aggregation, pending:',
+        $isPending,
+        'topic:',
+        $topic.name
+      );
       const agg =
         $mode === SearchMode.topic ? $aggs.topicMatch : $aggs.phraseMatch;
       const topicName = $topic.name;
-      return agg.get(topicName);
+      set(agg.get(topicName));
+    } else if (get(selectedTopicAggregations) !== null && !$isPending) {
+      console.log('API: aggregation RESET, topic', $topic);
+      set(null);
     }
-    return null;
-  }
+  },
+  null
 );
 
 /**
@@ -456,10 +466,10 @@ export const authors = derived(
  * Returns top genres for selected topic
  */
 export const genres = derived(
-  [query, selectedTopicAggregations],
-  ([$query, $agg], set) => {
+  [selectedTopicAggregations],
+  ([$agg], set) => {
     // TODO: use global resource aggregation
-
+    console.log('API: genres', $agg);
     if ($agg) {
       const genres = $agg.aggregations.genres;
       const other = genres.sum_other_doc_count;
@@ -476,4 +486,28 @@ export const genres = derived(
     }
   },
   <[string, number][]>[]
+);
+
+/**
+ * Return the number of resources per year for selected topic
+ */
+export const datePublished = derived(
+  [selectedTopicAggregations],
+  ([$agg], set) => {
+    // TODO: use global resource aggregation
+
+    if ($agg) {
+      const published = $agg.aggregations.datePublished;
+
+      const dateCounts = published.buckets.map(({ key, doc_count }) => [
+        new Date(key).getFullYear(),
+        doc_count
+      ]);
+
+      set(dateCounts);
+    } else {
+      set([]);
+    }
+  },
+  <number[][]>[]
 );

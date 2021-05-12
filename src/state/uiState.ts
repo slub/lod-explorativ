@@ -41,6 +41,7 @@ export const queries = [
 export const query = writable(getQuery());
 
 query.subscribe((value) => {
+  console.log('UI: update query:', value);
   const url = new URL(window.location.href);
   const params = new URLSearchParams(`q=${value}`);
   url.search = params.toString();

@@ -36,7 +36,10 @@
 
   $: shortSide = Math.min(width, height);
   $: radius = Math.round((shortSide / 2) * radiusFrac);
-  $: maxCount = max($graph.nodes, (n) => n.count);
+  $: maxCount = max(
+    $graph.nodes.filter((d) => d.id !== $query),
+    (n) => n.count
+  );
   $: yearExtent = extent(
     flatten(map($graph.nodes, (n) => n.datePublished?.map((d) => d.year)))
   );
@@ -155,7 +158,7 @@
 
   let collideForce = forceCollide()
     .strength(0.1)
-    .radius((d: GraphNode) => Math.max(radiusScale(d.count) * 2, 20))
+    .radius((d: GraphNode) => Math.max(radiusScale(d.count), 20))
     .iterations(3);
 
   $: simulation.force('link', linkForce);
