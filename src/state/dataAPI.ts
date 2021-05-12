@@ -229,37 +229,37 @@ export const graph = derived(
         nodes.push(primaryNode);
 
         // create author nodes
-      //   if (name === $query || name === $queryExtension) {
-      //     for (let [{ preferredName: name }, count] of authors) {
-      //       let node = nodes.find((n) => n.id === name);
+        if (name === $query || name === $queryExtension) {
+          for (let [{ preferredName: name }, count] of authors) {
+            let node = nodes.find((n) => n.id === name);
 
-      //       if (!node) {
-      //         const authorNode: GraphNode = {
-      //           id: name,
-      //           count,
-      //           doc: primaryTopic,
-      //           type: AUTHOR_NODE,
-      //           text: name.split(',')[0],
-      //           datePublished: null
-      //         };
+            if (!node) {
+              const authorNode: GraphNode = {
+                id: name,
+                count,
+                doc: primaryTopic,
+                type: AUTHOR_NODE,
+                text: name.split(',')[0],
+                datePublished: null
+              };
 
-      //         nodes.push(authorNode);
-      //         node = authorNode;
-      //       }
+              nodes.push(authorNode);
+              node = authorNode;
+            }
 
-      //       // link author to topic
-      //       // const link: GraphLink = {
-      //       //   id: primaryNode.id + '-' + node.id,
-      //       //   source: primaryNode.id,
-      //       //   target: node.id,
-      //       //   weight: count,
-      //       //   type: LinkType.TOPIC_AUTHOR
-      //       // };
+            // link author to topic
+            // const link: GraphLink = {
+            //   id: primaryNode.id + '-' + node.id,
+            //   source: primaryNode.id,
+            //   target: node.id,
+            //   weight: count,
+            //   type: LinkType.TOPIC_AUTHOR
+            // };
 
-      //       // links.push(link);
-      //     }
-      //   }
-      // }
+            // links.push(link);
+          }
+        }
+      }
 
       if (related) {
         const topicCounts = Array.from(related).map(([topic, count]) => ({
