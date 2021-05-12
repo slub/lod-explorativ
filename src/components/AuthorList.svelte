@@ -6,22 +6,18 @@
 
 <h2>Top Autoren</h2>
 
-{#if $authors.length > 0}
-  <ul>
-    {#each $authors as [author, count] (author['@id'])}
-      <li transition:fade>
-        <!-- TODO: move birth date create to dataAPI -->
-        <Tooltip title={author.hasOccupation?.map((o) => o.name).join(', ')}
-          >[{count}] {author.preferredName} // {author.birthDate
-            ? new Date(author.birthDate['@value']).getFullYear() || '-'
-            : '-'}</Tooltip
-        >
-      </li>
-    {/each}
-  </ul>
-{:else}
-  Keine Autoren gefunden
-{/if}
+<ul>
+  {#each $authors as [author, count] (author['@id'])}
+    <li transition:fade>
+      <!-- TODO: move birth date create to dataAPI -->
+      <Tooltip title={author.hasOccupation?.map((o) => o.name).join(', ')}
+        >[{count}] {author.preferredName} // {author.birthDate
+          ? new Date(author.birthDate['@value']).getFullYear() || '-'
+          : '-'}</Tooltip
+      >
+    </li>
+  {/each}
+</ul>
 
 <style>
   ul {
