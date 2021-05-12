@@ -162,7 +162,8 @@
   $: simulation.force('radial', radialForce);
   $: simulation.force('collide', collideForce);
 
-  $: if (width || height) {
+  // re-heat simulation if nodes or dimensions change
+  $: if (nodes || width || height) {
     refresh();
   }
 
