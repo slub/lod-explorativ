@@ -14,22 +14,22 @@
 <h2>{$resources.total} Ressourcen</h2>
 
 <ul class="resourceList">
-  {#each $resources.items as { title, yearPublished, description, topics }}
+  {#each $resources.items as { title, yearPublished, description, mentions }}
     <li transition:fade class="resourceItem" {title}>
       <Tooltip title={description}>[{yearPublished ?? '-'}] {title}</Tooltip>
       <ul class="topicList">
-        {#each topics as topic}
+        {#each mentions as mention}
           <!-- do not show selected topic if SearchMode is 'topic'
             as it exists for all elements  -->
-          {#if $searchMode == SearchMode.phrase || topic !== $query}
+          {#if $searchMode == SearchMode.phrase || mention.name !== $query}
             <li
               class="topicItem"
               on:click={() => {
-                query.set(topic);
+                query.set(mention.name);
                 queryExtension.set(null);
               }}
             >
-              <Chip name={topic} />
+              <Chip name={mention.name} />
             </li>
           {/if}
         {/each}

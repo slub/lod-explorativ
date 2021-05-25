@@ -1,3 +1,4 @@
+import type { Event, Geo, Person, Topic as TopicBackend } from './backend';
 import type { GeoES, PersonES, TopicES, EventES as EventES } from './es';
 
 export interface TopAuthor {
@@ -32,10 +33,10 @@ export interface Topic {
   aggregations: ResourceAggregation;
   aggregationsLoose: ResourceAggregation;
   datePublished: DatePublished[];
-  authors: Map<PersonES, number>;
-  locations: Map<GeoES, number>;
-  related: Map<TopicES, number>;
-  events: Map<EventES, number>;
+  authors: Map<Person, number>;
+  locations: Map<Geo, number>;
+  related: Map<TopicBackend, number>;
+  events: Map<Event, number>;
 }
 
 export interface Resource {

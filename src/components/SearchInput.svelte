@@ -1,6 +1,11 @@
 <script lang="ts">
   import { debounce } from 'lodash';
-  import { query, searchMode, queryExtension } from '../state/uiState';
+  import {
+    query,
+    searchMode,
+    queryExtension,
+    SearchMode
+  } from '../state/uiState';
 
   const handleChange = debounce((e) => {
     query.set(e.target.value);
@@ -30,8 +35,8 @@
     type="radio"
     id="text"
     name="mode"
-    value="phrase"
-    checked={$searchMode === 'phrase'}
+    value={SearchMode.phrase}
+    checked={$searchMode === SearchMode.phrase}
     on:change={handleMode}
   />
   <label for="text">Text</label>
@@ -40,8 +45,8 @@
     type="radio"
     id="thema"
     name="mode"
-    value="topic"
-    checked={$searchMode === 'topic'}
+    value={SearchMode.topic}
+    checked={$searchMode === SearchMode.topic}
     on:change={handleMode}
   />
   <label for="thema">Thema</label>

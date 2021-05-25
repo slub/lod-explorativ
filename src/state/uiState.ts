@@ -2,8 +2,8 @@ import { random } from 'lodash';
 import { writable } from 'svelte/store';
 
 export enum SearchMode {
-  phrase = 'phrase',
-  topic = 'topic'
+  phrase = 'phraseMatch',
+  topic = 'topicMatch'
 }
 
 /**

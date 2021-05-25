@@ -1,34 +1,28 @@
-import { derived, get } from 'svelte/store';
+import { derived } from 'svelte/store';
 import {
   compact,
   debounce,
+  entries,
   flatten,
-  isArray,
+  keys,
   orderBy,
+  pick,
+  round,
   uniq,
-  uniqBy
+  uniqBy,
+  values
 } from 'lodash';
-import type { PersonES, ResourceAggResponse } from 'types/es';
 import {
   GraphLink,
   GraphNode,
-  ResourceAggregation,
   Topic,
   NodeType,
   LinkType,
-  Resource
+  DatePublished
 } from '../types/app';
-import {
-  authorStore,
-  aggregationStore,
-  geoStore,
-  mentionedTopicStore,
-  topicRelationStore,
-  topicStore,
-  eventStore,
-  isPending
-} from './dataStore';
-import { query, queryExtension, SearchMode, searchMode } from './uiState';
+import dataStore, { topicRelationStore } from './dataStore';
+import { query, queryExtension, searchMode } from './uiState';
+import type { Subject, Resource } from '../types/backend';
 
 const { PRIMARY_NODE, SECONDARY_NODE, AUTHOR_NODE } = NodeType;
 
@@ -43,22 +37,44 @@ let debounceTopics;
 let debounceGraph;
 
 /**
+ * Returns all additionalTypes derived from topics
+ */
+export const additionalTypes = derived(dataStore, ($dataStore) => {
+  if ($dataStore) {
+    const addTypes = uniq(
+      compact(
+        flatten(
+          $dataStore.topics.map((topic) =>
+            topic.additionalTypes?.map((type) => type.name)
+          )
+        )
+      )
+    ).sort();
+
+    return addTypes;
+  }
+
+  return [];
+});
+
+/**
  * Replaces references to entities of different indices with real entity objects
  *
- * @param aggs          ElasticSearch aggregation result
+ * @param subject          ElasticSearch aggregation result
  * @param entityList    List of entity objects
  * @param aggName       Name of the aggregation
  */
 function getEntities<T>(
-  aggs: ResourceAggResponse,
+  subject: Subject,
   entityList: T[],
   aggName: string
 ): Map<T, number> {
-  if (!aggs) return null;
+  if (!subject) return null;
 
+  const agg = subject.aggs[aggName];
   const entries: [T, number][] = compact(
-    aggs.aggregations[aggName].buckets.map(({ key, doc_count }) => {
-      const entity = entityList.find((p) => p['@id'] === key);
+    Object.entries(agg).map(([key, doc_count]) => {
+      const entity = entityList[key];
       if (!entity) return null;
       return [entity, doc_count];
     })
@@ -67,74 +83,10 @@ function getEntities<T>(
   return new Map(entries);
 }
 
-/**
- * Transforms ElasticSearch aggregation result to internal representation
- *
- * @param aggs ElasticSearch aggregation object
- */
-function convertAggs(aggs: ResourceAggResponse) {
-  const { hits, aggregations } = aggs;
-
-  const meta: ResourceAggregation = {
-    docCount: hits.total.value,
-    topAuthors: aggregations.topAuthors.buckets,
-    datePublished: aggregations.datePublished.buckets.map(
-      ({ key, key_as_string, doc_count }) => ({
-        year: new Date(key).getFullYear(),
-        count: doc_count
-      })
-    ),
-    mentions: aggregations.mentions.buckets.map(({ key, doc_count }) => ({
-      name: key,
-      docCount: doc_count
-    }))
-  };
-
-  return meta;
-}
-
-/**
- * Returns all additionalTypes derived from topics
- */
-export const additionalTypes = derived(topicStore, ($topicStore) => {
-  const addTypes = uniq(
-    compact(
-      flatten(
-        $topicStore.map((topic) =>
-          topic.additionalTypes?.map((type) => type.name)
-        )
-      )
-    )
-  ).sort();
-
-  return addTypes;
-});
-
 /** Combines results from topic search in topic index and associated resources in resource index */
 export const topicsEnriched = derived(
-  [
-    isPending,
-    authorStore,
-    aggregationStore,
-    geoStore,
-    mentionedTopicStore,
-    eventStore,
-    topicStore,
-    searchMode
-  ],
-  (
-    [
-      $isPending,
-      $authors,
-      $aggs,
-      $geo,
-      $relatedTopics,
-      $events,
-      $topicStore,
-      $searchMode
-    ],
-    set
-  ) => {
+  [dataStore, searchMode],
+  ([$dataStore, $searchMode], set) => {
     // init debounced setter
     if (!debounceTopics) {
       debounceTopics = debounce((x) => {
@@ -142,44 +94,35 @@ export const topicsEnriched = derived(
       }, waitTopics);
     }
 
-    if (!$isPending) {
-      console.log('API: merging topics');
-      const merged = $topicStore.map(
-        ({ name, additionalTypes, description, id, score }) => {
-          // get aggregation results on resources index
-          const aggTopicMatch = $aggs.topicMatch.get(name);
-          const aggPhraseMatch = $aggs.phraseMatch.get(name);
+    if ($dataStore) {
+      const aggregationResult = $dataStore.aggregation;
+      const aggs = aggregationResult[$searchMode].subjects;
+      const entities = aggregationResult.entityPool;
 
-          // search mode dependent aggregations results
-          const aggMode =
-            $searchMode === SearchMode.topic ? aggTopicMatch : aggPhraseMatch;
+      const merged = $dataStore.topics.map((topic) => {
+        const agg = aggs[topic.name];
+        // create topic model
+        const enrichedTopic: Topic = {
+          ...topic,
+          count: agg.docCount,
+          // aggregations: aggTopicMatch ? convertAggs(aggTopicMatch) : null,
+          // aggregationsLoose: aggPhraseMatch
+          //   ? convertAggs(aggPhraseMatch)
+          //   : null,
+          datePublished: entries(agg.aggs.datePublished).map(
+            ([year, count]) => {
+              const date: DatePublished = { year: parseInt(year), count };
+              return date;
+            }
+          ),
+          authors: getEntities(agg, entities.persons, 'topAuthors'),
+          // locations: getEntities(agg, entities.geo, 'mentions'),
+          related: getEntities(agg, entities.topics, 'topMentionedTopics')
+          // events: getEntities(agg, entities.events, 'mentions')
+        };
 
-          const datePublished = aggMode
-            ? convertAggs(aggMode).datePublished.filter((d) => d.count > 0)
-            : [];
-
-          // create topic model
-          const topic: Topic = {
-            id,
-            score,
-            name,
-            count: aggMode?.hits.total.value ?? 0,
-            additionalTypes,
-            description,
-            aggregations: aggTopicMatch ? convertAggs(aggTopicMatch) : null,
-            aggregationsLoose: aggPhraseMatch
-              ? convertAggs(aggPhraseMatch)
-              : null,
-            datePublished,
-            authors: getEntities(aggMode, $authors, 'topAuthors'),
-            locations: getEntities(aggMode, $geo, 'mentions'),
-            related: getEntities(aggMode, $relatedTopics, 'topMentionedTopics'),
-            events: getEntities(aggMode, $events, 'mentions')
-          };
-
-          return topic;
-        }
-      );
+        return enrichedTopic;
+      });
 
       debounceTopics(merged);
     } else {
@@ -189,128 +132,170 @@ export const topicsEnriched = derived(
   <Topic[]>[]
 );
 
+export const relationsCount = derived(topicRelationStore, ($relations) => {
+  const matrix = {};
+
+  $relations.forEach(({ key, doc_count }) => {
+    const [source, t] = key.split('&');
+    const target = t || source;
+
+    if (!matrix[source]) matrix[source] = {};
+    if (!matrix[target]) matrix[target] = {};
+
+    matrix[source][target] = doc_count;
+    matrix[target][source] = doc_count;
+  });
+
+  return matrix;
+});
+
+export const relationsMeetMin = derived(relationsCount, ($relations) => {
+  const matrix = {};
+
+  for (let source in $relations) {
+    if (!matrix[source]) matrix[source] = {};
+
+    for (let target in $relations[source]) {
+      if (!matrix[target]) matrix[target] = {};
+
+      // only calculate values for half of matrix (matrix is symmetric)
+      if (!matrix[source][target]) {
+        matrix[source][target] = {};
+        if (!matrix[target][source]) matrix[target][source] = {};
+
+        const sourceCount = $relations[source][source];
+        const targetCount = $relations[target][target];
+        const intersect = $relations[source][target];
+        const score = round(intersect / Math.min(sourceCount, targetCount), 2);
+
+        matrix[source][target] = matrix[target][source] = score;
+      }
+    }
+  }
+
+  console.log(matrix);
+
+  return matrix;
+});
+
 /**
  * Returns graph structure for the visualization
  */
 export const graph = derived(
-  [topicRelationStore, topicsEnriched, query, queryExtension, isPending],
-  (
-    [$topicRelations, $topicsEnriched, $query, $queryExtension, $isPending],
-    set
-  ) => {
-    if (!$isPending) {
-      const nodes: GraphNode[] = [];
-      const links: GraphLink[] = [];
+  [topicsEnriched, query, queryExtension, relationsMeetMin],
+  ([$topicsEnriched, $query, $queryExtension, $relations], set) => {
+    const nodes: GraphNode[] = [];
+    const links: GraphLink[] = [];
 
-      let relatedTopics: { name: string; count: number }[] = [];
+    let relatedTopics: { name: string; count: number }[] = [];
 
-      // create nodes for all top-level topics and collect related topics
-      $topicsEnriched.forEach((primaryTopic) => {
-        const { name, count, related, authors, datePublished } = primaryTopic;
+    // create nodes for all top-level topics and collect related topics
+    $topicsEnriched.forEach((primaryTopic) => {
+      const { name, count, related, authors, datePublished } = primaryTopic;
 
-        if (count > 0) {
-          // create graph node
-          const primaryNode: GraphNode = {
-            id: name,
-            count,
-            doc: primaryTopic,
-            type: PRIMARY_NODE,
-            text: name,
-            datePublished
-          };
+      if (count > 0) {
+        // create graph node
+        const primaryNode: GraphNode = {
+          id: name,
+          count,
+          doc: primaryTopic,
+          type: PRIMARY_NODE,
+          text: name,
+          datePublished
+        };
 
-          nodes.push(primaryNode);
+        nodes.push(primaryNode);
 
-          // create author nodes
-          if (name === $query || name === $queryExtension) {
-            for (let [{ preferredName: name }, count] of authors) {
-              let node = nodes.find((n) => n.id === name);
+        // create author nodes
+        if (name === $query || name === $queryExtension) {
+          const a = authors.entries();
+          for (let [author, count] of a) {
+            let node = nodes.find((n) => n.id === author.name);
 
-              if (!node) {
-                const authorNode: GraphNode = {
-                  id: name,
-                  count,
-                  doc: primaryTopic,
-                  type: AUTHOR_NODE,
-                  text: name.split(',')[0],
-                  datePublished: null
-                };
+            if (!node) {
+              const authorNode: GraphNode = {
+                id: name,
+                count,
+                doc: primaryTopic,
+                type: AUTHOR_NODE,
+                text: name.split(',')[0],
+                datePublished: null
+              };
 
-                nodes.push(authorNode);
-                node = authorNode;
-              }
-
-              // link author to topic
-              // const link: GraphLink = {
-              //   id: primaryNode.id + '-' + node.id,
-              //   source: primaryNode.id,
-              //   target: node.id,
-              //   weight: count,
-              //   type: LinkType.TOPIC_AUTHOR
-              // };
-
-              // links.push(link);
+              nodes.push(authorNode);
+              node = authorNode;
             }
+
+            // link author to topic
+            // const link: GraphLink = {
+            //   id: primaryNode.id + '-' + node.id,
+            //   source: primaryNode.id,
+            //   target: node.id,
+            //   weight: count,
+            //   type: LinkType.TOPIC_AUTHOR
+            // };
+
+            // links.push(link);
           }
         }
+      }
 
-        if (related) {
-          const topicCounts = Array.from(related).map(([topic, count]) => ({
-            name: topic.preferredName,
-            count
-          }));
+      if (related) {
+        const topicCounts = Array.from(related).map(([topic, count]) => ({
+          name: topic.name,
+          count
+        }));
 
-          // collect related topics to create these topics later,
-          // so that we can give precedence to top-level topics
-          // only add related nodes if conncted to the topic that matches the query
-          if (name === $query) {
-            relatedTopics = [...relatedTopics, ...topicCounts];
-          }
-
-          // create links from top-level topics to related topics
-          // related.forEach((weight, relatedTopic) => {
-          //   const link: GraphLink = {
-          //     id: `${primaryNode.id}-${relatedTopic.preferredName}`,
-          //     source: primaryNode.id,
-          //     target: relatedTopic.preferredName,
-          //     type: LinkType.MENTIONS_ID_LINK,
-          //     // TODO: use proper metric
-          //     weight
-          //   };
-
-          //   links.push(link);
-          // });
+        // collect related topics to create these topics later,
+        // so that we can give precedence to top-level topics
+        // only add related nodes if conncted to the topic that matches the query
+        if (name === $query) {
+          relatedTopics = [...relatedTopics, ...topicCounts];
         }
-      });
 
-      // create related topic nodes if they haven't been created on the top-level
-      relatedTopics.forEach(({ name, count }) => {
-        // check if node already exists
-        const exists = nodes.find((x) => x.id === name);
+        // create links from top-level topics to related topics
+        // related.forEach((weight, relatedTopic) => {
+        //   const link: GraphLink = {
+        //     id: `${primaryNode.id}-${relatedTopic.preferredName}`,
+        //     source: primaryNode.id,
+        //     target: relatedTopic.preferredName,
+        //     type: LinkType.MENTIONS_ID_LINK,
+        //     // TODO: use proper metric
+        //     weight
+        //   };
 
-        if (!exists) {
-          const secNode = {
-            id: name,
-            // TODO: decide whether this count should derived from the aggregation
-            // or from global ressource search
-            count,
-            // TODO: add topic document
-            doc: null,
-            type: SECONDARY_NODE,
-            text: name
-          };
+        //   links.push(link);
+        // });
+      }
+    });
 
-          nodes.push(secNode);
-        }
-      });
+    // create related topic nodes if they haven't been created on the top-level
+    relatedTopics.forEach(({ name, count }) => {
+      // check if node already exists
+      const exists = nodes.find((x) => x.id === name);
 
-      // TODO: only add relation if it does not already exist (from top-level to related)
+      if (!exists) {
+        const secNode = {
+          id: name,
+          // TODO: decide whether this count should derived from the aggregation
+          // or from global ressource search
+          count,
+          // TODO: add topic document
+          doc: null,
+          type: SECONDARY_NODE,
+          text: name,
+          datePublished: []
+        };
 
-      $topicRelations.forEach(({ key, doc_count }) => {
-        const [source, target] = key.split('&');
+        nodes.push(secNode);
+      }
+    });
 
-        // target is undefined for cells ij with i == j
-        if (target) {
+    // TODO: only add relation if it does not already exist (from top-level to related)
+
+    for (let source in $relations) {
+      for (let target in $relations[source]) {
+        if (source !== target) {
           let sourceNode = nodes.find((x) => x.id === source);
           let targetNode = nodes.find((x) => x.id === target);
 
@@ -328,24 +313,24 @@ export const graph = derived(
               source,
               target,
               // TODO: use scale for mapping
-              weight: doc_count,
+              weight: $relations[source][target],
               type: LinkType.MENTIONS_NAME_LINK
             };
 
             links.push(link);
           }
         }
-      });
-
-      // init debounced setter
-      if (!debounceGraph) {
-        debounceGraph = debounce((x) => {
-          set(x);
-        }, waitGraph);
       }
-
-      debounceGraph({ links: compact(links), nodes: uniqBy(nodes, 'id') });
     }
+
+    // init debounced setter
+    if (!debounceGraph) {
+      debounceGraph = debounce((x) => {
+        set(x);
+      }, waitGraph);
+    }
+
+    debounceGraph({ links: compact(links), nodes: uniqBy(nodes, 'id') });
   },
   <{ links: GraphLink[]; nodes: GraphNode[] }>{ links: [], nodes: [] }
 );
@@ -354,17 +339,9 @@ export const graph = derived(
  * Returns the topic with same name as the current query
  */
 export const selectedTopic = derived(
-  [query, topicsEnriched, isPending],
-  ([$query, $topicsEnriched, $isPending], set) => {
-    if (!$isPending) {
-      const topic = $topicsEnriched.find((t) => t.name === $query);
-      if (topic) {
-        console.log('API: Selected topic:', topic ? topic.name : '-');
-        set(topic);
-      } else {
-        console.log('API: Selected topic, NOT resetting');
-      }
-    }
+  [query, topicsEnriched],
+  ([$query, $topicsEnriched]) => {
+    return $topicsEnriched.find((t) => t.name === $query) || null;
   }
 );
 
@@ -372,74 +349,38 @@ export const selectedTopic = derived(
  * Returns the aggregation results for the current query depending on the search mode (phrase/topic match)
  */
 export const selectedTopicAggregations = derived(
-  [selectedTopic, aggregationStore, searchMode, isPending],
-  ([$topic, $aggs, $mode, $isPending], set) => {
-    if ($topic && !$isPending) {
-      console.log(
-        'API: aggregation, pending:',
-        $isPending,
-        'topic:',
-        $topic.name
-      );
-      const agg =
-        $mode === SearchMode.topic ? $aggs.topicMatch : $aggs.phraseMatch;
-      const topicName = $topic.name;
-      set(agg.get(topicName));
-    } else if (get(selectedTopicAggregations) !== null && !$isPending) {
-      console.log('API: aggregation RESET, topic', $topic);
+  [selectedTopic, dataStore, searchMode],
+  ([$topic, $dataStore, $mode], set) => {
+    if ($topic) {
+      const subject = $dataStore.aggregation[$mode].subjects[$topic.name];
+      set(subject);
+    } else {
       set(null);
     }
   },
-  null
+  <Subject>null
 );
 
 /**
  * Returns top resources for the selected topic
  */
 export const resources = derived(
-  selectedTopicAggregations,
-  ($agg, set) => {
+  [selectedTopicAggregations, dataStore],
+  ([$agg, $dataStore], set) => {
     if ($agg) {
-      const appResources = $agg.hits.hits.map(({ _score, _source }) => {
-        const {
-          preferredName,
-          author,
-          datePublished: dp,
-          inLanguage,
-          description,
-          mentions = []
-        } = _source;
+      const { topResources, docCount } = $agg;
 
-        // TODO: simplify in backend?
-        const date = !!dp
-          ? isArray(dp)
-            ? dp[0]['@value']
-            : dp['@value']
-          : null;
+      const entities = $dataStore.aggregation.entityPool.resources;
+      const resources = values(pick(entities, keys(topResources)));
 
-        const appResource: Resource = {
-          title: preferredName,
-          yearPublished: date ? new Date(date).getFullYear() : null,
-          authors: author,
-          description: description ? description.join(';') : null,
-          inLanguage,
-          score: _score,
-          topics: uniq(
-            mentions.filter((m) => /topics/.test(m['@id'])).map((m) => m.name)
-          )
-        };
-
-        return appResource;
-      });
-
-      set({ total: $agg.hits.total.value, items: appResources });
+      set({ total: docCount, items: resources });
     } else {
       // reset store if topic wasn't found
       set({ total: 0, items: [] });
     }
   },
   {
-    total: <number>null,
+    total: <number>0,
     items: <Resource[]>[]
   }
 );
@@ -447,20 +388,11 @@ export const resources = derived(
 /**
  * Return the authors for the current query or the selected topic
  */
-export const authors = derived(
-  [selectedTopicAggregations, authorStore],
-  ([$aggs, $authorStore], set) => {
-    if ($aggs) {
-      const authorEnt = getEntities($aggs, $authorStore, 'topAuthors');
-      const pairs = orderBy(Array.from(authorEnt), '1', 'desc');
-      set(pairs);
-    } else {
-      // reset store if no topic is selected
-      set([]);
-    }
-  },
-  <[PersonES, number][]>[]
-);
+export const authors = derived(selectedTopic, ($topic) => {
+  return $topic
+    ? orderBy(Array.from($topic.authors), ([author, count]) => count, 'desc')
+    : [];
+});
 
 /**
  * Returns top genres for selected topic
@@ -471,9 +403,9 @@ export const genres = derived(
     // TODO: use global resource aggregation
     console.log('API: genres', $agg);
     if ($agg) {
-      const genres = $agg.aggregations.genres;
+      const genres = $agg.aggs.genres;
       const other = genres.sum_other_doc_count;
-      const genreCounts = genres.buckets.map(({ key, doc_count }) => [
+      const genreCounts = Object.entries(genres).map(([key, doc_count]) => [
         key,
         doc_count
       ]);
@@ -492,14 +424,13 @@ export const genres = derived(
  * Return the number of resources per year for selected topic
  */
 export const datePublished = derived(
-  [selectedTopicAggregations],
-  ([$agg], set) => {
-    // TODO: use global resource aggregation
+  [dataStore, searchMode],
+  ([$dataStore, $searchMode], set) => {
+    if ($dataStore) {
+      const published =
+        $dataStore.aggregation[$searchMode].superAgg.datePublished;
 
-    if ($agg) {
-      const published = $agg.aggregations.datePublished;
-
-      const dateCounts = published.buckets.map(({ key, doc_count }) => [
+      const dateCounts = Object.entries(published).map(([key, doc_count]) => [
         new Date(key).getFullYear(),
         doc_count
       ]);

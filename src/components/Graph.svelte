@@ -314,6 +314,7 @@
           {/if} -->
 
           <!-- Halo -->
+          <!-- FIXME: Firefox vertical alignment -->
           <text
             alignment-baseline="middle"
             font-size="14"

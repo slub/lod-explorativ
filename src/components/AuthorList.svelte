@@ -7,12 +7,12 @@
 <h2>Top Autoren</h2>
 
 <ul>
-  {#each $authors as [author, count] (author['@id'])}
+  {#each $authors as [author, count] (author.id)}
     <li transition:fade>
       <!-- TODO: move birth date create to dataAPI -->
-      <Tooltip title={author.hasOccupation?.map((o) => o.name).join(', ')}
-        >[{count}] {author.preferredName} // {author.birthDate
-          ? new Date(author.birthDate['@value']).getFullYear() || '-'
+      <Tooltip title={author.occupation.join(', ')}
+        >[{count}] {author.name} // {author.birthDate
+          ? new Date(author.birthDate).getFullYear() || '-'
           : '-'}</Tooltip
       >
     </li>
