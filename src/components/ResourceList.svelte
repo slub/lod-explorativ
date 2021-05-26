@@ -10,14 +10,22 @@
   import Chip from './Chip.svelte';
   import Tooltip from './Tooltip.svelte';
   import { areEqual } from '../utils';
+  import { last } from 'lodash';
 </script>
 
 <h2>{$resources.total} Ressourcen</h2>
 
 <ul class="resourceList">
-  {#each $resources.items as { title, yearPublished, description, mentions }}
+  {#each $resources.items as { title, yearPublished, description, mentions, id }}
     <li transition:fade class="resourceItem" {title}>
-      <Tooltip title={description}>[{yearPublished ?? '-'}] {title}</Tooltip>
+      <Tooltip title={description}
+        >[{yearPublished ?? '-'}]
+        <a
+          href={'https://katalog.slub-dresden.de/id/0-' + last(id.split('/'))}
+          target="_blank"
+          rel="noopener">{title}</a
+        ></Tooltip
+      >
       <ul class="topicList">
         {#each mentions as mention}
           <!-- do not show selected topic if SearchMode is 'topic'
