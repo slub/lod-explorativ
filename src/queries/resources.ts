@@ -17,10 +17,15 @@ const aggs = {
     }
   },
   datePublished: {
-    auto_date_histogram: {
+    // auto_date_histogram: {
+    //   field: 'datePublished.@value',
+    //   buckets: 100,
+    //   format: 'yyyy'
+    // }
+    date_histogram: {
       field: 'datePublished.@value',
-      buckets: 100,
-      format: 'yyyy'
+      calendar_interval: 'year',
+      min_doc_count: 1
     }
   },
   mentions: {
@@ -90,7 +95,17 @@ export function resourceAggQuery(
       bool: {
         // add both query terms not only as filter, but also as phrase query to enable scoring
         must: phraseCondition([query, queryExtension], fields),
-        filter: filter ? filterCondition([query, queryExtension]) : null
+        filter: compact([
+          ...(filter ? filterCondition([query, queryExtension]) : [])
+          // {
+          //   range: {
+          //     'datePublished.@value': {
+          //       gte: 1860,
+          //       lte: 2000
+          //     }
+          //   }
+          // }
+        ])
       }
     },
     aggs

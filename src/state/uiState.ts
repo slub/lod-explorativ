@@ -14,7 +14,8 @@ export enum SearchMode {
  */
 function getParam(name) {
   const url = new URL(window.location.href);
-  return url.searchParams.get(name) || null;
+  const value = url.searchParams.get(name);
+  return value === 'null' ? null : value;
 }
 
 /**

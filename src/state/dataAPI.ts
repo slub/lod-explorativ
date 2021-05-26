@@ -8,6 +8,7 @@ import {
   keys,
   orderBy,
   pick,
+  pickBy,
   round,
   toPairs,
   uniqBy,
@@ -402,7 +403,6 @@ export const authors = derived(selectedTopic, ($topic) => {
 export const genres = derived(
   [dataStore, searchMode],
   ([$dataStore, $searchMode], set) => {
-    // TODO: use global resource aggregation
     const { aggregation } = $dataStore;
 
     if (aggregation) {
@@ -428,10 +428,11 @@ export const datePublished = derived(
     if (aggregation) {
       const published = aggregation[$searchMode].superAgg.datePublished;
 
-      const dateCounts = Object.entries(published).map(([key, doc_count]) => [
-        new Date(key).getFullYear(),
-        doc_count
-      ]);
+      const dateCounts = entries(pickBy(published, (count) => count > 0)).map(
+        ([k, v]) => [parseInt(k), v]
+      );
+
+      // console.table(dateCounts);
 
       set(dateCounts);
     } else {

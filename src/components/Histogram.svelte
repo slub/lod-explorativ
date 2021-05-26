@@ -1,25 +1,29 @@
 <script lang="ts">
   import { scale } from 'svelte/transition';
   import { datePublished } from '../state/dataAPI';
-  import { max, extent } from 'd3-array';
+  import { min, max, extent } from 'd3-array';
   import { scaleLinear } from 'd3-scale';
 
   let width = 400;
   let height = 100;
   let padH = 16;
-  let barWidth = 4;
 
   $: paddingBottom = height - 16;
   $: maxCount = max($datePublished, (x) => x[1]);
   $: yearExtent = extent($datePublished, (x) => x[0]);
   $: yScale = scaleLinear()
     .domain([0, maxCount])
-    .range([2, height - 48]);
+    .rangeRound([0, height - 48]);
   $: xScale = scaleLinear()
     .domain(yearExtent)
     .range([padH, width - padH])
     .nice();
   $: ticks = xScale.ticks(8);
+  $: firstYear = min($datePublished, (d) => d[0]);
+  $: barWidth = Math.max(
+    Math.floor(xScale(firstYear + 1) - xScale(firstYear) - 2),
+    1
+  );
 </script>
 
 <div bind:clientWidth={width}>
@@ -30,8 +34,9 @@
           yScale(count)})"
         width={barWidth}
         height={yScale(count)}
-        fill="grey"
+        fill="#CBCBCB"
         transition:scale
+        data-year={year}
       />
     {/each}
     <line
