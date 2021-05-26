@@ -7,17 +7,33 @@ export enum SearchMode {
 }
 
 /**
- * Returns the search query from the URL. Function returns a random query if no query is set.
+ * Returns search param from URL
+ *
+ * @param name param
+ * @returns    value
+ */
+function getParam(name) {
+  const url = new URL(window.location.href);
+  return url.searchParams.get(name) || null;
+}
+
+/**
+ * Returns the search query or a random string
  */
 function getQuery() {
-  const url = new URL(window.location.href);
-  const q = url.searchParams.get('q');
-
+  const q = getParam('q');
   return q || queries[random(0, queries.length - 1)];
 }
 
+const updateParam = (name) => (value) => {
+  const url = new URL(window.location.href);
+  url.searchParams.set(name, value);
+  window.history.pushState({}, value, url.href);
+};
+
 window.onpopstate = function () {
   query.set(getQuery());
+  queryExtension.set(getParam('restrict'));
 };
 
 export const queries = [
@@ -39,13 +55,8 @@ export const queries = [
 ];
 
 export const query = writable(getQuery());
-
-query.subscribe((value) => {
-  const url = new URL(window.location.href);
-  const params = new URLSearchParams(`q=${value}`);
-  url.search = params.toString();
-  window.history.pushState({}, value, url.href);
-});
-
+export const queryExtension = writable(getParam('restrict'));
 export const searchMode = writable(SearchMode.topic);
-export const queryExtension = writable(null);
+
+query.subscribe(updateParam('q'));
+queryExtension.subscribe(updateParam('restrict'));

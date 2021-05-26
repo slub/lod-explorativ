@@ -145,7 +145,11 @@ const dataStore = derived(
 
       search(Backendpoint.aggregations, backendQuery, apiMethod).then(
         (result) => {
-          set({ aggregation: result, topics: $topics });
+          if (result.message) {
+            console.warn(result.message);
+          } else {
+            set({ aggregation: result, topics: $topics });
+          }
         }
       );
     } else {

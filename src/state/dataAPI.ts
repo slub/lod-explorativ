@@ -127,8 +127,6 @@ export const topicsEnriched = derived(
       });
 
       debounceTopics(merged);
-    } else {
-      console.log('API: waiting for topics');
     }
   },
   <Topic[]>[]
@@ -175,7 +173,7 @@ export const relationsMeetMin = derived(relationsCount, ($relations) => {
     }
   }
 
-  console.table(matrix);
+  // console.table(matrix);
 
   return matrix;
 });
