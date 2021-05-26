@@ -4,10 +4,9 @@
   import SearchInput from './components/SearchInput.svelte';
   import Graph from './components/Graph.svelte';
   import Title from './components/Title.svelte';
-  import Suggestions from './components/Suggestions.svelte';
   import Layout from './components/Layout.svelte';
   import Navigation from './components/Navigation.svelte';
-  import Stats from './components/Stats.svelte';
+  import Stats from './components/Genres.svelte';
   import Histogram from './components/Histogram.svelte';
   import ResourceList from './components/ResourceList.svelte';
   import AuthorList from './components/AuthorList.svelte';

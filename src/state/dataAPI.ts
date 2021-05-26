@@ -51,7 +51,7 @@ export const additionalTypes = derived(
     );
     const counts = countBy(types);
     const sortedPairs = orderBy(toPairs(counts), '1', 'desc');
-    const selection = sortedPairs.slice(0, 15);
+    const selection = sortedPairs.slice(0, 10);
 
     set(selection);
   },
@@ -402,26 +402,21 @@ export const authors = derived(selectedTopic, ($topic) => {
  * Returns top genres for selected topic
  */
 export const genres = derived(
-  [selectedTopicAggregations],
-  ([$agg], set) => {
+  [dataStore, searchMode],
+  ([$dataStore, $searchMode], set) => {
     // TODO: use global resource aggregation
+    const { aggregation } = $dataStore;
 
-    if ($agg) {
-      const genres = $agg.aggs.genres;
-      const other = genres.sum_other_doc_count;
-      const genreCounts = Object.entries(genres).map(([key, doc_count]) => [
-        key,
-        doc_count
-      ]);
+    if (aggregation) {
+      const genres = aggregation[$searchMode].superAgg.genres;
+      const counts = orderBy(Object.entries(genres), '1', 'desc');
 
-      const result = [...genreCounts, ['Weitere ...', other]];
-
-      set(<[string, number][]>result);
+      set(<[string, number][]>counts);
     } else {
       set([]);
     }
   },
-  <[string, number][]>[]
+  <[genre: string, count: number][]>[]
 );
 
 /**

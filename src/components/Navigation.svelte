@@ -8,16 +8,23 @@
 </script>
 
 <h2>Ähnliche Suchbegriffe</h2>
-<ul>
-  {#each $additionalTypes as [type]}
-    <li on:click={() => handleClick(type)}><span>{type}</span></li>
-  {/each}
-</ul>
+<div>
+  <ul>
+    {#each $additionalTypes as [type]}
+      <li on:click={() => handleClick(type)}><span>{type}</span></li>
+    {/each}
+  </ul>
+</div>
 
 <style>
+  div {
+    height: 21vh;
+    overflow-y: auto;
+  }
   ul {
     list-style: none;
     padding: 0;
+    margin: 0;
   }
 
   li {
