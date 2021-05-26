@@ -24,6 +24,7 @@ import {
 import dataStore, { topicRelationStore } from './dataStore';
 import { query, queryExtension, searchMode } from './uiState';
 import type { Subject, Resource } from '../types/backend';
+import { areEqual } from '../utils';
 
 const { PRIMARY_NODE, SECONDARY_NODE, AUTHOR_NODE } = NodeType;
 
@@ -174,7 +175,7 @@ export const relationsMeetMin = derived(relationsCount, ($relations) => {
     }
   }
 
-  console.log(matrix);
+  console.table(matrix);
 
   return matrix;
 });
@@ -208,7 +209,7 @@ export const graph = derived(
         nodes.push(primaryNode);
 
         // create author nodes
-        if (name === $query || name === $queryExtension) {
+        if (areEqual(name, $query) || areEqual(name, $queryExtension)) {
           const a = authors.entries();
           for (let [author, count] of a) {
             let node = nodes.find((n) => n.id === author.name);
@@ -250,7 +251,7 @@ export const graph = derived(
         // collect related topics to create these topics later,
         // so that we can give precedence to top-level topics
         // only add related nodes if conncted to the topic that matches the query
-        if (name === $query) {
+        if (areEqual(name, $query)) {
           relatedTopics = [...relatedTopics, ...topicCounts];
         }
 
@@ -306,8 +307,8 @@ export const graph = derived(
             targetNode &&
             sourceNode.type === SECONDARY_NODE &&
             targetNode.type === SECONDARY_NODE &&
-            source !== $query &&
-            target !== $query
+            !areEqual(source, $query) &&
+            !areEqual(target, $query)
           ) {
             const link: GraphLink = {
               id: source + '-' + target,
@@ -342,7 +343,7 @@ export const graph = derived(
 export const selectedTopic = derived(
   [query, topicsEnriched],
   ([$query, $topicsEnriched]) => {
-    return $topicsEnriched.find((t) => t.name === $query) || null;
+    return $topicsEnriched.find((t) => areEqual(t.name, $query)) || null;
   }
 );
 
@@ -352,8 +353,10 @@ export const selectedTopic = derived(
 export const selectedTopicAggregations = derived(
   [selectedTopic, dataStore, searchMode],
   ([$topic, $dataStore, $mode], set) => {
-    if ($topic) {
-      const subject = $dataStore.aggregation[$mode].subjects[$topic.name];
+    const { aggregation } = $dataStore;
+
+    if ($topic && aggregation) {
+      const subject = aggregation[$mode].subjects[$topic.name];
       set(subject);
     } else {
       set(null);
@@ -402,7 +405,7 @@ export const genres = derived(
   [selectedTopicAggregations],
   ([$agg], set) => {
     // TODO: use global resource aggregation
-    console.log('API: genres', $agg);
+
     if ($agg) {
       const genres = $agg.aggs.genres;
       const other = genres.sum_other_doc_count;

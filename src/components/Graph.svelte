@@ -15,6 +15,7 @@
   import { graph } from '../state/dataAPI';
   import { query, queryExtension } from '../state/uiState';
   import pannable from '../pannable';
+  import { areEqual } from '../utils';
 
   const { PRIMARY_NODE, AUTHOR_NODE } = NodeType;
 
@@ -37,7 +38,7 @@
   $: shortSide = Math.min(width, height);
   $: radius = Math.round((shortSide / 2) * radiusFrac);
   $: maxCount = max(
-    $graph.nodes.filter((d) => d.id !== $query),
+    $graph.nodes.filter((d) => !areEqual(d.id, $query)),
     (n) => n.count
   );
   $: yearExtent = extent(
@@ -65,8 +66,8 @@
       for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i];
         const { r, x, y, text } = node;
-        const isSelected = text === $query;
-        const isHighlighted = text === $queryExtension;
+        const isSelected = areEqual(text, $query);
+        const isHighlighted = areEqual(text, $queryExtension);
         const isSH = isSelected || isHighlighted;
 
         node.x = isSelected ? 0 : x;
@@ -94,7 +95,7 @@
     const prev = nodes.find((x) => x.text === n.text);
     const x = prev?.x;
     const y = prev?.y;
-    const r = n.id === $query ? shortSide * 0.4 : radiusScale(n.count);
+    const r = areEqual(n.id, $query) ? shortSide * 0.4 : radiusScale(n.count);
     const dates = n.datePublished?.map(({ year, count }) => {
       const pos = histoScale(year);
       const dr = radiusScale(count);
@@ -192,10 +193,10 @@
 
   function handleClick(name) {
     // reset query extension
-    if (name === $query) {
+    if (areEqual(name, $query)) {
       queryExtension.set(null);
       // refinement query becomes primary query
-    } else if (name === $queryExtension) {
+    } else if (areEqual(name, $queryExtension)) {
       query.set(name);
       queryExtension.set(null);
     } else {
@@ -284,8 +285,8 @@
           transform="translate({x}, {y})"
           class="node {type}"
           class:zeroHits={count === 0}
-          class:selected={text === $query}
-          class:highlight={text === $queryExtension}
+          class:selected={areEqual(text, $query)}
+          class:highlight={areEqual(text, $queryExtension)}
           on:click={() => handleClick(id)}
           out:scale={{ duration: 300 }}
         >

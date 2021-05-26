@@ -1,6 +1,6 @@
 import { derived } from 'svelte/store';
 import base64 from 'base-64';
-import { keys, map, uniq } from 'lodash';
+import { keys, map, uniq, upperFirst } from 'lodash';
 import { query, queryExtension, searchMode } from './uiState';
 import { resourceAggQuery, resourceMatrixQuery } from '../queries/resources';
 import type { Topic } from '../types/app';
@@ -171,7 +171,8 @@ export const topicRelationStore = derived(
       // array of topic names
       let topicNames: string[] = map(topics, (t) => t.name);
 
-      const selectedTopic = aggregation[$searchMode].subjects[$query];
+      const quc = upperFirst($query);
+      const selectedTopic = aggregation[$searchMode].subjects[quc];
 
       if (selectedTopic) {
         const mentions = keys(selectedTopic.aggs.topMentionedTopics);

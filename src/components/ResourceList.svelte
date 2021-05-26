@@ -9,6 +9,7 @@
   import { resources } from '../state/dataAPI';
   import Chip from './Chip.svelte';
   import Tooltip from './Tooltip.svelte';
+  import { areEqual } from '../utils';
 </script>
 
 <h2>{$resources.total} Ressourcen</h2>
@@ -21,7 +22,7 @@
         {#each mentions as mention}
           <!-- do not show selected topic if SearchMode is 'topic'
             as it exists for all elements  -->
-          {#if $searchMode == SearchMode.phrase || mention.name !== $query}
+          {#if $searchMode == SearchMode.phrase || !areEqual(mention.name, $query)}
             <li
               class="topicItem"
               on:click={() => {
