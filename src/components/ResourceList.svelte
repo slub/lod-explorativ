@@ -30,12 +30,12 @@
         {#each mentions as mention}
           <!-- do not show selected topic if SearchMode is 'topic'
             as it exists for all elements  -->
-          {#if $searchMode == SearchMode.phrase || !areEqual(mention.name, $query)}
+          {#if $searchMode == SearchMode.phrase || (!areEqual(mention.name, $query) && !areEqual(mention.name, $queryExtension))}
             <li
               class="topicItem"
               on:click={() => {
-                query.set(mention.name);
-                queryExtension.set(null);
+                // query.set(mention.name);
+                queryExtension.set(mention.name);
               }}
             >
               <Chip name={mention.name} />

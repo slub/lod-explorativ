@@ -51,7 +51,8 @@ export const queries = [
   'D3.js',
   'Belagerung',
   'Sakralbau',
-  'Visualisierung'
+  'Visualisierung',
+  'Betriebssystem'
 ];
 
 export const query = writable(getQuery());
