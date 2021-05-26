@@ -7,9 +7,10 @@
   }
 </script>
 
+<h2>Ähnliche Suchbegriffe</h2>
 <ul>
-  {#each $additionalTypes as type}
-    <li on:click={() => handleClick(type)}>{type}</li>
+  {#each $additionalTypes as [type]}
+    <li on:click={() => handleClick(type)}><span>{type}</span></li>
   {/each}
 </ul>
 
@@ -20,13 +21,10 @@
   }
 
   li {
-    display: inline-block;
-    margin-bottom: 0.5rem;
-    margin-right: 1.5rem;
-    text-transform: uppercase;
+    margin-bottom: 0.25rem;
   }
 
-  li:hover {
+  span:hover {
     cursor: pointer;
     border-bottom: 1px solid black;
   }

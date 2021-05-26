@@ -16,11 +16,10 @@
 <Layout>
   <div class="header" slot="header">
     <Title {name} />
-    <Navigation />
   </div>
   <svelte:fragment slot="left">
     <SearchInput />
-    <Suggestions />
+    <Navigation />
     <Stats />
   </svelte:fragment>
   <Graph slot="main" />

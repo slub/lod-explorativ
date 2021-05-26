@@ -1,14 +1,15 @@
 import { derived } from 'svelte/store';
 import {
   compact,
+  countBy,
   debounce,
   entries,
-  flatten,
+  flatMap,
   keys,
   orderBy,
   pick,
   round,
-  uniq,
+  toPairs,
   uniqBy,
   values
 } from 'lodash';
@@ -39,23 +40,22 @@ let debounceGraph;
 /**
  * Returns all additionalTypes derived from topics
  */
-export const additionalTypes = derived(dataStore, ($dataStore) => {
-  if ($dataStore) {
-    const addTypes = uniq(
-      compact(
-        flatten(
-          $dataStore.topics.map((topic) =>
-            topic.additionalTypes?.map((type) => type.name)
-          )
-        )
-      )
-    ).sort();
+export const additionalTypes = derived(
+  dataStore,
+  ($dataStore, set) => {
+    const { topics } = $dataStore;
 
-    return addTypes;
-  }
+    const types = flatMap(topics, (topic) =>
+      topic.additionalTypes.map((type) => type.name)
+    );
+    const counts = countBy(types);
+    const sortedPairs = orderBy(toPairs(counts), '1', 'desc');
+    const selection = sortedPairs.slice(0, 15);
 
-  return [];
-});
+    set(selection);
+  },
+  <[key: string, count: number][]>{}
+);
 
 /**
  * Replaces references to entities of different indices with real entity objects
@@ -87,6 +87,8 @@ function getEntities<T>(
 export const topicsEnriched = derived(
   [dataStore, searchMode],
   ([$dataStore, $searchMode], set) => {
+    const { aggregation } = $dataStore;
+
     // init debounced setter
     if (!debounceTopics) {
       debounceTopics = debounce((x) => {
@@ -94,10 +96,9 @@ export const topicsEnriched = derived(
       }, waitTopics);
     }
 
-    if ($dataStore) {
-      const aggregationResult = $dataStore.aggregation;
-      const aggs = aggregationResult[$searchMode].subjects;
-      const entities = aggregationResult.entityPool;
+    if (aggregation) {
+      const aggs = aggregation[$searchMode].subjects;
+      const entities = aggregation.entityPool;
 
       const merged = $dataStore.topics.map((topic) => {
         const agg = aggs[topic.name];
@@ -426,9 +427,10 @@ export const genres = derived(
 export const datePublished = derived(
   [dataStore, searchMode],
   ([$dataStore, $searchMode], set) => {
-    if ($dataStore) {
-      const published =
-        $dataStore.aggregation[$searchMode].superAgg.datePublished;
+    const { aggregation } = $dataStore;
+
+    if (aggregation) {
+      const published = aggregation[$searchMode].superAgg.datePublished;
 
       const dateCounts = Object.entries(published).map(([key, doc_count]) => [
         new Date(key).getFullYear(),

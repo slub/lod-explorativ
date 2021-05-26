@@ -149,11 +149,14 @@ const dataStore = derived(
         }
       );
     } else {
-      set(null);
+      set({ topics: [], aggregation: null });
     }
   },
 
-  <{ aggregation: BackendAggregation; topics: Topic[] }>null
+  <{ aggregation: BackendAggregation; topics: Topic[] }>{
+    aggregation: null,
+    topics: []
+  }
 );
 
 /**
@@ -162,24 +165,25 @@ const dataStore = derived(
 export const topicRelationStore = derived(
   [dataStore, query, searchMode],
   ([$dataStore, $query, $searchMode], set) => {
-    if ($dataStore) {
-      // array of topic names
-      let topicNames: string[] = map($dataStore.topics, (t) => t.name);
+    const { topics, aggregation } = $dataStore;
 
-      const selectedTopic =
-        $dataStore.aggregation[$searchMode].subjects[$query];
+    if (aggregation) {
+      // array of topic names
+      let topicNames: string[] = map(topics, (t) => t.name);
+
+      const selectedTopic = aggregation[$searchMode].subjects[$query];
 
       if (selectedTopic) {
         const mentions = keys(selectedTopic.aggs.topMentionedTopics);
         const mentionedNames = mentions.map(
-          (id) => $dataStore.aggregation.entityPool.topics[id].name
+          (id) => aggregation.entityPool.topics[id].name
         );
         topicNames = [...topicNames, ...mentionedNames];
       }
 
       // TODO: add mentioned names for all topics?
       // const mentionedNames = values(
-      //   $dataStore.aggregation.entityPool.topics
+      //   aggregation.entityPool.topics
       // ).map((t) => t.name);
 
       if (topicNames.length > 0) {
