@@ -12,7 +12,7 @@
   import { flatten, map } from 'lodash';
   import type { GraphLink, GraphNode } from 'types/app';
   import { LinkType, NodeType } from 'types/app';
-  import { graph } from '../state/dataAPI';
+  import { graph, selectedTopic } from '../state/dataAPI';
   import { query, queryExtension } from '../state/uiState';
   import pannable from '../pannable';
   import { areEqual } from '../utils';
@@ -199,8 +199,10 @@
     } else if (areEqual(name, $queryExtension)) {
       query.set(name);
       queryExtension.set(null);
-    } else {
+    } else if (!!$selectedTopic) {
       queryExtension.set(name);
+    } else {
+      query.set(name);
     }
   }
 </script>
