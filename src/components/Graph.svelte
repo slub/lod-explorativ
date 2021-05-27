@@ -342,7 +342,7 @@
             font-style={type === PRIMARY_NODE ? 'normal' : 'italic'}
             >{text}</text
           >
-          {#if type !== AUTHOR_NODE}
+          {#if type !== AUTHOR_NODE && !areEqual(text, $queryExtension)}
             <!-- Count Halo -->
             <text
               alignment-baseline="middle"
