@@ -72,17 +72,19 @@ function getEntities<T>(
   aggName: string
 ): Map<T, number> {
   if (!subject) return null;
-
+  const entityMap: Map<T, number> = new Map();
   const agg = subject.aggs[aggName];
-  const entries: [T, number][] = compact(
-    Object.entries(agg).map(([key, doc_count]) => {
-      const entity = entityList[key];
-      if (!entity) return null;
-      return [entity, doc_count];
-    })
-  );
 
-  return new Map(entries);
+  if (entityList) {
+    for (let key in agg) {
+      const entity = entityList[key];
+      if (entity) {
+        entityMap.set(entity, agg[key]);
+      }
+    }
+  }
+
+  return entityMap;
 }
 
 /** Combines results from topic search in topic index and associated resources in resource index */
