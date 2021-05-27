@@ -199,7 +199,7 @@
     } else if (areEqual(name, $queryExtension)) {
       query.set(name);
       queryExtension.set(null);
-    } else if (!!$selectedTopic) {
+    } else if (!!$selectedTopic && $selectedTopic.count !== 0) {
       queryExtension.set(name);
     } else {
       query.set(name);
