@@ -1,8 +1,11 @@
 <script lang="ts">
   import { scale } from 'svelte/transition';
   import { datePublished } from '../state/dataAPI';
-  import { min, max, extent } from 'd3-array';
+  import { min, max, extent, bin } from 'd3-array';
   import { scaleLinear } from 'd3-scale';
+  import { flatten } from 'lodash';
+
+  type Bin = { x0: number; x1: number; length: number };
 
   let width = 400;
   let height = 100;
@@ -11,32 +14,42 @@
   $: paddingBottom = height - 16;
   $: maxCount = max($datePublished, (x) => x[1]);
   $: yearExtent = extent($datePublished, (x) => x[0]);
+  $: yearDelta = yearExtent[1] - yearExtent[0];
+  $: allValues = flatten(
+    $datePublished.map(([year, count]) => new Array(count).fill(year))
+  );
+  $: binned = <Bin[]>(allValues.length ? bin().thresholds(100)(allValues) : []);
+
   $: yScale = scaleLinear()
     .domain([0, maxCount])
     .rangeRound([0, height - 48]);
+
   $: xScale = scaleLinear()
     .domain(yearExtent)
     .range([padH, width - padH])
     .nice();
-  $: ticks = xScale.ticks(8);
+
+  $: ticks = xScale.ticks(
+    Math.min(10, Math.abs(yearExtent[0] - yearExtent[1]))
+  );
+
   $: firstYear = min($datePublished, (d) => d[0]);
-  $: barWidth = Math.max(
-    Math.floor(xScale(firstYear + 1) - xScale(firstYear) - 2),
-    1
+  $: barWidth = Math.min(
+    Math.max(Math.floor(xScale(firstYear + 1) - xScale(firstYear) - 2), 1),
+    padH
   );
 </script>
 
 <div bind:clientWidth={width}>
   <svg {width} {height} viewBox="0 0 {width} {height}">
-    {#each $datePublished as [year, count]}
+    {#each binned as bin}
       <rect
-        transform="translate({xScale(year) - barWidth / 2},{paddingBottom -
-          yScale(count)})"
+        transform="translate({xScale(bin.x0) - barWidth / 2},{paddingBottom -
+          yScale(bin.length)})"
         width={barWidth}
-        height={yScale(count)}
+        height={yScale(bin.length)}
         fill="#CBCBCB"
         transition:scale
-        data-year={year}
       />
     {/each}
     <line
