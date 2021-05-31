@@ -29,6 +29,7 @@ export interface Topic {
   description: string;
   score: number;
   count: number;
+  docCount: number;
   additionalTypes: AdditionalType[];
   aggregations: ResourceAggregation;
   aggregationsLoose: ResourceAggregation;
