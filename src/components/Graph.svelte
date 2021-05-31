@@ -191,14 +191,19 @@
     }));
   }
 
-  function handleClick(name) {
-    // reset query extension
-    if (areEqual(name, $query)) {
+  function handleClick(name, type) {
+    // if outer primary node was clicked -> update primary query
+    if (type === PRIMARY_NODE && !areEqual(name, $query)) {
+      query.set(name);
+    }
+    // primary selected topic was clicked again -> reset query extension
+    else if (areEqual(name, $query)) {
       queryExtension.set(null);
-      // refinement query becomes primary query
+      // secondary topic was clicked again -> becomes primary topic
     } else if (areEqual(name, $queryExtension)) {
       query.set(name);
       queryExtension.set(null);
+      // topic exists, which matches query  -> set primary query to topic name
     } else if (!!$selectedTopic && $selectedTopic.count !== 0) {
       queryExtension.set(name);
     } else {
@@ -289,7 +294,7 @@
           class:zeroHits={count === 0}
           class:selected={areEqual(text, $query)}
           class:highlight={areEqual(text, $queryExtension)}
-          on:click={() => handleClick(id)}
+          on:click={() => handleClick(id, type)}
           out:scale={{ duration: 300 }}
         >
           <circle class="circle" {r} in:scale={{ duration: 500 }} />
