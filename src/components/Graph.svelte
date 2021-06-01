@@ -16,6 +16,8 @@
   import { search } from '../state/uiState';
   import pannable from '../pannable';
   import { areEqual } from '../utils';
+  import Tooltip from './Tooltip.svelte';
+  import Tooltip2 from './Tooltip2.svelte';
 
   const { PRIMARY_NODE, AUTHOR_NODE } = NodeType;
 
@@ -103,13 +105,14 @@
       const dr = radiusScale(count);
       const x = Math.sin(pos);
       const y = -Math.cos(pos);
-      const a = {
+      return {
+        year,
+        count,
         dx: x * r,
         dy: y * r,
         dr,
         dc: colorScale(year)
       };
-      return a;
     });
 
     // let datePath;
@@ -214,6 +217,18 @@
       search.setQuery(name);
     }
   }
+
+  let tooltip = [0, 0];
+  let tooltipTxt = '';
+
+  function handleHover(e, year, count) {
+    tooltipTxt = `${year}: ${count}`;
+    tooltip = [e.offsetX, e.offsetY];
+  }
+
+  function handleOut() {
+    tooltipTxt = '';
+  }
 </script>
 
 <div class="wrapper" bind:clientWidth={width} bind:clientHeight={height}>
@@ -303,7 +318,7 @@
         >
           <circle class="circle" {r} in:scale={{ duration: 500 }} />
           {#if dates}
-            {#each dates as { dx, dy, dr, dc }, i (i)}
+            {#each dates as { dx, dy, dr, dc, year, count }, i (i)}
               <circle
                 r={dr}
                 cx={dx}
@@ -311,6 +326,8 @@
                 fill={dc}
                 fill-opacity="0.2"
                 transition:fade
+                on:mouseover={(e) => handleHover(e, year, count)}
+                on:mouseleave={handleOut}
               />
             {/each}
           {/if}
@@ -377,6 +394,7 @@
       {/each}
     </g>
   </svg>
+  <Tooltip2 title={tooltipTxt} x={tooltip[0]} y={tooltip[1]} />
 </div>
 
 <style>

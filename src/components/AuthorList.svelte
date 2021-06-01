@@ -14,16 +14,20 @@
 </script>
 
 <h2>Top Autoren</h2>
-
+{#if $author}
+  <div class="filter" on:click={() => author.set(null)}>
+    <span class="remove">X</span>
+    {$author}
+  </div>
+  <hr />
+{/if}
 <ul>
-  {#each $authors as [author, count] (author.id)}
+  {#each $authors as { person, authorCount, contribCount } (person.id)}
     <li transition:fade>
       <!-- TODO: move birth date create to dataAPI -->
-      <Tooltip title={author.occupation.join(', ')}
-        ><span on:click={() => handleClick(author.name)}
-          >[{count}] {author.name} // {author.birthDate
-            ? new Date(author.birthDate).getFullYear() || '-'
-            : '-'}</span
+      <Tooltip title={person.occupation.join(', ')}
+        ><span on:click={() => handleClick(person.name)}
+          >[{authorCount || '-'}/{contribCount || '-'}] {person.name}</span
         ></Tooltip
       >
     </li>
@@ -34,6 +38,14 @@
   ul {
     list-style: none;
     padding: 0;
+  }
+
+  .remove {
+    font-weight: bold;
+  }
+
+  .filter:hover {
+    cursor: pointer;
   }
 
   li {

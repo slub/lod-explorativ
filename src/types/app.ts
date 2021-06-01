@@ -35,6 +35,7 @@ export interface Topic {
   aggregationsLoose: ResourceAggregation;
   datePublished: DatePublished[];
   authors: Map<Person, number>;
+  contributors: Map<Person, number>;
   locations: Map<Geo, number>;
   related: Map<TopicBackend, number>;
   events: Map<Event, number>;

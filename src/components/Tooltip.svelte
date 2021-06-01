@@ -8,7 +8,7 @@
   function handleMouseOver(e) {
     if (title) show = true;
     x = e.pageX;
-    y = e.pageY - 32;
+    y = e.pageY - 50;
   }
 
   function handleMouseMove(e) {}

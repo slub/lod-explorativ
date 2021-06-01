@@ -100,8 +100,9 @@ export function resourceAggQuery(
           ...(filter ? filterCondition([query, queryExtension]) : []),
           author
             ? {
-                match: {
-                  'author.name.keyword': author
+                multi_match: {
+                  fields: ['author.name.keyword', 'contributor.name.keyword'],
+                  query: author
                 }
               }
             : null
@@ -112,8 +113,13 @@ export function resourceAggQuery(
           //       lte: 2000
           //     }
           //   }
-          // }
+          // },
         ])
+        // must_not: {
+        //   terms: {
+        //     'genre.Text.keyword': ['Konferenzschrift', 'Hochschulschrift']
+        //   }
+        // }
       }
     },
     aggs

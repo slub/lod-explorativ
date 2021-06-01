@@ -5,7 +5,9 @@ import {
   debounce,
   entries,
   flatMap,
+  groupBy,
   keys,
+  mapKeys,
   orderBy,
   pick,
   pickBy,
@@ -123,8 +125,9 @@ export const topicsEnriched = derived(
               }
             ),
             authors: getEntities(agg, entities.persons, 'topAuthors'),
-            // locations: getEntities(agg, entities.geo, 'mentions'),
+            contributors: getEntities(agg, entities.persons, 'topContributors'),
             related: getEntities(agg, entities.topics, 'topMentionedTopics')
+            // locations: getEntities(agg, entities.geo, 'mentions'),
             // events: getEntities(agg, entities.events, 'mentions')
           };
 
@@ -412,9 +415,25 @@ export const resources = derived(
  * Return the authors for the current query or the selected topic
  */
 export const authors = derived(selectedTopic, ($topic) => {
-  return $topic
-    ? orderBy(Array.from($topic.authors), ([author, count]) => count, 'desc')
-    : [];
+  if (!$topic) return [];
+  const { authors, contributors } = $topic;
+
+  const all = uniqBy([...authors.keys(), ...contributors.keys()], 'id').map(
+    (p) => {
+      return {
+        person: p,
+        authorCount: authors.get(p),
+        contribCount: contributors.get(p)
+      };
+    }
+  );
+
+  return orderBy(
+    all,
+    ({ authorCount, contribCount }) =>
+      ((authorCount || 0) + (contribCount || 0)) / 2,
+    'desc'
+  ).slice(0, 10);
 });
 
 /**
