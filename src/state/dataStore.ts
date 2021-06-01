@@ -1,7 +1,7 @@
 import { derived } from 'svelte/store';
 import base64 from 'base-64';
 import { keys, map, uniq, upperFirst } from 'lodash';
-import { query, queryExtension, searchMode } from './uiState';
+import { author, query, queryExtension, searchMode } from './uiState';
 import { resourceAggQuery, resourceMatrixQuery } from '../queries/resources';
 import type { Topic } from '../types/app';
 import type {
@@ -121,12 +121,13 @@ const topicStore = derived(
 );
 
 const dataStore = derived(
-  [topicStore, queryExtension],
-  ([$topics, $queryExtension], set) => {
+  [topicStore, queryExtension, author],
+  ([$topics, $queryExtension, $author], set) => {
     if ($topics.length > 0) {
       const queryArgs = {
         fields: config.search.resources,
-        queryExtension: $queryExtension
+        queryExtension: $queryExtension,
+        author: $author
       };
 
       const backendQuery = {

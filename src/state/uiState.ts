@@ -59,6 +59,7 @@ export const queries = [
 export const query = writable(getQuery());
 export const queryExtension = writable(getParam('restrict'));
 export const searchMode = writable(SearchMode.topic);
+export const author = writable(null);
 
 query.subscribe(updateParam('q'));
 queryExtension.subscribe(updateParam('restrict'));

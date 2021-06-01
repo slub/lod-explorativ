@@ -85,9 +85,10 @@ export function resourceAggQuery(
     fields: string[];
     queryExtension: string;
     filter: boolean;
+    author: string;
   }
 ) {
-  const { queryExtension, fields, filter } = args;
+  const { queryExtension, fields, filter, author } = args;
   return {
     size: 15,
     sort,
@@ -96,8 +97,15 @@ export function resourceAggQuery(
         // add both query terms not only as filter, but also as phrase query to enable scoring
         must: phraseCondition([query, queryExtension], fields),
         filter: compact([
-          ...(filter ? filterCondition([query, queryExtension]) : [])
-          // {
+          ...(filter ? filterCondition([query, queryExtension]) : []),
+          author
+            ? {
+                match: {
+                  'author.name.keyword': author
+                }
+              }
+            : null
+          // ,{
           //   range: {
           //     'datePublished.@value': {
           //       gte: 1860,

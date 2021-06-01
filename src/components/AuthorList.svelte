@@ -1,7 +1,16 @@
 <script lang="ts">
   import { fade } from 'svelte/transition';
   import { authors } from '../state/dataAPI';
+  import { author } from '../state/uiState';
   import Tooltip from './Tooltip.svelte';
+
+  function handleClick(name) {
+    if (name === $author) {
+      author.set(null);
+    } else {
+      author.set(name);
+    }
+  }
 </script>
 
 <h2>Top Autoren</h2>
@@ -11,9 +20,11 @@
     <li transition:fade>
       <!-- TODO: move birth date create to dataAPI -->
       <Tooltip title={author.occupation.join(', ')}
-        >[{count}] {author.name} // {author.birthDate
-          ? new Date(author.birthDate).getFullYear() || '-'
-          : '-'}</Tooltip
+        ><span on:click={() => handleClick(author.name)}
+          >[{count}] {author.name} // {author.birthDate
+            ? new Date(author.birthDate).getFullYear() || '-'
+            : '-'}</span
+        ></Tooltip
       >
     </li>
   {/each}
