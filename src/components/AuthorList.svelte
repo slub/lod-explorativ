@@ -13,7 +13,7 @@
   }
 </script>
 
-<h2>Top Autoren</h2>
+<h2>Top Autoren & Beteiligte</h2>
 {#if $author}
   <div class="filter" on:click={() => author.set(null)}>
     <span class="remove">X</span>
