@@ -322,9 +322,8 @@
           {/if} -->
 
           <!-- Halo -->
-          <!-- FIXME: Firefox vertical alignment -->
           <text
-            alignment-baseline="middle"
+            dominant-baseline="central"
             font-size="14"
             x={textX}
             y={textY}
@@ -338,7 +337,7 @@
           >
           <!-- Label -->
           <text
-            alignment-baseline="middle"
+            dominant-baseline="central"
             font-size="14"
             x={textX}
             y={textY}
@@ -350,7 +349,7 @@
           {#if type !== AUTHOR_NODE && !areEqual(text, $queryExtension)}
             <!-- Count Halo -->
             <text
-              alignment-baseline="middle"
+              dominant-baseline="central"
               font-size="14"
               text-anchor="middle"
               font-weight="bold"
@@ -362,7 +361,7 @@
             >
             <!-- Count -->
             <text
-              alignment-baseline="middle"
+              dominant-baseline="central"
               font-size="14"
               text-anchor="middle"
               font-weight="bold"
