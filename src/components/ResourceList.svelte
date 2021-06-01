@@ -1,16 +1,13 @@
 <script lang="ts">
   import { fade } from 'svelte/transition';
-  import {
-    query,
-    queryExtension,
-    searchMode,
-    SearchMode
-  } from '../state/uiState';
+  import { search, searchMode, SearchMode } from '../state/uiState';
   import { resources } from '../state/dataAPI';
   import Chip from './Chip.svelte';
   import Tooltip from './Tooltip.svelte';
   import { areEqual } from '../utils';
   import { last } from 'lodash';
+
+  $: ({ query, restrict } = $search);
 </script>
 
 <h2>{$resources.total} Ressourcen</h2>
@@ -30,12 +27,11 @@
         {#each mentions as mention}
           <!-- do not show selected topic if SearchMode is 'topic'
             as it exists for all elements  -->
-          {#if $searchMode == SearchMode.phrase || (!areEqual(mention.name, $query) && !areEqual(mention.name, $queryExtension))}
+          {#if $searchMode == SearchMode.phrase || (!areEqual(mention.name, query) && !areEqual(mention.name, restrict))}
             <li
               class="topicItem"
               on:click={() => {
-                // query.set(mention.name);
-                queryExtension.set(mention.name);
+                search.setRestrict(mention.name);
               }}
             >
               <Chip name={mention.name} />

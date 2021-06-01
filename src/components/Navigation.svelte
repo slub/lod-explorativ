@@ -1,10 +1,12 @@
 <script lang="ts">
-  import { query, queryExtension } from '../state/uiState';
+  import { search } from '../state/uiState';
   import { additionalTypes } from '../state/dataAPI';
 
   function handleClick(q) {
-    queryExtension.set(null);
-    query.set(q);
+    search.set({
+      query: q,
+      restrict: null
+    });
   }
 </script>
 

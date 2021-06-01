@@ -1,14 +1,11 @@
 <script lang="ts">
   import { debounce } from 'lodash';
-  import {
-    query,
-    searchMode,
-    queryExtension,
-    SearchMode
-  } from '../state/uiState';
+  import { search, searchMode, SearchMode } from '../state/uiState';
+
+  $: ({ query, restrict } = $search);
 
   const handleChange = debounce((e) => {
-    query.set(e.target.value);
+    search.setQuery(e.target.value);
   }, 500);
 
   const handleMode = (e) => {
@@ -19,14 +16,14 @@
 <input
   type="text"
   placeholder="Nach Thema suchen..."
-  value={$query}
+  value={query}
   on:input={handleChange}
 />
 
-{#if $queryExtension}
+{#if restrict}
   <div>
-    & {$queryExtension}
-    <button on:click={() => queryExtension.set(null)}>entfernen</button>
+    & {restrict}
+    <button on:click={() => search.setRestrict(null)}>entfernen</button>
   </div>
 {/if}
 

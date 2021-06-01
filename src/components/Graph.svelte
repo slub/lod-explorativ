@@ -13,7 +13,7 @@
   import type { GraphLink, GraphNode } from 'types/app';
   import { LinkType, NodeType } from 'types/app';
   import { graph, selectedTopic } from '../state/dataAPI';
-  import { query, queryExtension } from '../state/uiState';
+  import { search } from '../state/uiState';
   import pannable from '../pannable';
   import { areEqual } from '../utils';
 
@@ -35,10 +35,12 @@
   let enableLinks = true;
   let linkStrength = 0;
 
+  $: query = $search.query;
+  $: restrict = $search.restrict;
   $: shortSide = Math.min(width, height);
   $: radius = Math.round((shortSide / 2) * radiusFrac);
   $: maxCount = max(
-    $graph.nodes.filter((d) => !areEqual(d.id, $query)),
+    $graph.nodes.filter((d) => !areEqual(d.id, query)),
     (n) => n.count
   );
   $: yearExtent = extent(
@@ -66,8 +68,8 @@
       for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i];
         const { r, x, y, text } = node;
-        const isSelected = areEqual(text, $query);
-        const isHighlighted = areEqual(text, $queryExtension);
+        const isSelected = areEqual(text, query);
+        const isHighlighted = areEqual(text, restrict);
         const isSH = isSelected || isHighlighted;
 
         node.x = isSelected ? 0 : x;
@@ -95,7 +97,7 @@
     const prev = nodes.find((x) => x.text === n.text);
     const x = prev?.x;
     const y = prev?.y;
-    const r = areEqual(n.id, $query) ? shortSide * 0.4 : radiusScale(n.count);
+    const r = areEqual(n.id, query) ? shortSide * 0.4 : radiusScale(n.count);
     const dates = n.datePublished?.map(({ year, count }) => {
       const pos = histoScale(year);
       const dr = radiusScale(count);
@@ -193,21 +195,23 @@
 
   function handleClick(name, type) {
     // if outer primary node was clicked -> update primary query
-    if (type === PRIMARY_NODE && !areEqual(name, $query)) {
-      query.set(name);
+    if (type === PRIMARY_NODE && !areEqual(name, query)) {
+      search.setQuery(name);
     }
     // primary selected topic was clicked again -> reset query extension
-    else if (areEqual(name, $query)) {
-      queryExtension.set(null);
+    else if (areEqual(name, query)) {
+      search.setRestrict(null);
       // secondary topic was clicked again -> becomes primary topic
-    } else if (areEqual(name, $queryExtension)) {
-      query.set(name);
-      queryExtension.set(null);
+    } else if (areEqual(name, restrict)) {
+      search.set({
+        query: name,
+        restrict: null
+      });
       // topic exists, which matches query  -> set primary query to topic name
     } else if (!!$selectedTopic && $selectedTopic.count !== 0) {
-      queryExtension.set(name);
+      search.setRestrict(name);
     } else {
-      query.set(name);
+      search.setQuery(name);
     }
   }
 </script>
@@ -292,8 +296,8 @@
           transform="translate({x}, {y})"
           class="node {type}"
           class:zeroHits={count === 0}
-          class:selected={areEqual(text, $query)}
-          class:highlight={areEqual(text, $queryExtension)}
+          class:selected={areEqual(text, query)}
+          class:highlight={areEqual(text, restrict)}
           on:click={() => handleClick(id, type)}
           out:scale={{ duration: 300 }}
         >
@@ -346,7 +350,7 @@
             font-style={type === PRIMARY_NODE ? 'normal' : 'italic'}
             >{text}</text
           >
-          {#if type !== AUTHOR_NODE && !areEqual(text, $queryExtension)}
+          {#if type !== AUTHOR_NODE && !areEqual(text, restrict)}
             <!-- Count Halo -->
             <text
               dominant-baseline="central"

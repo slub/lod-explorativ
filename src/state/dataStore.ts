@@ -1,7 +1,7 @@
 import { derived } from 'svelte/store';
 import base64 from 'base-64';
 import { keys, map, uniq, upperFirst } from 'lodash';
-import { author, query, queryExtension, searchMode } from './uiState';
+import { author, search as searchState, searchMode } from './uiState';
 import { resourceAggQuery, resourceMatrixQuery } from '../queries/resources';
 import type { Topic } from '../types/app';
 import type {
@@ -101,13 +101,14 @@ export async function esSearch(
  * Searches topics with a given query
  */
 const topicStore = derived(
-  query,
-  ($query, set) => {
+  searchState,
+  ($search, set) => {
+    const { query, restrict } = $search;
     // TODO: remove ES query, will automatically switch to GET endpoint
     const q =
       apiMethod === Method.POST
-        ? { body: topicSearchQuery($query) }
-        : `q=${$query}`;
+        ? { body: topicSearchQuery(query) }
+        : `q=${query}`;
 
     search(Backendpoint.topicsearch, q, Method.POST).then((result) => {
       if (result.message) {
@@ -121,12 +122,12 @@ const topicStore = derived(
 );
 
 const dataStore = derived(
-  [topicStore, queryExtension, author],
-  ([$topics, $queryExtension, $author], set) => {
+  [topicStore, searchState, author],
+  ([$topics, $search, $author], set) => {
     if ($topics.length > 0) {
       const queryArgs = {
         fields: config.search.resources,
-        queryExtension: $queryExtension,
+        queryExtension: $search.restrict,
         author: $author
       };
 
@@ -168,15 +169,15 @@ const dataStore = derived(
  * Derived store contains relations between the selected and mentioned topics
  */
 export const topicRelationStore = derived(
-  [dataStore, query, searchMode],
-  ([$dataStore, $query, $searchMode], set) => {
+  [dataStore, searchState, searchMode],
+  ([$dataStore, $search, $searchMode], set) => {
     const { topics, aggregation } = $dataStore;
 
     if (aggregation) {
       // array of topic names
       let topicNames: string[] = map(topics, (t) => t.name);
 
-      const quc = upperFirst($query);
+      const quc = upperFirst($search.query);
       const selectedTopic = aggregation[$searchMode].subjects[quc];
 
       if (selectedTopic) {

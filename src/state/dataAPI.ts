@@ -23,7 +23,7 @@ import {
   DatePublished
 } from '../types/app';
 import dataStore, { topicRelationStore } from './dataStore';
-import { query, queryExtension, searchMode } from './uiState';
+import { search, searchMode } from './uiState';
 import type { Subject, Resource } from '../types/backend';
 import { areEqual } from '../utils';
 
@@ -187,14 +187,15 @@ export const relationsMeetMin = derived(relationsCount, ($relations) => {
  * Returns graph structure for the visualization
  */
 export const graph = derived(
-  [topicsEnriched, query, queryExtension, relationsMeetMin],
-  ([$topicsEnriched, $query, $queryExtension, $relations], set) => {
+  [topicsEnriched, search, relationsMeetMin],
+  ([$topicsEnriched, $search, $relations], set) => {
     const nodes: GraphNode[] = [];
     const links: GraphLink[] = [];
 
-    console.log('----------------------');
+    // console.log('----------------------');
 
-    const selectedTopic = $topicsEnriched.find((t) => areEqual(t.name, $query));
+    const query = $search.query;
+    const selectedTopic = $topicsEnriched.find((t) => areEqual(t.name, query));
     const related = selectedTopic?.related;
 
     // create related topic nodes
@@ -202,7 +203,7 @@ export const graph = derived(
       related.forEach((count, relatedTopic) => {
         const { name } = relatedTopic;
 
-        if (!areEqual(name, $query)) {
+        if (!areEqual(name, query)) {
           const secNode = {
             id: relatedTopic.name,
             // TODO: decide whether this count should derived from the aggregation
@@ -215,7 +216,7 @@ export const graph = derived(
             datePublished: []
           };
 
-          console.log('SECONDARY', name);
+          // console.log('SECONDARY', name);
           nodes.push(secNode);
         }
       });
@@ -240,14 +241,14 @@ export const graph = derived(
           datePublished
         };
 
-        console.log('PRIMARY', name, primaryTopic.id, count);
+        // console.log('PRIMARY', name, primaryTopic.id, count);
         nodes.push(primaryNode);
       } else {
-        console.log('SKIP', name);
+        // console.log('SKIP', name);
       }
 
       // create author nodes
-      // if (areEqual(name, $query) || areEqual(name, $queryExtension)) {
+      // if (areEqual(name, query) || areEqual(name, queryExtension)) {
       //   const a = authors.entries();
       //   for (let [author, count] of a) {
       //     let node = nodes.find((n) => n.id === author.name);
@@ -288,7 +289,7 @@ export const graph = derived(
       //   // collect related topics to create these topics later,
       //   // so that we can give precedence to top-level topics
       //   // only add related nodes if conncted to the topic that matches the query
-      //   if (areEqual(name, $query)) {
+      //   if (areEqual(name, query)) {
       //     secondary = [...secondary, ...topicCounts];
       //   }
 
@@ -322,8 +323,8 @@ export const graph = derived(
             targetNode &&
             sourceNode.type === SECONDARY_NODE &&
             targetNode.type === SECONDARY_NODE &&
-            !areEqual(source, $query) &&
-            !areEqual(target, $query)
+            !areEqual(source, query) &&
+            !areEqual(target, query)
           ) {
             const link: GraphLink = {
               id: source + '-' + target,
@@ -359,9 +360,9 @@ export const graph = derived(
  * Returns the topic with same name as the current query
  */
 export const selectedTopic = derived(
-  [query, topicsEnriched],
-  ([$query, $topicsEnriched]) => {
-    return $topicsEnriched.find((t) => areEqual(t.name, $query)) || null;
+  [search, topicsEnriched],
+  ([$search, $topicsEnriched]) => {
+    return $topicsEnriched.find((t) => areEqual(t.name, $search.query)) || null;
   }
 );
 
