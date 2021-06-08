@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fade } from 'svelte/transition';
-  import { authors } from '../state/dataAPI';
+  import { authors, selectedTopic } from '../state/dataAPI';
   import { author } from '../state/uiState';
   import Tooltip from './Tooltip.svelte';
 
@@ -13,26 +13,28 @@
   }
 </script>
 
-<h2>Top Autoren & Beteiligte</h2>
-{#if $author}
-  <div class="filter" on:click={() => author.set(null)}>
-    <span class="remove">X</span>
-    {$author}
-  </div>
-  <hr />
+{#if $selectedTopic}
+  <h2>Top Autoren & Beteiligte</h2>
+  {#if $author}
+    <div class="filter" on:click={() => author.set(null)}>
+      <span class="remove">X</span>
+      {$author}
+    </div>
+    <hr />
+  {/if}
+  <ul>
+    {#each $authors as { person, authorCount, contribCount } (person.id)}
+      <li transition:fade>
+        <!-- TODO: move birth date create to dataAPI -->
+        <Tooltip title={person.occupation.join(', ')}
+          ><span on:click={() => handleClick(person.name)}
+            >[{authorCount || '-'}/{contribCount || '-'}] {person.name}</span
+          ></Tooltip
+        >
+      </li>
+    {/each}
+  </ul>
 {/if}
-<ul>
-  {#each $authors as { person, authorCount, contribCount } (person.id)}
-    <li transition:fade>
-      <!-- TODO: move birth date create to dataAPI -->
-      <Tooltip title={person.occupation.join(', ')}
-        ><span on:click={() => handleClick(person.name)}
-          >[{authorCount || '-'}/{contribCount || '-'}] {person.name}</span
-        ></Tooltip
-      >
-    </li>
-  {/each}
-</ul>
 
 <style>
   ul {
