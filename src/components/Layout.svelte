@@ -8,10 +8,11 @@
 
 <style>
   .layout {
-    height: calc(100vh);
+    height: 100vh;
     display: grid;
-    grid-template-columns: minmax(300px, 1fr) 3fr 1fr;
-    grid-template-rows: 10% auto 20%;
+    overflow: hidden;
+    grid-template-columns: minmax(300px, 1fr) 3fr minmax(400px, 1fr);
+    grid-template-rows: 10vh 70vh 20vh;
     grid-template-areas:
       'header header header'
       'left center right'
