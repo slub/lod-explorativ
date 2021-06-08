@@ -349,12 +349,14 @@
             x={textX}
             y={textY}
             text-anchor={textAnchor}
-            stroke-width={6}
-            stroke="white"
+            stroke-width={4}
+            stroke="#f8f8f7"
             stroke-opacity={0.7}
             fill="transparent"
-            stroke-linecap="butt"
-            stroke-linejoin="miter">{text}</text
+            stroke-linecap="round"
+            stroke-linejoin="bevel"
+            font-style={type === PRIMARY_NODE ? 'normal' : 'italic'}
+            >{text}</text
           >
           <!-- Label -->
           <text
@@ -375,8 +377,8 @@
               text-anchor="middle"
               font-weight="bold"
               fill="transparent"
-              stroke-linecap="butt"
-              stroke-linejoin="miter"
+              stroke-linecap="round"
+              stroke-linejoin="bevel"
               stroke-width={4}
               stroke="grey">{count}</text
             >
