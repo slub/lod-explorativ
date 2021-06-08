@@ -365,7 +365,11 @@ export const graph = derived(
 export const selectedTopic = derived(
   [search, topicsEnriched],
   ([$search, $topicsEnriched]) => {
-    return $topicsEnriched.find((t) => areEqual(t.name, $search.query)) || null;
+    return (
+      $topicsEnriched.find(
+        (t) => areEqual(t.name, $search.query) && t.count > 0
+      ) || null
+    );
   }
 );
 
