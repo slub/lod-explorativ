@@ -1,6 +1,6 @@
 import { derived } from 'svelte/store';
 import base64 from 'base-64';
-import { keys, map, uniq, upperFirst } from 'lodash';
+import { keys, map, orderBy, uniq, upperFirst } from 'lodash';
 import { author, search as searchState, searchMode } from './uiState';
 import { resourceAggQuery, resourceMatrixQuery } from '../queries/resources';
 import type { Topic } from '../types/app';
@@ -175,7 +175,8 @@ export const topicRelationStore = derived(
 
     if (aggregation) {
       // array of topic names
-      let topicNames: string[] = map(topics, (t) => t.name);
+      const topicsSorted = orderBy(topics, 'score', 'desc');
+      let topicNames: string[] = map(topicsSorted, (t) => t.name);
 
       const quc = upperFirst($search.query);
       const selectedTopic = aggregation[$searchMode].subjects[quc];
@@ -185,7 +186,7 @@ export const topicRelationStore = derived(
         const mentionedNames = mentions.map(
           (id) => aggregation.entityPool.topics[id].name
         );
-        topicNames = [...topicNames, ...mentionedNames];
+        topicNames = [...mentionedNames, ...topicNames].slice(0, 100);
       }
 
       // TODO: add mentioned names for all topics?

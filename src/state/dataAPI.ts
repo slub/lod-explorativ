@@ -107,7 +107,7 @@ export const topicsEnriched = derived(
       const entities = aggregation.entityPool;
 
       const merged = $dataStore.topics
-        .filter((t) => t.docCount > 0)
+        // .filter((t) => t.mentionCount > 0)
         .map((topic) => {
           const agg = aggs[topic.name];
           // create topic model
