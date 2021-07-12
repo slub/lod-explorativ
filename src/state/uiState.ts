@@ -43,7 +43,7 @@ window.onpopstate = ({ state }) => {
 
 export const { set, update, subscribe } = writable({
   query: getParam('q') || queries[random(0, queries.length - 1)],
-  restrict: null
+  restrict: getParam('restrict') || null
 });
 
 export const search = {
