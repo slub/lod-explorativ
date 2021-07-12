@@ -2,7 +2,7 @@
   export let name = 'title';
 </script>
 
-<h1><a href="/explore">{name}</a></h1>
+<h1><a href="/explore/">{name}</a></h1>
 
 <style>
   h1 {
