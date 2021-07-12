@@ -8,6 +8,7 @@ deploymenttime:
   only:
     - main
     - develop
+    - hostingPath
   script:
     # - export
     - yarn build
