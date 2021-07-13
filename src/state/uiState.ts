@@ -75,7 +75,10 @@ search.subscribe((state) => {
 // MODE STORE
 // ************************************************
 
-export const searchMode = writable(getParam('mode') || SearchMode.topic);
+export const searchMode = writable(
+  <SearchMode>getParam('mode') || SearchMode.topic
+);
+
 searchMode.subscribe((val) => {
   const url = new URL(window.location.href);
   url.searchParams.set('mode', val);

@@ -103,20 +103,17 @@ export async function esSearch(
 const topicStore = derived(
   searchState,
   ($search, set) => {
-    const { query, restrict } = $search;
-    // TODO: remove ES query, will automatically switch to GET endpoint
-    const q =
-      apiMethod === Method.POST
-        ? { body: topicSearchQuery(query) }
-        : `q=${query}`;
+    const { query } = $search;
 
-    search(Backendpoint.topicsearch, q, Method.POST).then((result) => {
-      if (result.message) {
-        console.warn(result.message);
-      } else {
-        set(result);
+    search(Backendpoint.topicsearch, `q=${query}`, Method.GET).then(
+      (result) => {
+        if (result.message) {
+          console.warn(result.message);
+        } else {
+          set(result);
+        }
       }
-    });
+    );
   },
   <Topic[]>[]
 );
