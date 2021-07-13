@@ -2,7 +2,7 @@ import { derived } from 'svelte/store';
 import base64 from 'base-64';
 import { keys, map, orderBy, uniq, upperFirst } from 'lodash';
 import { author, search as searchState, searchMode } from './uiState';
-import { resourceAggQuery, resourceMatrixQuery } from '../queries/resources';
+import { resourceMatrixQuery } from '../queries/resources';
 import type { Topic } from '../types/app';
 import type {
   BackendAggregation,
@@ -11,20 +11,12 @@ import type {
 import { Endpoint as Backendpoint } from '../types/backend';
 import type { Endpoint as EndpointESType } from '../types/es';
 import { Endpoint as EndpointES, ResourceAggResponse } from '../types/es';
-import { topicSearchQuery } from '../queries/topics';
 import config from '../config';
 
 /**
  * The dataStore listens to UI state changes and fetches new data if required.
  * It is also responsible for parsing and transforming the responses.
  */
-
-enum Method {
-  POST = 'POST',
-  GET = 'GET'
-}
-
-const apiMethod = Method.POST;
 
 /**
  * Returns object with basic request headers
@@ -45,19 +37,12 @@ function createHeaders(props = {}) {
  * @param query        query string or ES query object
  * @returns            json result to the query
  */
-async function search(
-  backendpoint: BackendpointType,
-  query: Object | string,
-  method: Method
-) {
-  const isPost = method === Method.POST;
-  const queryString = isPost ? '' : `?${query}`;
-  const url = `${config.backend}/${backendpoint}${queryString}`;
+async function search(backendpoint: BackendpointType, query: Object | string) {
+  const url = `${config.backend}/${backendpoint}?${query}`;
 
   const response = await fetch(url, {
-    method,
-    headers: createHeaders(),
-    body: isPost ? JSON.stringify(query) : null
+    method: 'GET',
+    headers: createHeaders()
   });
 
   const results = await response.json();
@@ -105,15 +90,13 @@ const topicStore = derived(
   ($search, set) => {
     const { query } = $search;
 
-    search(Backendpoint.topicsearch, `q=${query}`, Method.GET).then(
-      (result) => {
-        if (result.message) {
-          console.warn(result.message);
-        } else {
-          set(result);
-        }
+    search(Backendpoint.topicsearch, `q=${query}`).then((result) => {
+      if (result.message) {
+        console.warn(result.message);
+      } else {
+        set(result);
       }
-    );
+    });
   },
   <Topic[]>[]
 );
@@ -122,35 +105,21 @@ const dataStore = derived(
   [topicStore, searchState, author],
   ([$topics, $search, $author], set) => {
     if ($topics.length > 0) {
-      const queryArgs = {
-        fields: config.search.resources,
-        queryExtension: $search.restrict,
-        author: $author
-      };
+      const params = new URLSearchParams();
+      $topics.forEach((t) => {
+        params.append('topics', t.name);
+      });
 
-      const backendQuery = {
-        queryTemplate: {
-          topicMatch: resourceAggQuery('$subject', {
-            ...queryArgs,
-            filter: true
-          }),
-          phraseMatch: resourceAggQuery('$subject', {
-            ...queryArgs,
-            filter: false
-          })
-        },
-        topics: uniq(map($topics, 'name'))
-      };
+      // TODO: add author
+      params.set('restrict', $search.restrict || '');
 
-      search(Backendpoint.aggregations, backendQuery, apiMethod).then(
-        (result) => {
-          if (result.message) {
-            console.warn(result.message);
-          } else {
-            set({ aggregation: result, topics: $topics });
-          }
+      search(Backendpoint.aggregations, params.toString()).then((result) => {
+        if (result.message) {
+          console.warn(result.message);
+        } else {
+          set({ aggregation: result, topics: $topics });
         }
-      );
+      });
     } else {
       set({ topics: [], aggregation: null });
     }
