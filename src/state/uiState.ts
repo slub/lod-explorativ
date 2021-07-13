@@ -39,7 +39,7 @@ function getParam(name) {
 
 // update state when user uses the browser navigation
 window.onpopstate = ({ state }) => {
-  search.set(state);
+  if (state?.query) search.set(state);
 };
 
 // ************************************************
