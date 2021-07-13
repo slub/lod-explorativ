@@ -37,34 +37,49 @@ function getParam(name) {
   return value === 'null' ? null : value;
 }
 
+// update state when user uses the browser navigation
 window.onpopstate = ({ state }) => {
   search.set(state);
 };
 
+// ************************************************
+// SEARCH STORE
+// ************************************************
+
 export const { set, update, subscribe } = writable({
-  query: getParam('q') || queries[random(0, queries.length - 1)],
+  query: getParam('query') || queries[random(0, queries.length - 1)],
   restrict: getParam('restrict') || null
 });
 
 export const search = {
   set,
-  subscribe,
+  setQuery: (val) => update((prev) => ({ ...prev, query: val })),
+  setRestrict: (val) => update((prev) => ({ ...prev, restrict: val })),
   update,
-  setQuery: (val) => update((s) => ({ ...s, query: val })),
-  setRestrict: (val) => update((s) => ({ ...s, restrict: val }))
+  subscribe
 };
-export const searchMode = writable(SearchMode.topic);
-export const author = writable(null);
 
-// update query string in URL
 search.subscribe((state) => {
   const url = new URL(window.location.href);
+  const { query, restrict } = state;
+  url.searchParams.set('query', query);
+  url.searchParams.set('restrict', restrict);
 
-  if (window.history.state !== state) {
-    const { query, restrict } = state;
-    url.searchParams.set('q', query);
-    url.searchParams.set('restrict', restrict);
-
-    window.history.pushState(state, null, url.href);
+  // prevent update loop if triggered by pop state event
+  if (state !== window.history.state) {
+    window.history.pushState(state, '', url.href);
   }
 });
+
+// ************************************************
+// MODE STORE
+// ************************************************
+
+export const searchMode = writable(getParam('mode') || SearchMode.topic);
+searchMode.subscribe((val) => {
+  const url = new URL(window.location.href);
+  url.searchParams.set('mode', val);
+  window.history.replaceState(window.history.state, '', url.href);
+});
+
+export const author = writable(null);
