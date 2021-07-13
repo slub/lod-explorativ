@@ -1,16 +1,13 @@
 import { derived } from 'svelte/store';
 import base64 from 'base-64';
-import { keys, map, orderBy, uniq, upperFirst } from 'lodash';
+import { keys, map, orderBy, upperFirst } from 'lodash';
 import { author, search as searchState, searchMode } from './uiState';
-import { resourceMatrixQuery } from '../queries/resources';
 import type { Topic } from '../types/app';
 import type {
   BackendAggregation,
   Endpoint as BackendpointType
 } from '../types/backend';
 import { Endpoint as Backendpoint } from '../types/backend';
-import type { Endpoint as EndpointESType } from '../types/es';
-import { Endpoint as EndpointES, ResourceAggResponse } from '../types/es';
 import config from '../config';
 
 /**
@@ -47,39 +44,6 @@ async function search(backendpoint: BackendpointType, query: Object | string) {
 
   const results = await response.json();
   return results;
-}
-
-/**
- * Send search or get query to ElasticSearch
- *
- * @param index     Index name
- * @param query     ElasticSearch query
- * @param endpoint  ElasticSearch endpoint
- */
-export async function esSearch(
-  index: string,
-  query: Object | string,
-  endpoint: EndpointESType = EndpointES.search
-) {
-  const headers =
-    endpoint === EndpointES.msearch
-      ? { 'Content-Type': 'Application/x-ndjson' }
-      : {};
-
-  const body = typeof query === 'object' ? JSON.stringify(query) : query;
-
-  const response = await fetch(
-    `${config.esHost}/${index}-explorativ/_${endpoint}`,
-    {
-      method: 'POST',
-      headers: createHeaders(headers),
-      body
-    }
-  );
-
-  const result = await response.json();
-
-  return result;
 }
 
 /**
@@ -155,26 +119,23 @@ export const topicRelationStore = derived(
         topicNames = [...mentionedNames, ...topicNames].slice(0, 100);
       }
 
-      // TODO: add mentioned names for all topics?
-      // const mentionedNames = values(
-      //   aggregation.entityPool.topics
-      // ).map((t) => t.name);
-
       if (topicNames.length > 0) {
         // generate multiple queries from names
-        const req = resourceMatrixQuery(uniq(topicNames), $searchMode);
+        const params = new URLSearchParams();
+        topicNames.forEach((name) => {
+          params.append('topics', name);
+        });
 
-        esSearch('resources', req, EndpointES.search).then(
-          (result: ResourceAggResponse) => {
-            set(result.aggregations.topicsAM.buckets);
-          }
-        );
+        search(Backendpoint.correlations, params.toString()).then((result) => {
+          const relationMap = result[$searchMode].topicAM;
+          set(Object.entries(relationMap));
+        });
       } else {
         set([]);
       }
     }
   },
-  <{ key: string; doc_count: number }[]>[]
+  <[key: string, doc_count: number][]>[]
 );
 
 export default dataStore;

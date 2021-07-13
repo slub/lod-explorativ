@@ -2,7 +2,8 @@ export type EntityType = Event | Geo | Person | Resource | Topic;
 
 export enum Endpoint {
   topicsearch = 'topicsearch',
-  aggregations = 'aggregations'
+  aggregations = 'aggregations',
+  correlations = 'correlations'
 }
 
 export interface Entity {

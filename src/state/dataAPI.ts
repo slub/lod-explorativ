@@ -143,7 +143,7 @@ export const topicsEnriched = derived(
 export const relationsCount = derived(topicRelationStore, ($relations) => {
   const matrix = {};
 
-  $relations.forEach(({ key, doc_count }) => {
+  $relations.forEach(([key, doc_count]) => {
     const [source, t] = key.split('&');
     const target = t || source;
 
