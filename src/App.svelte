@@ -13,9 +13,7 @@
 </script>
 
 <Layout>
-  <div class="header" slot="header">
-    <Title {name} />
-  </div>
+  <Title {name} slot="header" />
   <svelte:fragment slot="left">
     <SearchInput />
     <Navigation />
@@ -29,10 +27,5 @@
   </svelte:fragment>
 </Layout>
 
-<!-- <TopicList /> -->
 <style>
-  .header {
-    display: flex;
-    align-items: baseline;
-  }
 </style>

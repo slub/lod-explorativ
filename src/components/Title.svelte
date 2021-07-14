@@ -1,17 +1,23 @@
 <script lang="ts">
+  import LogoSlub from './LogoSlub.svelte';
+
   export let name = 'title';
 </script>
 
-<h1><a href="/explore/">{name}</a></h1>
+<a href="/explore/"
+  ><LogoSlub />
+  <h1>{name}</h1></a
+>
 
 <style>
   h1 {
-    cursor: pointer;
-    margin-right: 15%;
+    white-space: nowrap;
   }
 
   a {
     text-decoration: none;
     color: black;
+    display: flex;
+    align-items: center;
   }
 </style>
