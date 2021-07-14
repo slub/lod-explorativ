@@ -3,7 +3,6 @@
   import { search, searchMode, SearchMode } from '../state/uiState';
   import { resources, selectedTopic } from '../state/dataAPI';
   import Chip from './Chip.svelte';
-  import Tooltip from './Tooltip.svelte';
   import { areEqual } from '../utils';
   import { last } from 'lodash';
 
@@ -21,16 +20,14 @@
   <ul class="resourceList">
     {#each $resources.items as { title, yearPublished, mentions, id }}
       <li transition:fade class="resourceItem" {title}>
-        <Tooltip {title}
-          >{#if yearPublished}
-            <span class="year">{yearPublished}</span>
-          {/if}
-          <a
-            href={'https://katalog.slub-dresden.de/id/0-' + last(id.split('/'))}
-            target="_blank"
-            rel="noopener"
-            title="">{title}</a
-          ></Tooltip
+        {#if yearPublished}
+          <span class="year">{yearPublished}</span>
+        {/if}
+        <a
+          href={'https://katalog.slub-dresden.de/id/0-' + last(id.split('/'))}
+          target="_blank"
+          rel="noopener"
+          title="">{title}</a
         >
         <ul class="topicList">
           {#each mentions as mention}
@@ -77,10 +74,6 @@
     margin-bottom: 0.25rem;
     border-bottom: 1px solid lightgray;
     padding-bottom: 0.25rem;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
   }
 
   .topicItem {
