@@ -1,10 +1,14 @@
 <!--
 TODO: remove
+
+Edge cases:
+
 http://localhost:5000/explore/?query=sfadsfasdfa&restrict=null&mode=topicMatch
 http://localhost:5000/explore/?query=abc&restrict=null&mode=topicMatch
 http://localhost:5000/explore/?query=Tonfolge&restrict=null&mode=topicMatch
 http://localhost:5000/explore/?query=Markenname&restrict=Alpen&mode=topicMatch
 http://localhost:5000/explore/?query=Google&restrict=Google+Earth&mode=topicMatch
+http://localhost:5000/explore/?query=Produkt-Recycling&restrict=null&mode=topicMatch
 
  -->
 <script lang="ts">
@@ -41,7 +45,7 @@ http://localhost:5000/explore/?query=Google&restrict=Google+Earth&mode=topicMatc
     actionPhrase = false;
     actionAlternate = alternateTopics > 0;
     actionNoRestrict = false;
-  } else if (caseNoResources && (casePhraseHits || caseNoRestrictHits)) {
+  } else if (caseNoResources) {
     actionPhrase = casePhraseHits;
     actionAlternate = alternateTopics > 0;
     actionNoRestrict = caseNoRestrictHits;
@@ -70,7 +74,7 @@ http://localhost:5000/explore/?query=Google&restrict=Google+Earth&mode=topicMatc
 </script>
 
 {#if $ready && text && !hide.includes(window.location.href)}
-  <div transition:fade={{ delay: 2000 }}>
+  <div in:fade={{ delay: 2000 }} out:fade>
     <Message
       {text}
       switchToPhrase={actionPhrase && switchToPhraseFn}
