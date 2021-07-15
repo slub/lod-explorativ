@@ -17,7 +17,7 @@ http://localhost:5000/explore/?query=Produkt-Recycling&restrict=null&mode=topicM
   import { search, SearchMode, searchMode } from '../state/uiState';
   import Message from './Message.svelte';
 
-  let text = '';
+  let text = null;
   let hide = [];
   let actionPhrase = false;
   let actionAlternate = false;
@@ -35,25 +35,27 @@ http://localhost:5000/explore/?query=Produkt-Recycling&restrict=null&mode=topicM
 
   $: isLinked = $searchMode === SearchMode.topic ? 'verknüpften' : '';
 
-  $: if (caseNoTopics) {
-    text = `Keine Themen zu „${query}“ gefunden.`;
-    actionPhrase = false;
-    actionAlternate = false;
-    actionNoRestrict = false;
-  } else if (caseNoSelected) {
-    text = `Das Thema „${query}“ existiert leider nicht. `;
-    actionPhrase = false;
-    actionAlternate = alternateTopics > 0;
-    actionNoRestrict = false;
-  } else if (caseNoResources) {
-    actionPhrase = casePhraseHits;
-    actionAlternate = alternateTopics > 0;
-    actionNoRestrict = caseNoRestrictHits;
+  $: if ($ready) {
+    if (caseNoTopics) {
+      text = `Keine Themen zu „${query}“ gefunden.`;
+      actionPhrase = false;
+      actionAlternate = false;
+      actionNoRestrict = false;
+    } else if (caseNoSelected) {
+      text = `Das Thema „${query}“ existiert leider nicht. `;
+      actionPhrase = false;
+      actionAlternate = alternateTopics > 0;
+      actionNoRestrict = false;
+    } else if (caseNoResources) {
+      actionPhrase = casePhraseHits;
+      actionAlternate = alternateTopics > 0;
+      actionNoRestrict = caseNoRestrictHits;
 
-    if (restrict) {
-      text = `Keine ${isLinked} Titeldaten zu „${query}“ und „${restrict}“ gefunden.`;
-    } else {
-      text = `Keine ${isLinked} Titeldaten zu „${query}“ gefunden.`;
+      if (restrict) {
+        text = `Keine ${isLinked} Titeldaten zu „${query}“ und „${restrict}“ gefunden.`;
+      } else {
+        text = `Keine ${isLinked} Titeldaten zu „${query}“ gefunden.`;
+      }
     }
   } else {
     text = null;
@@ -73,7 +75,7 @@ http://localhost:5000/explore/?query=Produkt-Recycling&restrict=null&mode=topicM
   }
 </script>
 
-{#if $ready && text && !hide.includes(window.location.href)}
+{#if text && !hide.includes(window.location.href)}
   <div in:fade={{ delay: 2000 }} out:fade>
     <Message
       {text}
