@@ -1,3 +1,12 @@
+<!--
+TODO: remove
+http://localhost:5000/explore/?query=sfadsfasdfa&restrict=null&mode=topicMatch
+http://localhost:5000/explore/?query=abc&restrict=null&mode=topicMatch
+http://localhost:5000/explore/?query=Tonfolge&restrict=null&mode=topicMatch
+http://localhost:5000/explore/?query=Markenname&restrict=Alpen&mode=topicMatch
+http://localhost:5000/explore/?query=Google&restrict=Google+Earth&mode=topicMatch
+
+ -->
 <script lang="ts">
   import { fade } from 'svelte/transition';
   import { ready, selectedTopic, topicsEnriched } from '../state/dataAPI';
@@ -60,10 +69,8 @@
   }
 </script>
 
-{@debug text, $ready}
-
 {#if $ready && text && !hide.includes(window.location.href)}
-  <div in:fade={{ delay: 500 }}>
+  <div transition:fade={{ delay: 2000 }}>
     <Message
       {text}
       switchToPhrase={actionPhrase && switchToPhraseFn}

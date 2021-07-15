@@ -25,10 +25,10 @@ import {
   DatePublished
 } from '../types/app';
 import dataStore, {
-  dataReady,
-  correlationsReady,
+  aggregationsPending,
+  correlationsPending,
   topicRelationStore,
-  topicsReady,
+  topicsPending,
   topicStore
 } from './dataStore';
 import { search, searchMode } from './uiState';
@@ -48,9 +48,9 @@ let debounceTopics;
 let debounceGraph;
 
 export const ready = derived(
-  [topicsReady, dataReady, correlationsReady, topicStore],
-  ([$topicsReady, $dataReady]) => {
-    return $topicsReady && $dataReady;
+  [topicsPending, aggregationsPending, correlationsPending],
+  ([$topicsPending, $aggsPending, $corrPending]) => {
+    return !$topicsPending && !$aggsPending && !$corrPending;
   }
 );
 

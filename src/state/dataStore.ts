@@ -46,9 +46,9 @@ async function search(backendpoint: BackendpointType, query: Object | string) {
   return results;
 }
 
-export const topicsReady = writable(false);
-export const dataReady = writable(false);
-export const correlationsReady = writable(false);
+export const topicsPending = writable(false);
+export const aggregationsPending = writable(false);
+export const correlationsPending = writable(false);
 
 /**
  * Searches topics with a given query
@@ -58,20 +58,21 @@ export const topicStore = derived(
   ($search, set) => {
     const { query } = $search;
 
+    topicsPending.set(true);
     search(Backendpoint.topicsearch, `q=${query}`).then((result) => {
       if (result.message) {
         console.warn(result.message);
       } else {
         set(result);
-        topicsReady.set(true);
       }
+      topicsPending.set(false);
     });
   },
   <Topic[]>[]
 );
 
 const dataStore = derived(
-  [topicStore, searchState, author, topicsReady],
+  [topicStore, searchState, author, topicsPending],
   ([$topics, $search, $author, $topicsReady], set) => {
     if ($topics.length > 0) {
       const params = new URLSearchParams();
@@ -82,17 +83,17 @@ const dataStore = derived(
       // TODO: add author
       params.set('restrict', $search.restrict || '');
 
+      aggregationsPending.set(true);
       search(Backendpoint.aggregations, params.toString()).then((result) => {
         if (result.message) {
           console.warn(result.message);
         } else {
           set({ aggregation: result, topics: $topics });
-          dataReady.set(true);
         }
+        aggregationsPending.set(false);
       });
     } else {
       set({ topics: [], aggregation: null });
-      if ($topicsReady) dataReady.set(true);
     }
   },
 
@@ -133,10 +134,11 @@ export const topicRelationStore = derived(
           params.append('topics', name);
         });
 
+        correlationsPending.set(true);
         search(Backendpoint.correlations, params.toString()).then((result) => {
           const relationMap = result[$searchMode].topicAM;
           set(Object.entries(relationMap));
-          correlationsReady.set(true);
+          correlationsPending.set(false);
         });
       } else {
         set([]);
