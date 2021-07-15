@@ -29,6 +29,8 @@ export interface Topic {
   description: string;
   score: number;
   count: number;
+  phraseCount: number;
+  topicCount: number;
   mentionCount: number;
   additionalTypes: AdditionalType[];
   aggregations: ResourceAggregation;

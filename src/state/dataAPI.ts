@@ -24,7 +24,13 @@ import {
   LinkType,
   DatePublished
 } from '../types/app';
-import dataStore, { topicRelationStore } from './dataStore';
+import dataStore, {
+  dataReady,
+  correlationsReady,
+  topicRelationStore,
+  topicsReady,
+  topicStore
+} from './dataStore';
 import { search, searchMode } from './uiState';
 import type { Subject, Resource } from '../types/backend';
 import { areEqual } from '../utils';
@@ -40,6 +46,13 @@ const waitTopics = 100;
 const waitGraph = 500;
 let debounceTopics;
 let debounceGraph;
+
+export const ready = derived(
+  [topicsReady, dataReady, correlationsReady, topicStore],
+  ([$topicsReady, $dataReady]) => {
+    return $topicsReady && $dataReady;
+  }
+);
 
 /**
  * Returns all additionalTypes derived from topics
@@ -114,6 +127,8 @@ export const topicsEnriched = derived(
           const enrichedTopic: Topic = {
             ...topic,
             count: agg.docCount,
+            phraseCount: aggregation.phraseMatch.subjects[topic.name].docCount,
+            topicCount: aggregation.topicMatch.subjects[topic.name].docCount,
             // aggregations: aggTopicMatch ? convertAggs(aggTopicMatch) : null,
             // aggregationsLoose: aggPhraseMatch
             //   ? convertAggs(aggPhraseMatch)
@@ -367,7 +382,7 @@ export const selectedTopic = derived(
   ([$search, $topicsEnriched]) => {
     return (
       $topicsEnriched.find(
-        (t) => areEqual(t.name, $search.query) && t.count > 0
+        (t) => areEqual(t.name, $search.query) //&& t.count > 0
       ) || null
     );
   }

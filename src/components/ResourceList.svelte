@@ -15,7 +15,7 @@
   }
 </script>
 
-{#if $selectedTopic}
+{#if $selectedTopic?.count > 0}
   <h2>{$resources.total} Ressourcen</h2>
   <ul class="resourceList">
     {#each $resources.items as { title, yearPublished, mentions, id }}

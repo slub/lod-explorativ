@@ -13,7 +13,7 @@
   }
 </script>
 
-{#if $selectedTopic}
+{#if $selectedTopic?.count > 0}
   <h2>Top Autoren & Beteiligte</h2>
   {#if $author}
     <div class="filter" on:click={() => author.set(null)}>

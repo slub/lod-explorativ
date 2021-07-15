@@ -1,4 +1,4 @@
-import { derived } from 'svelte/store';
+import { derived, writable } from 'svelte/store';
 import base64 from 'base-64';
 import { keys, map, orderBy, upperFirst } from 'lodash';
 import { author, search as searchState, searchMode } from './uiState';
@@ -46,10 +46,14 @@ async function search(backendpoint: BackendpointType, query: Object | string) {
   return results;
 }
 
+export const topicsReady = writable(false);
+export const dataReady = writable(false);
+export const correlationsReady = writable(false);
+
 /**
  * Searches topics with a given query
  */
-const topicStore = derived(
+export const topicStore = derived(
   searchState,
   ($search, set) => {
     const { query } = $search;
@@ -59,6 +63,7 @@ const topicStore = derived(
         console.warn(result.message);
       } else {
         set(result);
+        topicsReady.set(true);
       }
     });
   },
@@ -66,8 +71,8 @@ const topicStore = derived(
 );
 
 const dataStore = derived(
-  [topicStore, searchState, author],
-  ([$topics, $search, $author], set) => {
+  [topicStore, searchState, author, topicsReady],
+  ([$topics, $search, $author, $topicsReady], set) => {
     if ($topics.length > 0) {
       const params = new URLSearchParams();
       $topics.forEach((t) => {
@@ -82,10 +87,12 @@ const dataStore = derived(
           console.warn(result.message);
         } else {
           set({ aggregation: result, topics: $topics });
+          dataReady.set(true);
         }
       });
     } else {
       set({ topics: [], aggregation: null });
+      if ($topicsReady) dataReady.set(true);
     }
   },
 
@@ -129,6 +136,7 @@ export const topicRelationStore = derived(
         search(Backendpoint.correlations, params.toString()).then((result) => {
           const relationMap = result[$searchMode].topicAM;
           set(Object.entries(relationMap));
+          correlationsReady.set(true);
         });
       } else {
         set([]);

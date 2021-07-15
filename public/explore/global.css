@@ -8,7 +8,7 @@ body {
 }
 
 body {
-  color: #333;
+  color: #505050;
   background: #f8f8f7;
   margin: 0;
   padding: 0;
@@ -19,7 +19,7 @@ body {
 }
 
 a {
-  color: rgb(0, 100, 200);
+  color: #ef0000;
   text-decoration: none;
 }
 
@@ -28,7 +28,7 @@ a:hover {
 }
 
 a:visited {
-  color: rgb(0, 80, 160);
+  color: #c70000;
 }
 
 label {

@@ -20,7 +20,7 @@
   }
 
   .layout div {
-    /* border: 1px solid rgba(255, 0, 0, 0.1); */
+    /* border: 1px solid rgba(147, 232, 238, 0.5); */
     padding: 2rem;
   }
 
