@@ -26,7 +26,10 @@
     {#each $authors as { person, authorCount, contribCount } (person.id)}
       <li transition:fade>
         <!-- TODO: move birth date create to dataAPI -->
-        <Tooltip title={person.occupation.join(', ')}
+        <Tooltip
+          title={person.occupation.length > 0
+            ? person.occupation.join(', ')
+            : 'keine Berufsbezeichnung gefunden'}
           ><span on:click={() => handleClick(person.name)}
             >[{authorCount || '-'}/{contribCount || '-'}] {person.name}</span
           ></Tooltip
