@@ -17,7 +17,8 @@ export const queries = [
   'Belagerung',
   'Sakralbau',
   'Visualisierung',
-  'Betriebssystem'
+  'Betriebssystem',
+  'Musikerziehung'
 ];
 
 export enum SearchMode {
