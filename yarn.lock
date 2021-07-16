@@ -54,17 +54,17 @@
     resolve "^1.19.0"
 
 "@rollup/plugin-typescript@^8.2.0":
-  version "8.2.1"
-  resolved "https://registry.yarnpkg.com/@rollup/plugin-typescript/-/plugin-typescript-8.2.1.tgz#f1a32d4030cc83432ce36a80a922280f0f0b5d44"
-  integrity sha512-Qd2E1pleDR4bwyFxqbjt4eJf+wB0UKVMLc7/BAFDGVdAXQMCsD4DUv5/7/ww47BZCYxWtJqe1Lo0KVNswBJlRw==
+  version "8.2.3"
+  resolved "https://registry.yarnpkg.com/@rollup/plugin-typescript/-/plugin-typescript-8.2.3.tgz#d1aed5dc424623bad8ff026f13f732e7cbeee175"
+  integrity sha512-bSkd+DD3wP9OLU6lPet59B6jJF29/RlxHkbwvOVOcf1nk8eQYWw24HpldEdrPo/WG0QAPD7TqI7+2y5jtdqjww==
   dependencies:
     "@rollup/pluginutils" "^3.1.0"
     resolve "^1.17.0"
 
 "@rollup/pluginutils@4":
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/@rollup/pluginutils/-/pluginutils-4.1.0.tgz#0dcc61c780e39257554feb7f77207dceca13c838"
-  integrity sha512-TrBhfJkFxA+ER+ew2U2/fHbebhLT/l/2pRk0hfj9KusXUuRXd2v0R58AfaZK9VXDQ4TogOSEmICVrQAA3zFnHQ==
+  version "4.1.1"
+  resolved "https://registry.yarnpkg.com/@rollup/pluginutils/-/pluginutils-4.1.1.tgz#1d4da86dd4eded15656a57d933fda2b9a08d47ec"
+  integrity sha512-clDjivHqWGXi7u+0d2r2sBi4Ie6VLEAzWMIkvJLnDmxoOhBYOTfzGbOQBA32THHm11/LiJbd01tJUpJsbshSWQ==
   dependencies:
     estree-walker "^2.0.1"
     picomatch "^2.2.2"

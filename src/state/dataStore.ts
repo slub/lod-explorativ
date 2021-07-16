@@ -80,11 +80,15 @@ const dataStore = derived(
         params.append('topics', t.name);
       });
 
-      // TODO: add author
       params.set('restrict', $search.restrict || '');
+      let queryString = params.toString();
+
+      if ($author) {
+        queryString += `&author=${$author}`;
+      }
 
       aggregationsPending.set(true);
-      search(Backendpoint.aggregations, params.toString()).then((result) => {
+      search(Backendpoint.aggregations, queryString).then((result) => {
         if (result.message) {
           console.warn(result.message);
         } else {
