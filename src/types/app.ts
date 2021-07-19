@@ -91,5 +91,25 @@ export interface GraphNode {
   count: number;
   x?: number;
   y?: number;
+  fx?: number;
+  fy?: number;
+  vx?: number;
+  vy?: number;
+  r: number;
+  textX: number;
+  textY: number;
+  textAnchor: string;
   datePublished: DatePublished[];
+  dates: ScatterDot[];
+  isSelected: boolean;
+  isHighlighted: boolean;
+}
+
+export interface ScatterDot {
+  year: number;
+  count: number;
+  dx: number;
+  dy: number;
+  dr: number;
+  dc: string;
 }

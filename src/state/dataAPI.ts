@@ -265,39 +265,6 @@ export const graph = derived(
         // console.log('SKIP', name);
       }
 
-      // create author nodes
-      // if (areEqual(name, query) || areEqual(name, queryExtension)) {
-      //   const a = authors.entries();
-      //   for (let [author, count] of a) {
-      //     let node = nodes.find((n) => n.id === author.name);
-
-      //     if (!node) {
-      //       const authorNode: GraphNode = {
-      //         id: name,
-      //         count,
-      //         doc: primaryTopic,
-      //         type: AUTHOR_NODE,
-      //         text: name.split(',')[0],
-      //         datePublished: null
-      //       };
-
-      //       nodes.push(authorNode);
-      //       node = authorNode;
-      //     }
-
-      //     // link author to topic
-      //     // const link: GraphLink = {
-      //     //   id: primaryNode.id + '-' + node.id,
-      //     //   source: primaryNode.id,
-      //     //   target: node.id,
-      //     //   weight: count,
-      //     //   type: LinkType.TOPIC_AUTHOR
-      //     // };
-
-      //     // links.push(link);
-      //   }
-      // }
-
       // if (related) {
       //   const topicCounts = Array.from(related).map(([topic, count]) => ({
       //     name: topic.name,
@@ -327,15 +294,12 @@ export const graph = derived(
       // }
     });
 
-    // TODO: only add relation if it does not already exist (from top-level to related)
-
     for (let source in $relations) {
       for (let target in $relations[source]) {
         if (source !== target) {
           let sourceNode = nodes.find((x) => x.id === source);
           let targetNode = nodes.find((x) => x.id === target);
 
-          // FIXME: prevent bi-directional links (duplicates)
           if (
             sourceNode &&
             targetNode &&
@@ -344,16 +308,20 @@ export const graph = derived(
             !areEqual(source, query) &&
             !areEqual(target, query)
           ) {
+            const id = source + '-' + target;
             const link: GraphLink = {
-              id: source + '-' + target,
+              id,
               source,
               target,
-              // TODO: use scale for mapping
               weight: $relations[source][target],
               type: LinkType.MENTIONS_NAME_LINK
             };
 
-            links.push(link);
+            const duplicate = links.find((l) => l.id === target + '-' + source);
+
+            if (!duplicate) {
+              links.push(link);
+            }
           }
         }
       }

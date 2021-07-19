@@ -1,23 +1,26 @@
 <script lang="ts">
   import { spring } from 'svelte/motion';
-  import { scale, draw, fade } from 'svelte/transition';
   import { scaleSqrt, scaleLinear } from 'd3-scale';
   import { max, extent } from 'd3-array';
   import {
     forceSimulation,
     forceLink,
     forceRadial,
-    forceCollide
+    forceCollide,
+    forceX,
+    forceY,
+    forceManyBody
   } from 'd3-force';
   import { flatten, map } from 'lodash';
-  import type { GraphLink, GraphNode } from 'types/app';
+  import type { GraphLink, GraphNode, ScatterDot } from 'types/app';
   import { LinkType, NodeType } from 'types/app';
-  import { graph, selectedTopic } from '../state/dataAPI';
+  import { graph, ready, selectedTopic } from '../state/dataAPI';
   import { search } from '../state/uiState';
   import pannable from '../pannable';
   import { areEqual } from '../utils';
-  import Tooltip from './Tooltip.svelte';
   import Tooltip2 from './Tooltip2.svelte';
+  import Node from './GraphNode.svelte';
+  import Link from './Link.svelte';
 
   const { PRIMARY_NODE, AUTHOR_NODE } = NodeType;
 
@@ -53,13 +56,18 @@
   // SCALES
   ///////////////////////////////////////////////////////
   $: radiusScale = scaleSqrt().domain([0, maxCount]).range([0, 40]);
+
   $: edgeWidthScale = scaleLinear()
     .domain([0, max($graph.links, (l) => l.weight)])
     .range([1, 10]);
+
   $: histoScale = scaleLinear()
     .domain(yearExtent)
     .range([0.1 * Math.PI, 1.9 * Math.PI]);
-  $: colorScale = scaleLinear().domain(yearExtent).range(['blue', 'red']);
+
+  $: colorScale = scaleLinear()
+    .domain(yearExtent)
+    .range(['#6A8AFB', '#F05E84']);
 
   ///////////////////////////////////////////////////////
   // SIMULATION: NODES & LINKS
@@ -67,15 +75,12 @@
 
   const simulation = forceSimulation()
     .on('tick', () => {
+      // update label orientation
       for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i];
-        const { r, x, y, text } = node;
-        const isSelected = areEqual(text, query);
-        const isHighlighted = areEqual(text, restrict);
+        const { r, x, y, isSelected, isHighlighted } = node;
         const isSH = isSelected || isHighlighted;
 
-        node.x = isSelected ? 0 : x;
-        node.y = isSelected ? 0 : y;
         node.textX = isSH
           ? 0
           : Math.abs(x) < width / 2
@@ -94,48 +99,59 @@
     });
 
   // Simulation nodes
-  $: nodes = $graph.nodes.map((n) => {
-    /// restore previous node position
-    const prev = nodes.find((x) => x.text === n.text);
-    const x = prev?.x;
-    const y = prev?.y;
-    const r = areEqual(n.id, query) ? shortSide * 0.4 : radiusScale(n.count);
-    const dates = n.datePublished?.map(({ year, count }) => {
-      const pos = histoScale(year);
-      const dr = radiusScale(count);
-      const x = Math.sin(pos);
-      const y = -Math.cos(pos);
-      return {
-        year,
-        count,
-        dx: x * r,
-        dy: y * r,
-        dr,
-        dc: colorScale(year)
+  let nodes = [];
+
+  $: if ($graph.nodes) {
+    const newNodes = $graph.nodes.map((n) => {
+      /// restore previous node position
+      const prev = nodes.find((x) => x.id === n.id);
+      const isSelected = areEqual(n.text, query);
+      const isHighlighted = areEqual(n.text, restrict);
+      // const x = isSelected ? 0 : null;
+      // const y = isSelected ? 0 : null;
+      const r = isSelected ? radius : radiusScale(n.count);
+
+      const dates = n.datePublished?.map(({ year, count }) => {
+        const pos = histoScale(year);
+        const dr = radiusScale(count);
+        const x = Math.sin(pos);
+        const y = -Math.cos(pos);
+        const dot: ScatterDot = {
+          year,
+          count,
+          dx: x * r,
+          dy: y * r,
+          dr,
+          dc: colorScale(year)
+        };
+
+        return dot;
+      });
+
+      const graphNode: GraphNode = {
+        ...n,
+        isHighlighted,
+        isSelected,
+        fx: isSelected ? 0 : null,
+        fy: isSelected ? 0 : null,
+        x: 0,
+        y: 0,
+        r,
+        dates
       };
+
+      if (prev) {
+        graphNode.x = prev.x;
+        graphNode.y = prev.y;
+        graphNode.vx = prev.vx;
+        graphNode.vy = prev.vy;
+      }
+
+      return graphNode;
     });
 
-    // let datePath;
-
-    // if (dates) {
-    //   const p = path();
-    //   const { px, py } = dates[0];
-    //   p.moveTo(px, py);
-    //   dates.forEach(({ px, py }) => {
-    //     p.lineTo(px, py);
-    //   });
-    //   datePath = p.toString();
-    // }
-
-    return {
-      ...n,
-      x,
-      y,
-      r,
-      dates
-      // datePath
-    };
-  });
+    nodes = newNodes;
+  }
 
   // Simulation links, update links if nodes change
   $: links = !!nodes && $graph.links.map((l) => ({ ...l }));
@@ -154,22 +170,26 @@
         .strength(linkStrength)
     : null;
 
-  $: radialForce = enableRadial
-    ? forceRadial((d: GraphNode) => {
-        const frac =
-          d.type === PRIMARY_NODE ? 1 : d.type === AUTHOR_NODE ? 0.7 : 0.25;
-        return radius * frac;
-      }).strength(radialStrength)
-    : null;
+  $: radialForce = forceRadial()
+    .radius((d) => (d.type === PRIMARY_NODE ? 1 : 0.33) * radius)
+    .strength(radialStrength);
+  // $: radialForce = enableRadial
+  //   ? forceRadial((d: GraphNode) => {
+  //       const frac = d.type === PRIMARY_NODE ? 1 : 0.25;
+  //       return radius * frac;
+  //     }).strength(radialStrength)
+  //   : null;
 
   let collideForce = forceCollide()
     .strength(0.1)
-    .radius((d: GraphNode) => Math.max(radiusScale(d.count), 20))
-    .iterations(3);
+    .radius((d: GraphNode) => Math.max(radiusScale(d.count), 20));
+
+  let manyBodyForce = forceManyBody().strength(-200);
 
   $: simulation.force('link', linkForce);
   $: simulation.force('radial', radialForce);
-  $: simulation.force('collide', collideForce);
+  $: simulation.force('manyBody', manyBodyForce);
+  // $: simulation.force('collide', collideForce);
 
   // re-heat simulation if nodes or dimensions change
   $: if (nodes || width || height) {
@@ -221,9 +241,9 @@
   let tooltip = [0, 0];
   let tooltipTxt = '';
 
-  function handleHover(e, year, count) {
+  function handleHover(x, y, year, count) {
     tooltipTxt = `${year}: ${count}`;
-    tooltip = [e.offsetX, e.offsetY];
+    tooltip = [x, y];
   }
 
   function handleOut() {
@@ -231,7 +251,7 @@
   }
 </script>
 
-<div class="wrapper" bind:clientWidth={width} bind:clientHeight={height}>
+<div class="container" bind:clientWidth={width} bind:clientHeight={height}>
   {#if showControl}
     <div
       class="control"
@@ -290,109 +310,22 @@
     </div>
   {/if}
   <svg {width} {height} viewBox="{-width / 2} {-height / 2} {width} {height}">
-    <g stroke="#999" stroke-opacity={0.6}>
-      {#each simLinks as { source, target, weight, type }}
-        <line
-          class:mentions_name_link={type === LinkType.MENTIONS_NAME_LINK}
-          class:mentions_id_link={type === LinkType.MENTIONS_ID_LINK}
-          stroke-width={edgeWidthScale(weight)}
+    <!-- Links -->
+    <g>
+      {#each simLinks as { source, target, weight, id } (id)}
+        <Link
+          strokeWidth={edgeWidthScale(weight)}
           x1={source.x}
           y1={source.y}
           x2={target.x}
           y2={target.y}
-          transition:draw
         />
       {/each}
     </g>
 
     <g>
-      {#each simNodes as { id, text, x, y, count, type, r, textX, textY, textAnchor, dates, datePath } (id)}
-        <g
-          transform="translate({x}, {y})"
-          class="node {type}"
-          class:zeroHits={count === 0}
-          class:selected={areEqual(text, query)}
-          class:highlight={areEqual(text, restrict)}
-          on:click={() => handleClick(id, type)}
-          out:scale={{ duration: 300 }}
-        >
-          <circle class="circle" {r} in:scale={{ duration: 500 }} />
-          {#if dates}
-            {#each dates as { dx, dy, dr, dc, year, count }, i (i)}
-              <circle
-                r={dr}
-                cx={dx}
-                cy={dy}
-                fill={dc}
-                fill-opacity="0.2"
-                transition:fade
-                on:mouseover={(e) => handleHover(e, year, count)}
-                on:mouseleave={handleOut}
-              />
-            {/each}
-          {/if}
-
-          <!-- {#if datePath}
-            <path
-              d={datePath}
-              fill="none"
-              stroke="lightgrey"
-              stroke-width={1}
-              transition:draw
-            />
-          {/if} -->
-
-          <!-- Halo -->
-          <text
-            dominant-baseline="central"
-            font-size="14"
-            x={textX}
-            y={textY}
-            text-anchor={textAnchor}
-            stroke-width={4}
-            stroke="#f8f8f7"
-            stroke-opacity={0.7}
-            fill="transparent"
-            stroke-linecap="round"
-            stroke-linejoin="bevel"
-            font-style={type === PRIMARY_NODE ? 'normal' : 'italic'}
-            >{text}</text
-          >
-          <!-- Label -->
-          <text
-            dominant-baseline="central"
-            font-size="14"
-            x={textX}
-            y={textY}
-            text-anchor={textAnchor}
-            fill="dimGrey"
-            font-style={type === PRIMARY_NODE ? 'normal' : 'italic'}
-            >{text}</text
-          >
-          {#if type !== AUTHOR_NODE && !areEqual(text, restrict)}
-            <!-- Count Halo -->
-            <text
-              dominant-baseline="central"
-              font-size="14"
-              text-anchor="middle"
-              font-weight="bold"
-              fill="transparent"
-              stroke-linecap="round"
-              stroke-linejoin="bevel"
-              stroke-width={4}
-              stroke="grey">{count}</text
-            >
-            <!-- Count -->
-            <text
-              dominant-baseline="central"
-              font-size="14"
-              text-anchor="middle"
-              font-weight="bold"
-              fill="white"
-              fill-opacity={1}>{count}</text
-            >
-          {/if}
-        </g>
+      {#each simNodes as data (data.id)}
+        <Node {data} onClick={handleClick} {handleHover} {handleOut} />
       {/each}
     </g>
   </svg>
@@ -400,7 +333,7 @@
 </div>
 
 <style>
-  .wrapper {
+  .container {
     height: 100%;
   }
 
@@ -410,66 +343,6 @@
     left: 0;
     top: 0;
     user-select: none;
-  }
-  .node :hover {
-    cursor: pointer;
-  }
-
-  .circle {
-    fill-opacity: 0.5;
-  }
-  .PRIMARY_NODE .circle {
-    fill: lightgray;
-    stroke: grey;
-  }
-
-  .SECONDARY_NODE .circle {
-    fill: black;
-    stroke: transparent;
-  }
-
-  .AUTHOR_NODE .circle {
-    fill: white;
-    stroke-dasharray: 2 2;
-    stroke: black;
-  }
-
-  .selected .circle {
-    stroke: lightgrey;
-    stroke-width: 4px;
-    fill: white;
-    fill-opacity: 0.6;
-  }
-
-  .highlight .circle {
-    stroke: grey;
-    fill: transparent;
-    stroke-width: 4px;
-  }
-
-  .selected text {
-    font-size: 18px;
-    font-weight: bold;
-  }
-
-  .highlight text {
-    font-size: 16px;
-    font-weight: bold;
-  }
-  .zeroHits {
-    opacity: 0.2;
-  }
-
-  .mentions_name_link {
-    stroke: black;
-    stroke-opacity: 0.1;
-    /* stroke-dasharray: 8 4; */
-  }
-
-  .mentions_id_link {
-    stroke: red;
-    stroke-width: 1;
-    /* stroke-opacity: 0; */
   }
 
   .status {
@@ -484,13 +357,6 @@
     padding: 0.5rem;
     z-index: 10;
     user-select: none;
-  }
-
-  svg {
-    overflow: visible;
-    position: absolute;
-    left: 0;
-    top: 0;
   }
 
   input {
