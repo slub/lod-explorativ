@@ -2,7 +2,6 @@ import { derived } from 'svelte/store';
 import {
   compact,
   countBy,
-  debounce,
   entries,
   flatMap,
   keys,
@@ -36,12 +35,6 @@ const { PRIMARY_NODE, SECONDARY_NODE } = NodeType;
 /**
  * The dataAPI combines the results of the DataStore and provides the UI components with data.
  */
-
-// TODO: debouncing shouldn't be necessary anymore if we get atomic updates from the server
-const waitTopics = 100;
-const waitGraph = 500;
-let debounceTopics;
-let debounceGraph;
 
 export const ready = derived(
   [topicsPending, aggregationsPending, correlationsPending],
@@ -104,13 +97,6 @@ export const topicsEnriched = derived(
   ([$dataStore, $searchMode], set) => {
     const { aggregation } = $dataStore;
 
-    // init debounced setter
-    if (!debounceTopics) {
-      debounceTopics = debounce((x) => {
-        set(x);
-      }, waitTopics);
-    }
-
     if (aggregation) {
       const aggs = aggregation[$searchMode].subjects;
       const entities = aggregation.entityPool;
@@ -140,7 +126,7 @@ export const topicsEnriched = derived(
           return enrichedTopic;
         });
 
-      debounceTopics(merged);
+      set(merged);
     }
   },
   <Topic[]>[]
@@ -285,14 +271,7 @@ export const graph = derived(
       }
     }
 
-    // init debounced setter
-    if (!debounceGraph) {
-      debounceGraph = debounce((x) => {
-        set(x);
-      }, waitGraph);
-    }
-
-    debounceGraph({
+    set({
       links: compact(links),
       nodes: orderBy(uniqBy(nodes, 'id'), (n) => n.type)
     });
