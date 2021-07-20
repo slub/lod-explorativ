@@ -1,8 +1,8 @@
 default:
   image: node:14-alpine
   before_script:
-    - yarn install
     - node -v
+    - yarn install
 
 deploymenttime:
   stage: deploy
@@ -12,6 +12,7 @@ deploymenttime:
     - hostingPath
   script:
     # - export
+    - node -v
     - yarn build
     - rsync -r --delete ${CI_PROJECT_DIR}/public/ /var/www/webapp_$CI_COMMIT_BRANCH
   tags:
