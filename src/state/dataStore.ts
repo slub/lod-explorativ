@@ -1,5 +1,4 @@
 import { derived, writable } from 'svelte/store';
-import base64 from 'base-64';
 import { keys, map, orderBy, upperFirst } from 'lodash';
 import { author, search as searchState, searchMode } from './uiState';
 import type { Topic } from '../types/app';
@@ -16,20 +15,6 @@ import config from '../config';
  */
 
 /**
- * Returns object with basic request headers
- *
- * @param props object of additional headers
- */
-function createHeaders(props = {}) {
-  return new Headers({
-    // TODO: remove authorization
-    Authorization: `Basic ${base64.encode('mclemente:jJabHw7XEpsjd3JwJRjX')}`,
-    'Content-Type': 'Application/json',
-    ...props
-  });
-}
-
-/**
  *
  * @param backendpoint available backend endpoint
  * @param query        query string or ES query object
@@ -37,13 +22,9 @@ function createHeaders(props = {}) {
  */
 async function search(backendpoint: BackendpointType, query: Object | string) {
   const url = `${config.backend}/${backendpoint}?${query}`;
-
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: createHeaders()
-  });
-
+  const response = await fetch(url);
   const results = await response.json();
+
   return results;
 }
 

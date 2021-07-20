@@ -5,13 +5,10 @@ import {
   debounce,
   entries,
   flatMap,
-  groupBy,
   keys,
-  mapKeys,
   orderBy,
   pick,
   pickBy,
-  round,
   toPairs,
   uniqBy,
   values
@@ -28,14 +25,13 @@ import dataStore, {
   aggregationsPending,
   correlationsPending,
   topicRelationStore,
-  topicsPending,
-  topicStore
+  topicsPending
 } from './dataStore';
-import { search, searchMode } from './uiState';
+import { RelationMode, relationMode, search, searchMode } from './uiState';
 import type { Subject, Resource } from '../types/backend';
 import { areEqual } from '../utils';
 
-const { PRIMARY_NODE, SECONDARY_NODE, AUTHOR_NODE } = NodeType;
+const { PRIMARY_NODE, SECONDARY_NODE } = NodeType;
 
 /**
  * The dataAPI combines the results of the DataStore and provides the UI components with data.
@@ -129,10 +125,7 @@ export const topicsEnriched = derived(
             count: agg.docCount,
             phraseCount: aggregation.phraseMatch.subjects[topic.name].docCount,
             topicCount: aggregation.topicMatch.subjects[topic.name].docCount,
-            // aggregations: aggTopicMatch ? convertAggs(aggTopicMatch) : null,
-            // aggregationsLoose: aggPhraseMatch
-            //   ? convertAggs(aggPhraseMatch)
-            //   : null,
+
             datePublished: entries(agg.aggs.datePublished).map(
               ([year, count]) => {
                 const date: DatePublished = { year: parseInt(year), count };
@@ -142,8 +135,6 @@ export const topicsEnriched = derived(
             authors: getEntities(agg, entities.persons, 'topAuthors'),
             contributors: getEntities(agg, entities.persons, 'topContributors'),
             related: getEntities(agg, entities.topics, 'topMentionedTopics')
-            // locations: getEntities(agg, entities.geo, 'mentions'),
-            // events: getEntities(agg, entities.events, 'mentions')
           };
 
           return enrichedTopic;
@@ -172,38 +163,41 @@ export const relationsCount = derived(topicRelationStore, ($relations) => {
   return matrix;
 });
 
-export const relationsMeetMin = derived(relationsCount, ($relations) => {
-  const matrix = {};
+export const relationsMeetMin = derived(
+  [relationsCount, relationMode],
+  ([$relations, $relationsMode]) => {
+    const matrix = {};
 
-  for (let source in $relations) {
-    if (!matrix[source]) matrix[source] = {};
+    for (let source in $relations) {
+      if (!matrix[source]) matrix[source] = {};
 
-    for (let target in $relations[source]) {
-      if (!matrix[target]) matrix[target] = {};
+      for (let target in $relations[source]) {
+        if (!matrix[target]) matrix[target] = {};
 
-      // only calculate values for half of matrix (matrix is symmetric)
-      if (!matrix[source][target]) {
-        matrix[source][target] = {};
-        if (!matrix[target][source]) matrix[target][source] = {};
+        // only calculate values for half of matrix (matrix is symmetric)
+        if (!matrix[source][target]) {
+          matrix[source][target] = {};
+          if (!matrix[target][source]) matrix[target][source] = {};
 
-        const sourceCount = $relations[source][source];
-        const targetCount = $relations[target][target];
-        const intersect = $relations[source][target];
-        // TODO: use both scores
-        // MeetMin
-        const score = intersect / Math.min(sourceCount, targetCount);
-        // Jaccard
-        // const score = intersect / (sourceCount + targetCount);
+          const sourceCount = $relations[source][source];
+          const targetCount = $relations[target][target];
+          const intersect = $relations[source][target];
+          let score;
 
-        matrix[source][target] = matrix[target][source] = score;
+          if ($relationsMode === RelationMode.meetMin) {
+            score = intersect / Math.min(sourceCount, targetCount);
+          } else {
+            score = intersect / (sourceCount + targetCount);
+          }
+
+          matrix[source][target] = matrix[target][source] = score;
+        }
       }
     }
+
+    return matrix;
   }
-
-  // console.table(matrix);
-
-  return matrix;
-});
+);
 
 /**
  * Returns graph structure for the visualization
@@ -214,8 +208,6 @@ export const graph = derived(
     const nodes: GraphNode[] = [];
     const links: GraphLink[] = [];
 
-    // console.log('----------------------');
-
     const query = $search.query;
     const selectedTopic = $topicsEnriched.find((t) => areEqual(t.name, query));
     const related = selectedTopic?.related;
@@ -223,28 +215,22 @@ export const graph = derived(
     // create related topic nodes
     if (related) {
       related.forEach((count, relatedTopic) => {
-        const { name } = relatedTopic;
+        const { name, description } = relatedTopic;
 
         if (!areEqual(name, query)) {
           const secNode = {
             id: relatedTopic.name,
-            // TODO: decide whether this count should derived from the aggregation
-            // or from global ressource search
             count,
-            // TODO: add topic document
-            doc: null,
             type: SECONDARY_NODE,
             text: name,
-            datePublished: []
+            datePublished: [],
+            description
           };
 
-          // console.log('SECONDARY', name);
           nodes.push(secNode);
         }
       });
     }
-
-    let secondary: { name: string; count: number }[] = [];
 
     // create nodes for all top-level topics and collect related topics
     $topicsEnriched.forEach((primaryTopic) => {
@@ -257,46 +243,14 @@ export const graph = derived(
         const primaryNode: GraphNode = {
           id: name,
           count,
-          doc: primaryTopic,
           type: PRIMARY_NODE,
           text: name,
           datePublished,
           description
         };
 
-        // console.log('PRIMARY', name, primaryTopic.id, count);
         nodes.push(primaryNode);
-      } else {
-        // console.log('SKIP', name);
       }
-
-      // if (related) {
-      //   const topicCounts = Array.from(related).map(([topic, count]) => ({
-      //     name: topic.name,
-      //     count
-      //   }));
-
-      //   // collect related topics to create these topics later,
-      //   // so that we can give precedence to top-level topics
-      //   // only add related nodes if conncted to the topic that matches the query
-      //   if (areEqual(name, query)) {
-      //     secondary = [...secondary, ...topicCounts];
-      //   }
-
-      //   // create links from top-level topics to related topics
-      //   // related.forEach((weight, relatedTopic) => {
-      //   //   const link: GraphLink = {
-      //   //     id: `${primaryNode.id}-${relatedTopic.preferredName}`,
-      //   //     source: primaryNode.id,
-      //   //     target: relatedTopic.preferredName,
-      //   //     type: LinkType.MENTIONS_ID_LINK,
-      //   //     // TODO: use proper metric
-      //   //     weight
-      //   //   };
-
-      //   //   links.push(link);
-      //   // });
-      // }
     });
 
     for (let source in $relations) {
@@ -308,7 +262,6 @@ export const graph = derived(
           if (
             sourceNode &&
             targetNode &&
-            // TODO: Show connections to outer nodes?
             sourceNode.type === SECONDARY_NODE &&
             targetNode.type === SECONDARY_NODE &&
             !areEqual(source, query) &&

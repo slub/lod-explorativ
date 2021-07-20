@@ -1,16 +1,3 @@
-<!--
-TODO: remove
-
-Edge cases:
-
-http://localhost:5000/explore/?query=sfadsfasdfa&restrict=null&mode=topicMatch
-http://localhost:5000/explore/?query=abc&restrict=null&mode=topicMatch
-http://localhost:5000/explore/?query=Tonfolge&restrict=null&mode=topicMatch
-http://localhost:5000/explore/?query=Markenname&restrict=Alpen&mode=topicMatch
-http://localhost:5000/explore/?query=Google&restrict=Google+Earth&mode=topicMatch
-http://localhost:5000/explore/?query=Produkt-Recycling&restrict=null&mode=topicMatch
-
- -->
 <script lang="ts">
   import { fade } from 'svelte/transition';
   import { ready, selectedTopic, topicsEnriched } from '../state/dataAPI';

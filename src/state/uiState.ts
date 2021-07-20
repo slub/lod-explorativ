@@ -1,5 +1,5 @@
 import { random } from 'lodash';
-import { writable, get } from 'svelte/store';
+import { writable } from 'svelte/store';
 
 export const queries = [
   'Festival',
@@ -24,6 +24,11 @@ export const queries = [
 export enum SearchMode {
   phrase = 'phraseMatch',
   topic = 'topicMatch'
+}
+
+export enum RelationMode {
+  jaccard = 'jaccard',
+  meetMin = 'meetMin'
 }
 
 /**
@@ -87,3 +92,5 @@ searchMode.subscribe((val) => {
 });
 
 export const author = writable(null);
+
+export const relationMode = writable(RelationMode.jaccard);

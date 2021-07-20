@@ -64,7 +64,7 @@
     {stroke}
     stroke-width={isSelected || isHighlighted ? 4 : 1}
     fill-opacity={type === SECONDARY_NODE ? 0.6 : 1}
-    r={$radius}
+    r={Math.max(0, $radius)}
   />
   {#if dates}
     <Scatter {dates} isInteractive={isSelected} on:enterDate on:leaveDate />

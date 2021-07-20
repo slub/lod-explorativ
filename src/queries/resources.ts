@@ -44,10 +44,7 @@ const aggs = {
   genres: {
     terms: {
       field: 'genre.Text.keyword',
-      // TODO: set number of genres
       size: 20
-      // TODO: should we add number of missing values?
-      // missing: 'Ohne Angabe'
     }
   }
 };

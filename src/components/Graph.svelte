@@ -13,7 +13,7 @@
   import type { GraphLink, GraphNode, ScatterDot } from 'types/app';
   import { NodeType } from 'types/app';
   import { graph, selectedTopic } from '../state/dataAPI';
-  import { search } from '../state/uiState';
+  import { RelationMode, relationMode, search } from '../state/uiState';
   import pannable from '../pannable';
   import { areEqual } from '../utils';
   import Tooltip2 from './Tooltip2.svelte';
@@ -63,11 +63,9 @@
   ///////////////////////////////////////////////////////
   $: radiusScale = scaleSqrt().domain([0, maxCount]).range([0, 40]);
 
-  $: edgeWidthScale = scaleLinear().domain([0, 1]).range([0, 10]);
-
-  // Jaccard
-  // TODO: move relation weight calculation to config file
-  // $: edgeWidthScale = scaleLinear().domain([0, 0.5]).range([0, 10]);
+  $: edgeWidthScale = scaleLinear()
+    .domain([0, $relationMode === RelationMode.jaccard ? 0.5 : 1])
+    .range([0, 10]);
 
   $: histoScale = scaleLinear()
     .domain(yearExtent)

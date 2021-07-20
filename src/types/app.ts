@@ -71,8 +71,7 @@ export enum LinkType {
 
 export enum NodeType {
   PRIMARY_NODE = 'PRIMARY_NODE',
-  SECONDARY_NODE = 'SECONDARY_NODE',
-  AUTHOR_NODE = 'AUTHOR_NODE'
+  SECONDARY_NODE = 'SECONDARY_NODE'
 }
 
 export interface GraphLink {
@@ -85,7 +84,7 @@ export interface GraphLink {
 
 export interface GraphNode {
   id: string;
-  doc: Topic;
+  // doc: Topic;
   type: NodeType;
   text: string;
   count: number;

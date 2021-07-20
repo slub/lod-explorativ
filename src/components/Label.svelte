@@ -1,13 +1,9 @@
 <script lang="ts">
-  import type { NodeType } from '../types/app';
-  import { NodeType as Node } from '../types/app';
-
   export let text;
   export let x = 0;
   export let y = 0;
   export let fontSize = 14;
   export let strokeWidth = 4;
-  export let type: NodeType;
   export let fontWeight = 'normal';
   export let fill = 'dimGrey';
   export let stroke = '#f8f8f7';
@@ -20,7 +16,6 @@
     'font-size': fontSize,
     'text-anchor': textAnchor,
     'font-style': 'normal',
-    // 'font-style': type === Node.PRIMARY_NODE ? 'normal' : 'italic',
     'font-weight': fontWeight
   };
 </script>
