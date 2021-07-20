@@ -3,7 +3,7 @@
   import { search, searchMode, SearchMode } from '../state/uiState';
   import { resources, selectedTopic } from '../state/dataAPI';
   import Chip from './Chip.svelte';
-  import { areEqual } from '../utils';
+  import { areEqual, formatNumber } from '../utils';
   import { last } from 'lodash';
 
   $: ({ query, restrict } = $search);
@@ -16,7 +16,7 @@
 </script>
 
 {#if $selectedTopic?.count > 0}
-  <h2>{$resources.total} Ressourcen</h2>
+  <h2>{formatNumber($resources.total)} Titeldaten</h2>
   <ul class="resourceList">
     {#each $resources.items as { title, yearPublished, mentions, id }}
       <li transition:fade class="resourceItem" {title}>

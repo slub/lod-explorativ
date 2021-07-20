@@ -3,6 +3,7 @@
   import { scaleLinear } from 'd3-scale';
   import { max } from 'd3-array';
   import { genres } from '../state/dataAPI';
+  import { formatNumber } from '../utils';
 
   $: maxCount = max($genres, (x) => x[1]);
   $: scale = scaleLinear().domain([0, maxCount]).range([0, 30]);
@@ -15,7 +16,7 @@
     {#each $genres as [name, count], i}
       <tr transition:fade>
         <td class="name">{name}</td>
-        <td class="count">{count}</td>
+        <td class="count">{formatNumber(count)}</td>
         <td><span class="bar" style="width: {scale(count)}px" /></td>
       </tr>
     {/each}

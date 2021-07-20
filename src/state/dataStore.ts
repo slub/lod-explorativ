@@ -22,6 +22,7 @@ import config from '../config';
  */
 function createHeaders(props = {}) {
   return new Headers({
+    // TODO: remove authorization
     Authorization: `Basic ${base64.encode('mclemente:jJabHw7XEpsjd3JwJRjX')}`,
     'Content-Type': 'Application/json',
     ...props

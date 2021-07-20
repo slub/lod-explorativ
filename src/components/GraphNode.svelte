@@ -1,24 +1,26 @@
 <script lang="ts">
   import { scale } from 'svelte/transition';
+  import { cubicInOut } from 'svelte/easing';
   import { NodeType } from '../types/app';
   import type { GraphNode } from '../types/app';
   import Label from './Label.svelte';
   import Scatter from './Scatter.svelte';
+  import LabelCount from './LabelCount.svelte';
+  import { spring } from 'svelte/motion';
 
   const { PRIMARY_NODE, SECONDARY_NODE } = NodeType;
 
   export let data: GraphNode;
+  export let showLabel = true;
   export let onClick;
-  export let handleHover;
-  export let handleOut;
 
   const fillMap = {
-    [PRIMARY_NODE]: 'lightgrey',
+    [PRIMARY_NODE]: '#ebebea',
     [SECONDARY_NODE]: 'black'
   };
 
   const strokeMap = {
-    [PRIMARY_NODE]: 'grey',
+    [PRIMARY_NODE]: '#d5d5d4',
     [SECONDARY_NODE]: 'transparent'
   };
 
@@ -38,58 +40,51 @@
     count
   } = data);
 
-  $: fill = isSelected
-    ? 'white'
-    : isHighlighted
-    ? 'transparent'
-    : fillMap[type];
+  $: fill = isSelected ? 'white' : isHighlighted ? '#f8f8f7' : fillMap[type];
 
-  $: stroke = isSelected
-    ? 'lightgrey'
-    : isHighlighted
-    ? 'grey'
-    : strokeMap[type];
+  $: stroke = isSelected || isHighlighted ? '#ebebea' : strokeMap[type];
 
-  $: fontWeight = isSelected || isHighlighted ? 'bold' : 'normal';
+  $: fontWeight = isSelected ? 900 : isHighlighted ? 600 : 400;
 
-  $: fontSize = isSelected ? 18 : isHighlighted ? 16 : 14;
+  $: fontSize = isHighlighted ? 16 : 14;
+
+  const radius = spring(0);
+
+  $: if (r) radius.set(r);
 </script>
 
-<g transform="translate({x}, {y})" on:click={() => onClick(id, type)}>
+<g
+  transform="translate({x}, {y})"
+  on:click={() => onClick(id, type)}
+  on:mouseenter
+  on:mouseleave
+>
   <circle
     {fill}
     {stroke}
     stroke-width={isSelected || isHighlighted ? 4 : 1}
-    fill-opacity="0.5"
-    {r}
-    transition:scale
+    fill-opacity={type === SECONDARY_NODE ? 0.6 : 1}
+    r={$radius}
   />
   {#if dates}
-    <Scatter {dates} onMouseEnter={handleHover} onMouseLeave={handleOut} />
+    <Scatter {dates} isInteractive={isSelected} on:enterDate on:leaveDate />
   {/if}
 
-  <Label
-    x={textX}
-    y={textY}
-    {type}
-    {text}
-    {textAnchor}
-    fill="dimGrey"
-    {fontSize}
-    {fontWeight}
-    stroke="#f8f8f7"
-  />
-
-  {#if !isHighlighted}
+  {#if showLabel}
     <Label
+      x={textX}
+      y={textY}
       {type}
-      text={count}
-      textAnchor="middle"
-      fill="white"
-      stroke="grey"
+      {text}
+      {textAnchor}
       {fontSize}
-      fontWeight="bold"
+      {fontWeight}
+      fill={isHighlighted ? '#4d4d4d' : undefined}
     />
+
+    {#if !isHighlighted}
+      <LabelCount {type} {count} fontSize={16} />
+    {/if}
   {/if}
 </g>
 

@@ -13,8 +13,8 @@
 
 <path
   stroke-width={strokeWidth}
-  stroke="#999"
-  stroke-opacity="0.3"
+  stroke="#dfe2e3"
+  stroke-opacity="0.8"
   fill="none"
   d={`M ${x1} ${y1} S ${centerX} ${centerY}, ${x2} ${y2}`}
   transition:draw

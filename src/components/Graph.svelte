@@ -7,28 +7,34 @@
     forceLink,
     forceRadial,
     forceCollide,
-    forceX,
-    forceY,
     forceManyBody
   } from 'd3-force';
   import { flatten, map } from 'lodash';
   import type { GraphLink, GraphNode, ScatterDot } from 'types/app';
-  import { LinkType, NodeType } from 'types/app';
-  import { graph, ready, selectedTopic } from '../state/dataAPI';
+  import { NodeType } from 'types/app';
+  import { graph, selectedTopic } from '../state/dataAPI';
   import { search } from '../state/uiState';
   import pannable from '../pannable';
   import { areEqual } from '../utils';
   import Tooltip2 from './Tooltip2.svelte';
   import Node from './GraphNode.svelte';
   import Link from './Link.svelte';
+  import Label from './Label.svelte';
+  import LabelCount from './LabelCount.svelte';
 
-  const { PRIMARY_NODE, AUTHOR_NODE } = NodeType;
+  const { PRIMARY_NODE } = NodeType;
 
   let width = 400;
   let height = 300;
 
+  let nodes = [];
+  let selectedNode;
+  let unselectedNodes = [];
+
   let simNodes = [];
   let simLinks = [];
+  let simSelectedNode;
+  let simUnselectedNodes = [];
 
   let status = 'finished';
   const showControl = false;
@@ -57,9 +63,11 @@
   ///////////////////////////////////////////////////////
   $: radiusScale = scaleSqrt().domain([0, maxCount]).range([0, 40]);
 
-  $: edgeWidthScale = scaleLinear()
-    .domain([0, max($graph.links, (l) => l.weight)])
-    .range([1, 10]);
+  $: edgeWidthScale = scaleLinear().domain([0, 1]).range([0, 10]);
+
+  // Jaccard
+  // TODO: move relation weight calculation to config file
+  // $: edgeWidthScale = scaleLinear().domain([0, 0.5]).range([0, 10]);
 
   $: histoScale = scaleLinear()
     .domain(yearExtent)
@@ -86,20 +94,21 @@
           : Math.abs(x) < width / 2
           ? 0
           : Math.sign(x) * (r + 5);
-        node.textY = isSH ? 24 : Math.sign(y) * (r + 15);
+        node.textY = isSH ? 0 : Math.sign(y) * (r + 15);
         node.textAnchor = isSH ? 'middle' : x < 0 ? 'end' : 'start';
       }
 
       status = 'running';
+
+      // Trigger update
       simNodes = nodes;
+      simSelectedNode = selectedNode;
+      simUnselectedNodes = unselectedNodes;
       simLinks = links;
     })
     .on('end', () => {
       status = 'finished';
     });
-
-  // Simulation nodes
-  let nodes = [];
 
   $: if ($graph.nodes) {
     const newNodes = $graph.nodes.map((n) => {
@@ -107,8 +116,6 @@
       const prev = nodes.find((x) => x.id === n.id);
       const isSelected = areEqual(n.text, query);
       const isHighlighted = areEqual(n.text, restrict);
-      // const x = isSelected ? 0 : null;
-      // const y = isSelected ? 0 : null;
       const r = isSelected ? radius : radiusScale(n.count);
 
       const dates = n.datePublished?.map(({ year, count }) => {
@@ -132,10 +139,8 @@
         ...n,
         isHighlighted,
         isSelected,
-        fx: isSelected ? 0 : null,
-        fy: isSelected ? 0 : null,
-        x: 0,
-        y: 0,
+        fx: isSelected ? 0 : undefined,
+        fy: isSelected ? 0 : undefined,
         r,
         dates
       };
@@ -147,10 +152,13 @@
         graphNode.vy = prev.vy;
       }
 
+      if (isSelected) selectedNode = graphNode;
+
       return graphNode;
     });
 
     nodes = newNodes;
+    unselectedNodes = newNodes.filter((n) => !n.isSelected);
   }
 
   // Simulation links, update links if nodes change
@@ -241,12 +249,25 @@
   let tooltip = [0, 0];
   let tooltipTxt = '';
 
-  function handleHover(x, y, year, count) {
-    tooltipTxt = `${year}: ${count}`;
-    tooltip = [x, y];
+  function handleDateEnter(e) {
+    const { x, y, year, count } = e.detail;
+    tooltipTxt = `${year}: ${count} Titeldaten`;
+    moveTooltip(x, y);
   }
 
-  function handleOut() {
+  function handleEnterNode(data) {
+    const { x, y, r, description } = data;
+    if (description) {
+      tooltipTxt = description;
+      moveTooltip(x, y - r);
+    }
+  }
+
+  function moveTooltip(x, y) {
+    tooltip = [x + width / 2, y + height / 2 - 8];
+  }
+
+  function hideTooltip() {
     tooltipTxt = '';
   }
 </script>
@@ -304,13 +325,22 @@
           disabled={!enableLinks}
           min="0"
           max="1"
-          step="0.1"
+          step="0.01"
         />
       </div>
     </div>
   {/if}
   <svg {width} {height} viewBox="{-width / 2} {-height / 2} {width} {height}">
-    <!-- Links -->
+    {#if selectedNode}
+      <Node
+        data={selectedNode}
+        showLabel={false}
+        onClick={handleClick}
+        on:enterDate={handleDateEnter}
+        on:leaveDate={hideTooltip}
+      />
+    {/if}
+
     <g>
       {#each simLinks as { source, target, weight, id } (id)}
         <Link
@@ -324,10 +354,35 @@
     </g>
 
     <g>
-      {#each simNodes as data (data.id)}
-        <Node {data} onClick={handleClick} {handleHover} {handleOut} />
+      {#each simUnselectedNodes as data (data.id)}
+        <Node
+          {data}
+          onClick={handleClick}
+          on:mouseenter={() => handleEnterNode(data)}
+          on:mouseleave={hideTooltip}
+        />
       {/each}
     </g>
+
+    {#if selectedNode}
+      <Label
+        y={28}
+        type={NodeType.PRIMARY_NODE}
+        text={selectedNode.text}
+        textAnchor="middle"
+        fontSize={20}
+        fontWeight="bold"
+        strokeWidth={8}
+        fill="#4d4d4d"
+      />
+
+      <LabelCount
+        count={selectedNode.count}
+        fontSize={24}
+        type={NodeType.PRIMARY_NODE}
+        strokeWidth={5}
+      />
+    {/if}
   </svg>
   <Tooltip2 title={tooltipTxt} x={tooltip[0]} y={tooltip[1]} />
 </div>

@@ -1,17 +1,17 @@
 <script lang="ts">
-  import { NodeType } from '../types/app';
-
-  const { PRIMARY_NODE } = NodeType;
+  import type { NodeType } from '../types/app';
+  import { NodeType as Node } from '../types/app';
 
   export let text;
   export let x = 0;
   export let y = 0;
   export let fontSize = 14;
+  export let strokeWidth = 4;
+  export let type: NodeType;
   export let fontWeight = 'normal';
-  export let fill = 'black';
-  export let stroke = 'white';
+  export let fill = 'dimGrey';
+  export let stroke = '#f8f8f7';
   export let textAnchor = 'start';
-  export let type = PRIMARY_NODE;
 
   $: sharedProps = {
     x,
@@ -19,7 +19,8 @@
     'dominant-baseline': 'central',
     'font-size': fontSize,
     'text-anchor': textAnchor,
-    'font-style': type === PRIMARY_NODE ? 'normal' : 'italic',
+    'font-style': 'normal',
+    // 'font-style': type === Node.PRIMARY_NODE ? 'normal' : 'italic',
     'font-weight': fontWeight
   };
 </script>
@@ -28,7 +29,7 @@
 <text
   {...sharedProps}
   {stroke}
-  stroke-width={4}
+  stroke-width={strokeWidth}
   stroke-opacity={0.7}
   fill="transparent"
   stroke-linecap="round"

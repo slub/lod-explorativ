@@ -189,7 +189,11 @@ export const relationsMeetMin = derived(relationsCount, ($relations) => {
         const sourceCount = $relations[source][source];
         const targetCount = $relations[target][target];
         const intersect = $relations[source][target];
-        const score = round(intersect / Math.min(sourceCount, targetCount), 2);
+        // TODO: use both scores
+        // MeetMin
+        const score = intersect / Math.min(sourceCount, targetCount);
+        // Jaccard
+        // const score = intersect / (sourceCount + targetCount);
 
         matrix[source][target] = matrix[target][source] = score;
       }
@@ -244,7 +248,7 @@ export const graph = derived(
 
     // create nodes for all top-level topics and collect related topics
     $topicsEnriched.forEach((primaryTopic) => {
-      const { name, count, datePublished } = primaryTopic;
+      const { name, count, datePublished, description } = primaryTopic;
 
       const exists = nodes.find((n) => n.id === name);
 
@@ -256,7 +260,8 @@ export const graph = derived(
           doc: primaryTopic,
           type: PRIMARY_NODE,
           text: name,
-          datePublished
+          datePublished,
+          description
         };
 
         // console.log('PRIMARY', name, primaryTopic.id, count);
@@ -303,25 +308,25 @@ export const graph = derived(
           if (
             sourceNode &&
             targetNode &&
+            // TODO: Show connections to outer nodes?
             sourceNode.type === SECONDARY_NODE &&
             targetNode.type === SECONDARY_NODE &&
             !areEqual(source, query) &&
-            !areEqual(target, query)
+            !areEqual(target, query) &&
+            !links.some((l) => l.id === target + '-' + source)
           ) {
             const id = source + '-' + target;
+            const weight = $relations[source][target];
+
             const link: GraphLink = {
               id,
               source,
               target,
-              weight: $relations[source][target],
+              weight,
               type: LinkType.MENTIONS_NAME_LINK
             };
 
-            const duplicate = links.find((l) => l.id === target + '-' + source);
-
-            if (!duplicate) {
-              links.push(link);
-            }
+            links.push(link);
           }
         }
       }

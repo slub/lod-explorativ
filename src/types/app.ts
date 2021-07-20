@@ -95,14 +95,15 @@ export interface GraphNode {
   fy?: number;
   vx?: number;
   vy?: number;
-  r: number;
-  textX: number;
-  textY: number;
-  textAnchor: string;
+  r?: number;
+  textX?: number;
+  textY?: number;
+  textAnchor?: string;
   datePublished: DatePublished[];
-  dates: ScatterDot[];
-  isSelected: boolean;
-  isHighlighted: boolean;
+  dates?: ScatterDot[];
+  isSelected?: boolean;
+  isHighlighted?: boolean;
+  description: string;
 }
 
 export interface ScatterDot {
