@@ -54,8 +54,8 @@ export const topicStore = derived(
 );
 
 const dataStore = derived(
-  [topicStore, searchState, author, topicsPending],
-  ([$topics, $search, $author, $topicsReady], set) => {
+  [topicStore, searchState, author],
+  ([$topics, $search, $author], set) => {
     if ($topics.length > 0) {
       const params = new URLSearchParams();
       $topics.forEach((t) => {

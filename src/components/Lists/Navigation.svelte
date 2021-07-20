@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { search } from '../state/uiState';
-  import { additionalTypes } from '../state/dataAPI';
+  import { search } from 'state/uiState';
+  import { additionalTypes } from 'state/dataAPI';
 
   function handleClick(q) {
     search.set({

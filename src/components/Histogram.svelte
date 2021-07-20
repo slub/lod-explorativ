@@ -1,9 +1,9 @@
 <script lang="ts">
   import { scale } from 'svelte/transition';
-  import { datePublished } from '../state/dataAPI';
   import { min, max, extent, bin } from 'd3-array';
   import { scaleLinear } from 'd3-scale';
   import { flatten } from 'lodash';
+  import { datePublished } from 'state/dataAPI';
 
   type Bin = { x0: number; x1: number; length: number };
 
@@ -14,7 +14,6 @@
   $: paddingBottom = height - 16;
   $: maxCount = max($datePublished, (x) => x[1]);
   $: yearExtent = extent($datePublished, (x) => x[0]);
-  $: yearDelta = yearExtent[1] - yearExtent[0];
   $: allValues = flatten(
     $datePublished.map(([year, count]) => new Array(count).fill(year))
   );

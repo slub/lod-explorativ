@@ -1,12 +1,10 @@
 <script lang="ts">
-  import { scale } from 'svelte/transition';
-  import { cubicInOut } from 'svelte/easing';
-  import { NodeType } from '../types/app';
-  import type { GraphNode } from '../types/app';
-  import Label from './Label.svelte';
-  import Scatter from './Scatter.svelte';
-  import LabelCount from './LabelCount.svelte';
   import { spring } from 'svelte/motion';
+  import { NodeType } from 'types/app';
+  import type { GraphNode } from 'types/app';
+  import Label from './Label.svelte';
+  import Scatter from './Dots.svelte';
+  import LabelCount from './LabelCount.svelte';
 
   const { PRIMARY_NODE, SECONDARY_NODE } = NodeType;
 

@@ -1,10 +1,10 @@
 <script lang="ts">
   import { fade } from 'svelte/transition';
-  import { search, searchMode, SearchMode } from '../state/uiState';
-  import { resources, selectedTopic } from '../state/dataAPI';
-  import Chip from './Chip.svelte';
-  import { areEqual, formatNumber } from '../utils';
   import { last } from 'lodash';
+  import { search, searchMode, SearchMode } from 'state/uiState';
+  import { resources, selectedTopic } from 'state/dataAPI';
+  import Chip from './Chip.svelte';
+  import { areEqual, formatNumber } from 'utils';
 
   $: ({ query, restrict } = $search);
 

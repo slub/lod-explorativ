@@ -2,7 +2,7 @@ default:
   image: node:14-alpine
   before_script:
     - node -v
-    - yarn install --ignore-engines
+    - yarn install
 
 deploymenttime:
   stage: deploy

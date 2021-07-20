@@ -2,8 +2,8 @@
   import { fade } from 'svelte/transition';
   import { scaleLinear } from 'd3-scale';
   import { max } from 'd3-array';
-  import { genres } from '../state/dataAPI';
-  import { formatNumber } from '../utils';
+  import { genres } from 'state/dataAPI';
+  import { formatNumber } from 'utils';
 
   $: maxCount = max($genres, (x) => x[1]);
   $: scale = scaleLinear().domain([0, maxCount]).range([0, 30]);

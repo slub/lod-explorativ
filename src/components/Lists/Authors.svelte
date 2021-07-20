@@ -1,8 +1,8 @@
 <script lang="ts">
   import { fade } from 'svelte/transition';
-  import { authors, selectedTopic } from '../state/dataAPI';
-  import { author } from '../state/uiState';
-  import Tooltip from './Tooltip.svelte';
+  import { authors, selectedTopic } from 'state/dataAPI';
+  import { author } from 'state/uiState';
+  import Tooltip from '../Tooltip.svelte';
 
   function handleClick(name) {
     if (name === $author) {

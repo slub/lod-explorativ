@@ -1,5 +1,4 @@
 import type { Event, Geo, Person, Topic as TopicBackend } from './backend';
-import type { GeoES, PersonES, TopicES, EventES as EventES } from './es';
 
 export interface TopAuthor {
   key: string;

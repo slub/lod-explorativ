@@ -12,15 +12,14 @@
   import { flatten, map } from 'lodash';
   import type { GraphLink, GraphNode, ScatterDot } from 'types/app';
   import { NodeType } from 'types/app';
-  import { graph, selectedTopic } from '../state/dataAPI';
-  import { RelationMode, relationMode, search } from '../state/uiState';
-  import pannable from '../pannable';
-  import { areEqual } from '../utils';
-  import Tooltip2 from './Tooltip2.svelte';
-  import Node from './GraphNode.svelte';
+  import { graph, selectedTopic } from 'state/dataAPI';
+  import { RelationMode, relationMode, search } from 'state/uiState';
+  import { areEqual } from 'utils';
+  import Node from './Node.svelte';
   import Link from './Link.svelte';
   import Label from './Label.svelte';
   import LabelCount from './LabelCount.svelte';
+  import TooltipSvg from './TooltipSVG.svelte';
 
   const { PRIMARY_NODE } = NodeType;
 
@@ -37,7 +36,6 @@
   let simUnselectedNodes = [];
 
   let status = 'finished';
-  const showControl = false;
 
   let enableRadial = true;
   let radialStrength = 0.1;
@@ -215,13 +213,6 @@
     }
   );
 
-  function handlePanMove(event) {
-    coords.update(($coords) => ({
-      x: $coords.x + event.detail.dx,
-      y: $coords.y + event.detail.dy
-    }));
-  }
-
   function handleClick(name, type) {
     // if outer primary node was clicked -> update primary query
     if (type === PRIMARY_NODE && !areEqual(name, query)) {
@@ -271,63 +262,6 @@
 </script>
 
 <div class="container" bind:clientWidth={width} bind:clientHeight={height}>
-  {#if showControl}
-    <div
-      class="control"
-      style="transform:translate({$coords.x}px,{$coords.y}px)"
-    >
-      <div class="pan" use:pannable on:panmove={handlePanMove}>↔</div>
-      <div>size: {width} x {height}</div>
-      <div>nodes: {nodes.length}</div>
-      <div>links: {links.length}</div>
-      <div
-        class="status"
-        style="background: {status === 'running' ? 'orange' : 'green'}"
-      >
-        status: {status}
-      </div>
-
-      <div class="force_container">
-        <input
-          type="checkbox"
-          bind:checked={enableRadial}
-          on:change={refresh}
-        />
-        Radial strength: {radialStrength}
-        <input
-          type="range"
-          bind:value={radialStrength}
-          on:change={refresh}
-          min="0"
-          max="1"
-          step="0.1"
-        />
-        radius: {radius}
-        <input
-          type="range"
-          bind:value={radiusFrac}
-          on:change={refresh}
-          min="0"
-          max="1"
-          step="0.1"
-        />
-        <div />
-      </div>
-      <div class="force_container">
-        <input type="checkbox" bind:checked={enableLinks} on:change={refresh} />
-        Link strength: {linkStrength}
-        <input
-          type="range"
-          bind:value={linkStrength}
-          on:change={refresh}
-          disabled={!enableLinks}
-          min="0"
-          max="1"
-          step="0.01"
-        />
-      </div>
-    </div>
-  {/if}
   <svg {width} {height} viewBox="{-width / 2} {-height / 2} {width} {height}">
     {#if selectedNode}
       <Node
@@ -382,7 +316,7 @@
       />
     {/if}
   </svg>
-  <Tooltip2 title={tooltipTxt} x={tooltip[0]} y={tooltip[1]} />
+  <TooltipSvg title={tooltipTxt} x={tooltip[0]} y={tooltip[1]} />
 </div>
 
 <style>
@@ -396,36 +330,5 @@
     left: 0;
     top: 0;
     user-select: none;
-  }
-
-  .status {
-    color: white;
-    padding: 2px 4px;
-    display: inline-block;
-  }
-
-  .control {
-    position: absolute;
-    background: rgba(255, 255, 255, 0.8);
-    padding: 0.5rem;
-    z-index: 10;
-    user-select: none;
-  }
-
-  input {
-    display: block;
-  }
-
-  input[type='checkbox'] {
-    display: inline;
-  }
-
-  .force_container {
-    margin: 2rem 0;
-    border-bottom: 1px solid lightgray;
-  }
-
-  .pan {
-    cursor: grab;
   }
 </style>
