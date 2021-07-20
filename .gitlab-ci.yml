@@ -1,5 +1,5 @@
 default:
-  image: node:14-alpine
+  image: node:14
   before_script:
     - node -v
     - yarn install
