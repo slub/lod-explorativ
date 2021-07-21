@@ -14,13 +14,22 @@ import config from '../config';
  * It is also responsible for parsing and transforming the responses.
  */
 
+function getParams(values: string[], name: string) {
+  const params = new URLSearchParams();
+  values.forEach((val) => {
+    params.append(name, val);
+  });
+
+  return params.toString();
+}
+
 /**
  *
  * @param backendpoint available backend endpoint
  * @param query        query string or ES query object
  * @returns            json result to the query
  */
-async function search(backendpoint: BackendpointType, query: Object | string) {
+async function search(backendpoint: BackendpointType, query: string) {
   const url = `${config.backend}/${backendpoint}?${query}`;
   const response = await fetch(url);
   const results = await response.json();
@@ -40,15 +49,19 @@ export const topicStore = derived(
   ($search, set) => {
     const { query } = $search;
 
+    const fieldParams = getParams(config.topicSearchFields, 'fields');
+
     topicsPending.set(true);
-    search(Backendpoint.topicsearch, `q=${query}`).then((result) => {
-      if (result.message) {
-        console.warn(result.message);
-      } else {
-        set(result);
+    search(Backendpoint.topicsearch, `q=${query}&size=20&${fieldParams}`).then(
+      (result) => {
+        if (result.message) {
+          console.warn(result.message);
+        } else {
+          set(result);
+        }
+        topicsPending.set(false);
       }
-      topicsPending.set(false);
-    });
+    );
   },
   <Topic[]>[]
 );
@@ -57,13 +70,14 @@ const dataStore = derived(
   [topicStore, searchState, author],
   ([$topics, $search, $author], set) => {
     if ($topics.length > 0) {
-      const params = new URLSearchParams();
-      $topics.forEach((t) => {
-        params.append('topics', t.name);
-      });
+      let queryString = getParams(
+        $topics.map((t) => t.name),
+        'topics'
+      );
 
-      params.set('restrict', $search.restrict || '');
-      let queryString = params.toString();
+      if ($search.restrict) {
+        queryString += `&restrict=${$search.restrict}`;
+      }
 
       if ($author) {
         queryString += `&author=${$author}`;
@@ -115,13 +129,10 @@ export const topicRelationStore = derived(
 
       if (topicNames.length > 0) {
         // generate multiple queries from names
-        const params = new URLSearchParams();
-        topicNames.forEach((name) => {
-          params.append('topics', name);
-        });
+        const params = getParams(topicNames, 'topics');
 
         correlationsPending.set(true);
-        search(Backendpoint.correlations, params.toString()).then((result) => {
+        search(Backendpoint.correlations, params).then((result) => {
           const relationMap = result[$searchMode].topicAM;
           set(Object.entries(relationMap));
           correlationsPending.set(false);

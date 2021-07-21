@@ -53,6 +53,7 @@ export const additionalTypes = derived(
     const types = flatMap(topics, (topic) =>
       topic.additionalTypes.map((type) => type.name)
     );
+
     const counts = countBy(types);
     const sortedPairs = orderBy(toPairs(counts), '1', 'desc');
     const selection = sortedPairs.slice(0, 10);
@@ -66,8 +67,8 @@ export const additionalTypes = derived(
  * Replaces references to entities of different indices with real entity objects
  *
  * @param subject          ElasticSearch aggregation result
- * @param entityList    List of entity objects
- * @param aggName       Name of the aggregation
+ * @param entityList       List of entity objects
+ * @param aggName          Name of the aggregation
  */
 function getEntities<T>(
   subject: Subject,
@@ -100,30 +101,27 @@ export const topicsEnriched = derived(
       const aggs = aggregation[$searchMode].subjects;
       const entities = aggregation.entityPool;
 
-      const merged = $dataStore.topics
-        // .filter((t) => t.mentionCount > 0)
-        .map((topic) => {
-          const agg = aggs[topic.name];
-          // create topic model
-          const enrichedTopic: Topic = {
-            ...topic,
-            count: agg.docCount,
-            phraseCount: aggregation.phraseMatch.subjects[topic.name].docCount,
-            topicCount: aggregation.topicMatch.subjects[topic.name].docCount,
+      const merged = $dataStore.topics.map((topic) => {
+        const agg = aggs[topic.name];
 
-            datePublished: entries(agg.aggs.datePublished).map(
-              ([year, count]) => {
-                const date: DatePublished = { year: parseInt(year), count };
-                return date;
-              }
-            ),
-            authors: getEntities(agg, entities.persons, 'topAuthors'),
-            contributors: getEntities(agg, entities.persons, 'topContributors'),
-            related: getEntities(agg, entities.topics, 'topMentionedTopics')
-          };
+        const enrichedTopic: Topic = {
+          ...topic,
+          count: agg.docCount,
+          phraseCount: aggregation.phraseMatch.subjects[topic.name].docCount,
+          topicCount: aggregation.topicMatch.subjects[topic.name].docCount,
+          datePublished: entries(agg.aggs.datePublished).map(
+            ([year, count]) => {
+              const date: DatePublished = { year: parseInt(year), count };
+              return date;
+            }
+          ),
+          authors: getEntities(agg, entities.persons, 'topAuthors'),
+          contributors: getEntities(agg, entities.persons, 'topContributors'),
+          related: getEntities(agg, entities.topics, 'topMentionedTopics')
+        };
 
-          return enrichedTopic;
-        });
+        return enrichedTopic;
+      });
 
       set(merged);
     }
@@ -217,7 +215,7 @@ export const graph = derived(
       });
     }
 
-    // create nodes for all top-level topics and collect related topics
+    // create nodes for all primary topics if they do not belong to the related nodes
     $topicsEnriched.forEach((primaryTopic) => {
       const { name, count, datePublished, description } = primaryTopic;
 
@@ -283,11 +281,7 @@ export const graph = derived(
 export const selectedTopic = derived(
   [search, topicsEnriched],
   ([$search, $topicsEnriched]) => {
-    return (
-      $topicsEnriched.find(
-        (t) => areEqual(t.name, $search.query) //&& t.count > 0
-      ) || null
-    );
+    return $topicsEnriched.find((t) => areEqual(t.name, $search.query)) || null;
   }
 );
 
@@ -392,8 +386,6 @@ export const datePublished = derived(
       const dateCounts = entries(pickBy(published, (count) => count > 0)).map(
         ([k, v]) => [parseInt(k), v]
       );
-
-      // console.table(dateCounts);
 
       set(dateCounts);
     } else {
