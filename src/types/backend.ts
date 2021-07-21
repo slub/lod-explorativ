@@ -1,24 +1,20 @@
-export type EntityType = Event | Geo | Person | Resource | Topic;
-
 export enum Endpoint {
   topicsearch = 'topicsearch',
   aggregations = 'aggregations',
   correlations = 'correlations'
 }
-
-export interface Entity {
+export interface Event {
   id: string;
-}
-
-export interface Event extends Entity {
   name: string;
 }
 
-export interface Geo extends Entity {
+export interface Geo {
+  id: string;
   name: string;
 }
 
-export interface Person extends Entity {
+export interface Person {
+  id: string;
   occupation: string[];
   alternateNames: string[];
   birthDate: string;
@@ -38,7 +34,8 @@ export interface Mention {
   name: string;
 }
 
-export interface Resource extends Entity {
+export interface Resource {
+  id: string;
   authors: string[];
   datePublished: string;
   description: string[];
@@ -48,12 +45,14 @@ export interface Resource extends Entity {
   mentions: Mention[];
 }
 
-export interface AdditionalType extends Entity {
+export interface AdditionalType {
+  id: string;
   description: string;
   name: string;
 }
 
-export interface Topic extends Entity {
+export interface Topic {
+  id: string;
   additionalTypes: AdditionalType[];
   alternateName: string[];
   description: string;

@@ -72,7 +72,6 @@
     <Label
       x={textX}
       y={textY}
-      {type}
       {text}
       {textAnchor}
       {fontSize}
@@ -81,7 +80,7 @@
     />
 
     {#if !isHighlighted}
-      <LabelCount {type} {count} fontSize={16} />
+      <LabelCount {count} fontSize={16} />
     {/if}
   {/if}
 </g>

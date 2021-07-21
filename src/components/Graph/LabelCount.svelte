@@ -5,7 +5,6 @@
 
   export let count;
   export let fontSize;
-  export let type;
   export let strokeWidth = 4;
   export let stroke = 'dimGrey';
   export let fill = 'white';
@@ -13,7 +12,6 @@
 
 <Label
   {fontSize}
-  {type}
   {stroke}
   {strokeWidth}
   {fill}

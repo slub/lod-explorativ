@@ -17,7 +17,6 @@ import {
   GraphNode,
   Topic,
   NodeType,
-  LinkType,
   DatePublished
 } from '../types/app';
 import dataStore, {
@@ -261,8 +260,7 @@ export const graph = derived(
               id,
               source,
               target,
-              weight,
-              type: LinkType.MENTIONS_NAME_LINK
+              weight
             };
 
             links.push(link);

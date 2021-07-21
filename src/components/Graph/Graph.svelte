@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { spring } from 'svelte/motion';
   import { scaleSqrt, scaleLinear } from 'd3-scale';
   import { max, extent } from 'd3-array';
   import {
@@ -10,48 +9,54 @@
     forceManyBody
   } from 'd3-force';
   import { flatten, map } from 'lodash';
-  import type { GraphLink, GraphNode, ScatterDot } from 'types/app';
-  import { NodeType } from 'types/app';
   import { graph, selectedTopic } from 'state/dataAPI';
   import { RelationMode, relationMode, search } from 'state/uiState';
-  import { areEqual } from 'utils';
   import Node from './Node.svelte';
   import Link from './Link.svelte';
   import Label from './Label.svelte';
   import LabelCount from './LabelCount.svelte';
   import TooltipSvg from './TooltipSVG.svelte';
+  import { NodeType } from 'types/app';
+  import type { GraphLink, GraphNode, GraphDot } from 'types/app';
+  import { areEqual } from 'utils';
 
   const { PRIMARY_NODE } = NodeType;
 
   let width = 400;
   let height = 300;
 
+  let tooltip = [0, 0];
+  let tooltipTxt = '';
+
+  // data from dataAPI
   let nodes = [];
   let selectedNode;
   let unselectedNodes = [];
 
+  // data that will be continuously updated on simulation tick events
   let simNodes = [];
   let simLinks = [];
   let simSelectedNode;
   let simUnselectedNodes = [];
 
-  let status = 'finished';
-
-  let enableRadial = true;
-  let radialStrength = 0.1;
-  let radiusFrac = 1;
-
-  let enableLinks = true;
-  let linkStrength = 0;
+  // forces
+  const radialStrength = 0.1;
+  const linkStrength = 0;
+  const manyBodyStrength = -200;
 
   $: query = $search.query;
   $: restrict = $search.restrict;
+
+  // dimensions
   $: shortSide = Math.min(width, height);
-  $: radius = Math.round((shortSide / 2) * radiusFrac);
+  $: radius = Math.round(shortSide / 2);
+
+  // reactive variables for the scales
   $: maxCount = max(
     $graph.nodes.filter((d) => !areEqual(d.id, query)),
     (n) => n.count
   );
+
   $: yearExtent = extent(
     flatten(map($graph.nodes, (n) => n.datePublished?.map((d) => d.year)))
   );
@@ -59,6 +64,7 @@
   ///////////////////////////////////////////////////////
   // SCALES
   ///////////////////////////////////////////////////////
+
   $: radiusScale = scaleSqrt().domain([0, maxCount]).range([0, 40]);
 
   $: edgeWidthScale = scaleLinear()
@@ -77,34 +83,28 @@
   // SIMULATION: NODES & LINKS
   ///////////////////////////////////////////////////////
 
-  const simulation = forceSimulation()
-    .on('tick', () => {
-      // update label orientation
-      for (let i = 0; i < nodes.length; i++) {
-        const node = nodes[i];
-        const { r, x, y, isSelected, isHighlighted } = node;
-        const isSH = isSelected || isHighlighted;
+  const simulation = forceSimulation().on('tick', () => {
+    // update label orientation
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      const { r, x, y, isSelected, isHighlighted } = node;
+      const isSH = isSelected || isHighlighted;
 
-        node.textX = isSH
-          ? 0
-          : Math.abs(x) < width / 2
-          ? 0
-          : Math.sign(x) * (r + 5);
-        node.textY = isSH ? 0 : Math.sign(y) * (r + 15);
-        node.textAnchor = isSH ? 'middle' : x < 0 ? 'end' : 'start';
-      }
+      node.textX = isSH
+        ? 0
+        : Math.abs(x) < width / 2
+        ? 0
+        : Math.sign(x) * (r + 5);
+      node.textY = isSH ? 0 : Math.sign(y) * (r + 15);
+      node.textAnchor = isSH ? 'middle' : x < 0 ? 'end' : 'start';
+    }
 
-      status = 'running';
-
-      // Trigger update
-      simNodes = nodes;
-      simSelectedNode = selectedNode;
-      simUnselectedNodes = unselectedNodes;
-      simLinks = links;
-    })
-    .on('end', () => {
-      status = 'finished';
-    });
+    // Trigger update
+    simNodes = nodes;
+    simSelectedNode = selectedNode;
+    simUnselectedNodes = unselectedNodes;
+    simLinks = links;
+  });
 
   $: if ($graph.nodes) {
     const newNodes = $graph.nodes.map((n) => {
@@ -119,7 +119,7 @@
         const dr = radiusScale(count);
         const x = Math.sin(pos);
         const y = -Math.cos(pos);
-        const dot: ScatterDot = {
+        const dot: GraphDot = {
           year,
           count,
           dx: x * r,
@@ -157,38 +157,29 @@
     unselectedNodes = newNodes.filter((n) => !n.isSelected);
   }
 
-  // Simulation links, update links if nodes change
-  $: links = !!nodes && $graph.links.map((l) => ({ ...l }));
+  // simulation links, update links if nodes change
+  $: links = !!nodes && $graph.links.slice();
 
-  // Update simulation nodes
+  // update simulation
   $: simulation.nodes(nodes);
 
   ///////////////////////////////////////////////////////
   // FORCES
   ///////////////////////////////////////////////////////
-  $: linkForce = enableLinks
-    ? forceLink(links)
-        .id((d: GraphLink) => {
-          return d.id;
-        })
-        .strength(linkStrength)
-    : null;
+
+  $: linkForce = forceLink(links)
+    .id((d: GraphLink) => d.id)
+    .strength(linkStrength);
 
   $: radialForce = forceRadial()
-    .radius((d) => (d.type === PRIMARY_NODE ? 1 : 0.33) * radius)
+    .radius((d: GraphNode) => (d.type === PRIMARY_NODE ? 1 : 0.33) * radius)
     .strength(radialStrength);
-  // $: radialForce = enableRadial
-  //   ? forceRadial((d: GraphNode) => {
-  //       const frac = d.type === PRIMARY_NODE ? 1 : 0.25;
-  //       return radius * frac;
-  //     }).strength(radialStrength)
-  //   : null;
 
   let collideForce = forceCollide()
     .strength(0.1)
     .radius((d: GraphNode) => Math.max(radiusScale(d.count), 20));
 
-  let manyBodyForce = forceManyBody().strength(-200);
+  let manyBodyForce = forceManyBody().strength(manyBodyStrength);
 
   $: simulation.force('link', linkForce);
   $: simulation.force('radial', radialForce);
@@ -204,14 +195,6 @@
     simulation.alpha(1);
     simulation.restart();
   }
-
-  const coords = spring(
-    { x: 0, y: 0 },
-    {
-      stiffness: 0.2,
-      damping: 0.4
-    }
-  );
 
   function handleClick(name, type) {
     // if outer primary node was clicked -> update primary query
@@ -234,9 +217,6 @@
       search.setQuery(name);
     }
   }
-
-  let tooltip = [0, 0];
-  let tooltipTxt = '';
 
   function handleDateEnter(e) {
     const { x, y, year, count } = e.detail;
@@ -299,7 +279,6 @@
     {#if selectedNode}
       <Label
         y={28}
-        type={NodeType.PRIMARY_NODE}
         text={selectedNode.text}
         textAnchor="middle"
         fontSize={20}
@@ -308,12 +287,7 @@
         fill="#4d4d4d"
       />
 
-      <LabelCount
-        count={selectedNode.count}
-        fontSize={24}
-        type={NodeType.PRIMARY_NODE}
-        strokeWidth={5}
-      />
+      <LabelCount count={selectedNode.count} fontSize={24} strokeWidth={5} />
     {/if}
   </svg>
   <TooltipSvg title={tooltipTxt} x={tooltip[0]} y={tooltip[1]} />
