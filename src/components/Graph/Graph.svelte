@@ -108,7 +108,6 @@
 
   $: if ($graph.nodes) {
     const newNodes = $graph.nodes.map((n) => {
-      /// restore previous node position
       const prev = nodes.find((x) => x.id === n.id);
       const isSelected = areEqual(n.text, query);
       const isHighlighted = areEqual(n.text, restrict);
@@ -141,6 +140,7 @@
         dates
       };
 
+      // restore previous node position
       if (prev) {
         graphNode.x = prev.x;
         graphNode.y = prev.y;

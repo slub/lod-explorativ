@@ -1,6 +1,7 @@
 <script lang="ts">
   import { debounce } from 'lodash';
   import { search, searchMode, SearchMode } from '../state/uiState';
+  import CatalogLink from './CatalogLink.svelte';
 
   $: ({ query, restrict } = $search);
 
@@ -48,6 +49,8 @@
   />
   <label for="thema">Thema</label>
 </div>
+
+<CatalogLink />
 
 <style>
   input {
