@@ -67,7 +67,7 @@
 
 <CatalogLink />
 
-<h2>Darstellung</h2>
+<h2>Graphdarstellung</h2>
 
 <div>
   <Tooltip title="Wie stark hängen zwei Themen voneinander ab"
