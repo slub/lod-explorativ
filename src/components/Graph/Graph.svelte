@@ -5,7 +5,6 @@
     forceSimulation,
     forceLink,
     forceRadial,
-    forceCollide,
     forceManyBody
   } from 'd3-force';
   import { flatten, map } from 'lodash';
@@ -23,7 +22,12 @@
   import LabelCount from './LabelCount.svelte';
   import TooltipSvg from './TooltipSVG.svelte';
   import { NodeType } from 'types/app';
-  import type { GraphLink, GraphNode, GraphDot } from 'types/app';
+  import type {
+    DatePublished,
+    GraphLink,
+    GraphNode,
+    GraphDot
+  } from 'types/app';
   import { areEqual } from 'utils';
 
   const { PRIMARY_NODE } = NodeType;
@@ -61,9 +65,14 @@
   $: radius = Math.round(shortSide / 2);
 
   // reactive variables for the scales
+
   $: maxCount = max(
     $graph.nodes.filter((d) => !areEqual(d.id, query)),
-    (n) => n.count
+    (n: GraphNode) => n.count
+  );
+
+  $: maxDatePublished = max($graph.nodes, (n: GraphNode) =>
+    max(n.datePublished, (d: DatePublished) => d.count)
   );
 
   $: maxWeight = max($graph.links, (n) => n.weight);
@@ -75,8 +84,10 @@
   ///////////////////////////////////////////////////////
   // SCALES
   ///////////////////////////////////////////////////////
-
-  $: radiusScale = scaleSqrt().domain([0, maxCount]).range([0, 40]);
+  $: console.log(max([maxCount, maxDatePublished]));
+  $: radiusScale = scaleSqrt()
+    .domain([0, max([maxCount, maxDatePublished])])
+    .range([0, 40]);
 
   $: edgeWidthScale = scaleLinear()
     .domain([
@@ -193,16 +204,11 @@
     .radius((d: GraphNode) => (d.type === PRIMARY_NODE ? 1 : 0.33) * radius)
     .strength(radialStrength);
 
-  // let collideForce = forceCollide()
-  //   .strength(0.1)
-  //   .radius((d: GraphNode) => Math.max(radiusScale(d.count), 20));
-
   let manyBodyForce = forceManyBody().strength(manyBodyStrength);
 
   $: simulation.force('link', linkForce);
   $: simulation.force('radial', radialForce);
   $: simulation.force('manyBody', manyBodyForce);
-  // $: simulation.force('collide', collideForce);
 
   // re-heat simulation if nodes or dimensions change
   $: if (nodes || width || height) {
