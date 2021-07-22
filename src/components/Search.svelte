@@ -1,6 +1,7 @@
 <script lang="ts">
   import { debounce } from 'lodash';
   import {
+    author,
     relationContext,
     RelationContext,
     relationMode,
@@ -16,10 +17,12 @@
 
   const handleQuery = debounce((e) => {
     search.setQuery(e.target.value);
+    author.set(null);
   }, 500);
 
   const handleRestrict = debounce((e) => {
     search.setRestrict(e.target.value);
+    author.set(null);
   }, 500);
 </script>
 

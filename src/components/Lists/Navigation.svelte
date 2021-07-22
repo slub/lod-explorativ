@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { search } from 'state/uiState';
+  import { author, search } from 'state/uiState';
   import { additionalTypes } from 'state/dataAPI';
 
   function handleClick(q) {
@@ -7,6 +7,8 @@
       query: q,
       restrict: null
     });
+
+    author.set(null);
   }
 </script>
 
