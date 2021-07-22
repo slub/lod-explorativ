@@ -39,7 +39,7 @@
   }
 
   td:last-child {
-    padding-right: 2rem;
+    padding-right: 1rem;
   }
   .name {
     width: 160px;
