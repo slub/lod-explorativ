@@ -245,8 +245,8 @@ export const graph = derived(
           if (
             sourceNode &&
             targetNode &&
-            sourceNode.type === SECONDARY_NODE &&
-            targetNode.type === SECONDARY_NODE &&
+            (sourceNode.type === SECONDARY_NODE ||
+              targetNode.type === SECONDARY_NODE) &&
             !areEqual(source, query) &&
             !areEqual(target, query) &&
             !links.some((l) => l.id === target + '-' + source)

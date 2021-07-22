@@ -52,7 +52,7 @@ export const topicStore = derived(
     const fieldParams = getParams(config.topicSearchFields, 'fields');
 
     topicsPending.set(true);
-    search(Backendpoint.topicsearch, `q=${query}&size=20&${fieldParams}`).then(
+    search(Backendpoint.topicsearch, `q=${query}&size=15&${fieldParams}`).then(
       (result) => {
         if (result.message) {
           console.warn(result.message);

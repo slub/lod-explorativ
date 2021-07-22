@@ -56,9 +56,6 @@
     padding: 0;
   }
 
-  a {
-    color: #333;
-  }
   .resourceList {
     max-height: 40vh;
     overflow-y: auto;

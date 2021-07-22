@@ -8,7 +8,6 @@ body {
 }
 
 body {
-  color: #505050;
   background: #f8f8f7;
   margin: 0;
   padding: 0;
@@ -18,17 +17,25 @@ body {
   font-size: 14px;
 }
 
-a {
-  color: #ef0000;
+a,
+a:visited {
+  color: #404055;
   text-decoration: none;
+}
+
+h1,
+h2,
+h3 {
+  color: #404055;
+}
+
+body,
+a {
+  color: #3f3f52;
 }
 
 a:hover {
   text-decoration: underline;
-}
-
-a:visited {
-  color: #c70000;
 }
 
 label {
@@ -72,9 +79,20 @@ button:focus {
 }
 
 h1 {
-  font-size: 1.5rem;
+  font-size: 18px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }
 
 h2 {
-  font-size: 1rem;
+  font-size: 16px;
+}
+
+h3 {
+  font-size: 14px;
+  text-transform: uppercase;
+  margin: 0;
+  padding: 0;
+  margin-bottom: 0.25rem;
+  letter-spacing: 0.2px;
 }

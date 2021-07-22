@@ -25,7 +25,7 @@
   {...sharedProps}
   {stroke}
   stroke-width={strokeWidth}
-  stroke-opacity={0.7}
+  stroke-opacity={0.9}
   fill="transparent"
   stroke-linecap="round"
   stroke-linejoin="bevel">{text}</text

@@ -10,5 +10,5 @@
     restrict ? '+%22' + restrict + '%22' : ''
   }`}
   target="_blank"
-  rel="“noopener">In den Katalog wechseln</a
+  rel="“noopener">↗ In den Katalog wechseln</a
 >

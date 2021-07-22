@@ -6,7 +6,7 @@
   export let count;
   export let fontSize;
   export let strokeWidth = 4;
-  export let stroke = 'dimGrey';
+  export let stroke = '#404055';
   export let fill = 'white';
 </script>
 

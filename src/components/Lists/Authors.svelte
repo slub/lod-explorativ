@@ -44,6 +44,10 @@
     padding: 0;
   }
 
+  li:hover {
+    background: rgba(255, 255, 255, 0.5);
+  }
+
   .remove {
     font-weight: bold;
   }
@@ -56,7 +60,6 @@
     margin-bottom: 0.25rem;
     border-bottom: 1px solid lightgray;
     padding-bottom: 0.25rem;
-    /* max-height: 120px; */
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;

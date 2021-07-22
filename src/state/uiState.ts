@@ -31,6 +31,11 @@ export enum RelationMode {
   meetMin = 'meetMin'
 }
 
+export enum RelationContext {
+  relative = 'relative',
+  absolute = 'absolute'
+}
+
 /**
  * Returns search param from URL
  *
@@ -94,3 +99,4 @@ searchMode.subscribe((val) => {
 export const author = writable(null);
 
 export const relationMode = writable(RelationMode.jaccard);
+export const relationContext = writable(RelationContext.relative);

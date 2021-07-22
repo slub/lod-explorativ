@@ -27,15 +27,19 @@
 <style>
   div {
     overflow-y: auto;
-    max-height: 45vh;
+    max-height: 30vh;
   }
 
   table {
     table-layout: fixed;
-    width: 100%;
   }
   td {
     white-space: nowrap;
+    border-bottom: 1px solid lightgray;
+  }
+
+  td:last-child {
+    padding-right: 2rem;
   }
   .name {
     width: 160px;
@@ -49,7 +53,11 @@
   .bar {
     display: inline-block;
     height: 8px;
-    background: grey;
+    background: #404055;
     transition: width 200ms ease-in-out;
+  }
+
+  tr {
+    border-bottom: 1px solid #404055;
   }
 </style>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { spring } from 'svelte/motion';
+  import { tweened } from 'svelte/motion';
   import { NodeType } from 'types/app';
   import type { GraphNode } from 'types/app';
   import Label from './Label.svelte';
@@ -10,11 +10,12 @@
 
   export let data: GraphNode;
   export let showLabel = true;
+  export let highlight = false;
   export let onClick;
 
   const fillMap = {
     [PRIMARY_NODE]: '#ebebea',
-    [SECONDARY_NODE]: 'black'
+    [SECONDARY_NODE]: '#404055'
   };
 
   const strokeMap = {
@@ -46,12 +47,14 @@
 
   $: fontSize = isHighlighted ? 16 : 14;
 
-  const radius = spring(0);
+  const radius = tweened(0);
 
   $: if (r) radius.set(r);
 </script>
 
 <g
+  class:hover={(!isSelected && !isHighlighted) || highlight}
+  class:highlight={highlight && !isSelected && !isHighlighted}
   transform="translate({x}, {y})"
   on:click={() => onClick(id, type)}
   on:mouseenter
@@ -61,7 +64,7 @@
     {fill}
     {stroke}
     stroke-width={isSelected || isHighlighted ? 4 : 1}
-    fill-opacity={type === SECONDARY_NODE ? 0.6 : 1}
+    fill-opacity={type === SECONDARY_NODE ? 0.9 : 1}
     r={Math.max(0, $radius)}
   />
   {#if dates}
@@ -88,5 +91,15 @@
 <style>
   g {
     cursor: pointer;
+  }
+
+  g:hover :global(text),
+  .highlight :global(text) {
+    font-weight: bold;
+  }
+
+  .hover:hover circle,
+  .highlight circle {
+    fill-opacity: 1;
   }
 </style>

@@ -1,14 +1,15 @@
 <script lang="ts">
   import { fade } from 'svelte/transition';
-  export let title;
+
+  export let title = '';
   let show = false;
   let x = 0;
   let y = 0;
 
   function handleMouseOver(e) {
-    if (title) show = true;
-    x = e.pageX;
-    y = e.pageY - 50;
+    show = true;
+    x = Math.max(e.pageX, 200);
+    y = e.pageY - 32;
   }
 
   function handleMouseMove(e) {}
@@ -42,10 +43,12 @@
     padding: 4px;
     position: absolute;
     pointer-events: none;
-    transform: translate(-50%);
+    transform: translate(-50%, -100%);
+    max-width: 300px;
   }
 
   .wrapper {
+    display: inline;
     cursor: pointer;
   }
 </style>
