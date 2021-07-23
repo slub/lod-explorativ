@@ -1,13 +1,17 @@
 <script lang="ts">
+  import { createEventDispatcher } from 'svelte';
+
   export let text;
   export let x = 0;
   export let y = 0;
   export let fontSize = 14;
   export let strokeWidth = 4;
-  export let fontWeight = 'normal';
+  export let fontWeight = 400;
   export let fill = 'dimGrey';
   export let stroke = '#f8f8f7';
   export let textAnchor = 'start';
+
+  const dispatch = createEventDispatcher();
 
   $: sharedProps = {
     x,
@@ -31,4 +35,11 @@
   stroke-linejoin="bevel">{text}</text
 >
 <!-- Text -->
-<text {...sharedProps} {fill}>{text}</text>
+<text
+  {...sharedProps}
+  {fill}
+  on:mouseenter={(e) => {
+    dispatch('enterLabel', e);
+  }}
+  on:mouseleave={() => dispatch('leaveLabel', null)}>{text}</text
+>

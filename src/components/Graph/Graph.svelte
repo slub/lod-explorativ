@@ -236,31 +236,42 @@
     }
   }
 
-  function handleDateEnter(e) {
-    const { x, y, year, count } = e.detail;
+  function handleDateEnter({ detail }) {
+    const { year, count, e } = detail;
+    const x = e.clientX;
+    const y = e.clientY;
     tooltipTitle = year;
     tooltipTxt = `${count} Titeldaten`;
     moveTooltip(x, y);
   }
 
   function moveTooltip(x, y) {
-    tooltip = [x + width / 2, y + height / 2 - 16];
+    tooltip = [x, y - 16];
   }
 
   function handleNodeEnter(node: GraphNode) {
-    const { x, y, r, description, text } = node;
-    if (description) {
-      tooltipTitle = text;
-      tooltipTxt = description;
-      moveTooltip(x, y - r);
-    }
     hovered = node;
   }
 
   function handleNodeLeave() {
+    hovered = null;
+  }
+
+  function handleLabelEnter(e, node: GraphNode) {
+    const { description, text } = node;
+
+    if (description) {
+      const x = e.detail.clientX;
+      const y = e.detail.clientY;
+      tooltipTitle = text;
+      tooltipTxt = description;
+      moveTooltip(x, y);
+    }
+  }
+
+  function resetTooltip() {
     tooltipTxt = '';
     tooltipTitle = '';
-    hovered = null;
   }
 
   function handleMouseMove(e) {
@@ -284,7 +295,7 @@
         showLabel={false}
         onClick={handleClick}
         on:enterDate={handleDateEnter}
-        on:leaveDate={handleNodeLeave}
+        on:leaveDate={resetTooltip}
       />
     {/if}
 
@@ -311,8 +322,14 @@
           data={node}
           highlight={hovered?.id === node.id}
           onClick={handleClick}
-          on:mouseenter={() => handleNodeEnter(node)}
+          on:mouseenter={() => {
+            handleNodeEnter(node);
+          }}
           on:mouseleave={handleNodeLeave}
+          on:enterLabel={(e) => {
+            handleLabelEnter(e, node);
+          }}
+          on:leaveLabel={resetTooltip}
         />
       {/each}
     </g>
@@ -323,7 +340,7 @@
         text={selectedNode.text}
         textAnchor="middle"
         fontSize={20}
-        fontWeight="bold"
+        fontWeight={700}
         strokeWidth={5}
         fill="#4d4d4d"
       />

@@ -80,6 +80,8 @@
       {fontSize}
       {fontWeight}
       fill={isHighlighted ? '#4d4d4d' : undefined}
+      on:enterLabel
+      on:leaveLabel
     />
 
     {#if !isHighlighted}

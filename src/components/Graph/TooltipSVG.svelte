@@ -20,7 +20,7 @@
     background: white;
     border-radius: 4px;
     padding: 1rem 0.5rem;
-    position: absolute;
+    position: fixed;
     pointer-events: none;
     transform: translate(-50%, -100%);
     max-width: 300px;

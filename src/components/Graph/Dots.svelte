@@ -21,8 +21,7 @@
     stroke-opacity="0.33"
     fill-opacity="0.33"
     on:mouseenter={(e) => {
-      console.log(e);
-      dispatch('enterDate', { x: dx, y: dy - dr, year, count });
+      dispatch('enterDate', { e, year, count });
     }}
     on:mouseleave={() => dispatch('leaveDate', null)}
     transition:fade
