@@ -18,5 +18,5 @@
   stroke-opacity="0.66"
   fill="none"
   d={`M ${x1} ${y1} S ${centerX} ${centerY}, ${x2} ${y2}`}
-  transition:draw
+  in:draw
 />

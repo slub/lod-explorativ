@@ -146,7 +146,7 @@ export const relationsCount = derived(topicRelationStore, ($relations) => {
   return matrix;
 });
 
-export const relationsMeetMin = derived(
+export const similarityMatrix = derived(
   [relationsCount, relationMode],
   ([$relations, $relationsMode]) => {
     const matrix = {};
@@ -170,7 +170,7 @@ export const relationsMeetMin = derived(
           if ($relationsMode === RelationMode.meetMin) {
             score = intersect / Math.min(sourceCount, targetCount);
           } else {
-            score = intersect / (sourceCount + targetCount);
+            score = intersect / (sourceCount + targetCount - intersect);
           }
 
           matrix[source][target] = matrix[target][source] = score;
@@ -186,7 +186,7 @@ export const relationsMeetMin = derived(
  * Returns graph structure for the visualization
  */
 export const graph = derived(
-  [topicsEnriched, search, relationsMeetMin],
+  [topicsEnriched, search, similarityMatrix],
   ([$topicsEnriched, $search, $relations], set) => {
     const nodes: GraphNode[] = [];
     const links: GraphLink[] = [];

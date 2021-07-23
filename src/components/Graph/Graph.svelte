@@ -84,20 +84,13 @@
   ///////////////////////////////////////////////////////
   // SCALES
   ///////////////////////////////////////////////////////
-  $: console.log(max([maxCount, maxDatePublished]));
+
   $: radiusScale = scaleSqrt()
     .domain([0, max([maxCount, maxDatePublished])])
     .range([0, 40]);
 
   $: edgeWidthScale = scaleLinear()
-    .domain([
-      0,
-      $relationContext === RelationContext.relative
-        ? maxWeight
-        : $relationMode === RelationMode.jaccard
-        ? 0.5
-        : 1
-    ])
+    .domain([0, $relationContext === RelationContext.relative ? maxWeight : 1])
     .range([0, 8]);
 
   $: histoScale = scaleLinear()

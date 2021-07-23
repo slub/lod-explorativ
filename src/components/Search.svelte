@@ -73,28 +73,30 @@
 <h2>Graphdarstellung</h2>
 
 <div>
-  <Tooltip title="Wie stark hängen zwei Themen voneinander ab"
+  <Tooltip
+    title="Der Jaccard-Koeffizient als Ähnlichkeitsmaß stellt dar, wie stark sich die Mengen an Titeldaten zweier Themen A und B ÜBERSCHNEIDEN. Der Maximalwert von 1 bedeutet, dass beide Themen immer gemeinsam verwendet werden bzw. alle Titeldaten aus dem Thema A auch dem Thema B angehören und umgegehrt."
     ><button
       class="left"
       class:checked={$relationMode === RelationMode.jaccard}
       on:mousedown={() => relationMode.set(RelationMode.jaccard)}
-      >Symmetrisch</button
+      >Jaccard</button
     ></Tooltip
   >
 
   <Tooltip
-    title="Wie stark hängen kleine von ihren verwandten größeren Themen ab"
+    title="Das Berechnungsverfahren MeetMin als Ähnlichkeitsmaß stellt dar, wie stark sich die Mengen an Titeldaten zweier Themen A und B ÜBERLAPPEN. Der Maximalwert von 1 bedeutet, dass das kleinere Thema A immer gemeinsam mit B verwendet wird bzw. alle Titeldaten aus dem Thema A auch dem Thema B angehören."
     ><button
       class="right"
       class:checked={$relationMode === RelationMode.meetMin}
       on:mousedown={() => relationMode.set(RelationMode.meetMin)}
-      >Asymmetrisch</button
+      >Meet/Min</button
     ></Tooltip
   >
 </div>
 
 <div>
-  <Tooltip title="Kanten relativ zur stärksten Verwandtschaft skalieren"
+  <Tooltip
+    title="Die Kantenstärke wird relativ zum höchsten ermittelten Ähnlichkeitswert skaliert."
     ><button
       class="left"
       class:checked={$relationContext === RelationContext.relative}
@@ -103,7 +105,8 @@
     ></Tooltip
   >
 
-  <Tooltip title="Kanten relativ zum möglichen Wertebereich skalieren"
+  <Tooltip
+    title="Die Kantenstärke wird relativ zum maximal möglichen Ähnlichkeitswert von 1 skaliert."
     ><button
       class="right"
       class:checked={$relationContext === RelationContext.absolute}
@@ -136,11 +139,11 @@
     text-transform: uppercase;
     font-weight: 600;
     letter-spacing: 0.4px;
+    cursor: pointer;
   }
 
   button:hover:not(.checked) {
     background: rgb(245, 245, 245);
-    cursor: pointer;
   }
 
   .checked {
