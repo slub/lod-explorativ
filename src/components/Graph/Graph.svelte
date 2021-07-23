@@ -206,7 +206,8 @@
   // re-heat simulation if nodes or dimensions change
   $: if (nodes || width || height) {
     refresh();
-    handleNodeLeave();
+    resetTooltip();
+    hovered = null;
   }
 
   function refresh() {
