@@ -4,19 +4,20 @@
   export let name = 'title';
 </script>
 
-<a href="/explore/"
+<a href="/explore/" class="title"
   ><LogoSlub />
   <h1>{name}</h1></a
 >
+
+<a href="/">← API Dokumentation</a>
 
 <style>
   h1 {
     white-space: nowrap;
   }
 
-  a {
+  .title {
     text-decoration: none;
-    color: black;
     display: flex;
     align-items: center;
   }
