@@ -68,7 +68,13 @@
     r={Math.max(0, $radius)}
   />
   {#if dates}
-    <Scatter {dates} isInteractive={isSelected} on:enterDate on:leaveDate />
+    <Scatter
+      {dates}
+      isInteractive={isSelected}
+      radius={$radius}
+      on:enterDate
+      on:leaveDate
+    />
   {/if}
 
   {#if showLabel}
@@ -95,7 +101,7 @@
     cursor: pointer;
   }
 
-  g:hover :global(text),
+  .hover:hover :global(text),
   .highlight :global(text) {
     font-weight: bold;
   }

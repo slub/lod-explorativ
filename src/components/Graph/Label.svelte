@@ -7,7 +7,7 @@
   export let fontSize = 14;
   export let strokeWidth = 4;
   export let fontWeight = 400;
-  export let fill = 'dimGrey';
+  export let fill = '#595959';
   export let stroke = '#f8f8f7';
   export let textAnchor = 'start';
 

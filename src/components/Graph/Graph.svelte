@@ -23,6 +23,7 @@
     GraphDot
   } from 'types/app';
   import { areEqual } from 'utils';
+  import LabelsYear from './LabelsYear.svelte';
 
   const { PRIMARY_NODE } = NodeType;
 
@@ -137,8 +138,8 @@
         const dot: GraphDot = {
           year,
           count,
-          dx: x * r,
-          dy: y * r,
+          dx: x,
+          dy: y,
           dr,
           dc: colorScale(year)
         };
