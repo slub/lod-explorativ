@@ -295,7 +295,7 @@
     {/if}
 
     <g>
-      {#each simLinks as { source, target, weight, id, show } (id)}
+      {#each simLinks as { source, target, weight, id } (id)}
         <Link
           strokeWidth={edgeWidthScale(weight)}
           stroke={hovered?.id === source?.id || hovered?.id === target?.id

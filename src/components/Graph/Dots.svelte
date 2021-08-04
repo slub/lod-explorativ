@@ -24,6 +24,7 @@
       dispatch('enterDate', { e, year, count });
     }}
     on:mouseleave={() => dispatch('leaveDate', null)}
+    on:click|stopPropagation
     transition:fade
   />
 {/each}
