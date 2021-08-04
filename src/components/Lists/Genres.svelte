@@ -27,7 +27,7 @@
 <style>
   div {
     overflow-y: auto;
-    max-height: 30vh;
+    max-height: 25vh;
   }
 
   table {

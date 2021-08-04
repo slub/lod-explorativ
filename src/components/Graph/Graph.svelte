@@ -9,13 +9,7 @@
   } from 'd3-force';
   import { flatten, map } from 'lodash';
   import { graph, selectedTopic } from 'state/dataAPI';
-  import {
-    RelationContext,
-    relationContext,
-    RelationMode,
-    relationMode,
-    search
-  } from 'state/uiState';
+  import { RelationContext, relationContext, search } from 'state/uiState';
   import Node from './Node.svelte';
   import Link from './Link.svelte';
   import Label from './Label.svelte';

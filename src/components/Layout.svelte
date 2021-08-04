@@ -12,15 +12,18 @@
     display: grid;
     overflow: hidden;
     grid-template-columns: minmax(300px, 0.5fr) 3fr minmax(400px, 1fr);
-    grid-template-rows: 10vh 70vh 20vh;
+    grid-template-rows: 10vh 75vh 15vh;
     grid-template-areas:
       'header header header'
       'left center right'
       'left bottom right';
   }
 
-  .layout div {
-    /* border: 1px solid rgba(147, 232, 238, 0.5); */
+  .header,
+  .left,
+  .center,
+  .right,
+  .bottom {
     padding: 2rem;
   }
 
@@ -30,16 +33,28 @@
 
   .left {
     grid-area: left;
+    z-index: 3;
+    padding-right: 4rem;
+    background: linear-gradient(
+      to right,
+      rgba(248, 248, 247, 1) 0 calc(100% - 4rem),
+      rgba(248, 248, 247, 0)
+    );
   }
 
   .center {
-    z-index: 2;
     grid-area: center;
-    overflow-x: clip;
   }
 
   .right {
     grid-area: right;
+    z-index: 3;
+    padding-left: 4rem;
+    background: linear-gradient(
+      to left,
+      rgba(248, 248, 247, 1) 0 calc(100% - 4rem),
+      rgba(248, 248, 247, 0)
+    );
   }
 
   .bottom {

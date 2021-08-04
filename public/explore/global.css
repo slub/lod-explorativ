@@ -29,6 +29,10 @@ h3 {
   color: #404055;
 }
 
+h2:not(:first-child) {
+  margin-top: 2rem;
+}
+
 body,
 a {
   color: #3f3f52;

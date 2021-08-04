@@ -24,5 +24,6 @@
     pointer-events: none;
     transform: translate(-50%, -100%);
     max-width: 300px;
+    z-index: 100;
   }
 </style>
