@@ -40,4 +40,8 @@
     stroke-width: 2px;
     stroke-opacity: 1;
   }
+
+  circle {
+    cursor: default;
+  }
 </style>
