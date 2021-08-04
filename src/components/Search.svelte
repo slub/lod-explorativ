@@ -13,6 +13,8 @@
   import CatalogLink from './CatalogLink.svelte';
   import Tooltip from './Tooltip.svelte';
 
+  const maxInputSize = 25;
+
   $: ({ query, restrict } = $search);
 
   const handleQuery = debounce((e) => {
@@ -33,7 +35,7 @@
     type="text"
     placeholder="Nach Thema suchen..."
     value={query}
-    size={query?.length + 3}
+    size={Math.min(query?.length + 3, maxInputSize)}
     on:input={handleQuery}
   />
 
@@ -44,7 +46,7 @@
     type="search"
     placeholder="..."
     value={restrict}
-    size={restrict?.length + 3}
+    size={Math.min(restrict?.length + 3, maxInputSize)}
     on:input={handleRestrict}
   />
 </div>
@@ -125,6 +127,7 @@
     border-radius: 0;
     height: 2.5rem;
     width: auto;
+    text-overflow: ellipsis;
   }
 
   input:focus {
