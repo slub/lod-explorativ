@@ -69,8 +69,8 @@ export interface GraphNode {
   textY?: number;
   textAnchor?: string;
   dates?: GraphDot[];
-  isSelected?: boolean;
-  isHighlighted?: boolean;
+  matchesQuery?: boolean;
+  matchesRestrict?: boolean;
 }
 
 export interface GraphDot {

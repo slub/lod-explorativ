@@ -23,7 +23,6 @@
     GraphDot
   } from 'types/app';
   import { areEqual } from 'utils';
-  import LabelsYear from './LabelsYear.svelte';
 
   const { PRIMARY_NODE } = NodeType;
 
@@ -104,8 +103,8 @@
     // update label orientation
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
-      const { r, x, y, isSelected, isHighlighted } = node;
-      const isSH = isSelected || isHighlighted;
+      const { r, x, y, matchesQuery, matchesRestrict } = node;
+      const isSH = matchesQuery || matchesRestrict;
 
       node.textX = isSH
         ? 0
@@ -126,9 +125,9 @@
   $: if ($graph.nodes) {
     const newNodes = $graph.nodes.map((n) => {
       const prev = nodes.find((x) => x.id === n.id);
-      const isSelected = areEqual(n.text, query);
-      const isHighlighted = areEqual(n.text, restrict);
-      const r = isSelected ? radius : radiusScale(n.count);
+      const matchesQuery = areEqual(n.text, query);
+      const matchesRestrict = areEqual(n.text, restrict);
+      const r = matchesQuery ? radius : radiusScale(n.count);
 
       const dates = n.datePublished?.map(({ year, count }) => {
         const pos = histoScale(year);
@@ -149,10 +148,10 @@
 
       const graphNode: GraphNode = {
         ...n,
-        isHighlighted,
-        isSelected,
-        fx: isSelected ? 0 : undefined,
-        fy: isSelected ? 0 : undefined,
+        matchesRestrict,
+        matchesQuery,
+        fx: matchesQuery ? 0 : undefined,
+        fy: matchesQuery ? 0 : undefined,
         r,
         dates
       };
@@ -165,13 +164,13 @@
         graphNode.vy = prev.vy;
       }
 
-      if (isSelected) selectedNode = graphNode;
+      if (matchesQuery) selectedNode = graphNode;
 
       return graphNode;
     });
 
     nodes = newNodes;
-    unselectedNodes = newNodes.filter((n) => !n.isSelected);
+    unselectedNodes = newNodes.filter((n) => !n.matchesQuery);
   }
 
   // simulation links, update links if nodes change

@@ -3,7 +3,7 @@
   import { NodeType } from 'types/app';
   import type { GraphNode } from 'types/app';
   import Label from './Label.svelte';
-  import Scatter from './Dots.svelte';
+  import Scatter from './Scatter.svelte';
   import LabelCount from './LabelCount.svelte';
 
   const { PRIMARY_NODE, SECONDARY_NODE } = NodeType;
@@ -33,19 +33,23 @@
     textY,
     textAnchor,
     text,
-    isHighlighted,
-    isSelected,
+    matchesRestrict,
+    matchesQuery,
     dates,
     count
   } = data);
 
-  $: fill = isSelected ? 'white' : isHighlighted ? '#f8f8f7' : fillMap[type];
+  $: fill = matchesQuery
+    ? 'white'
+    : matchesRestrict
+    ? '#f8f8f7'
+    : fillMap[type];
 
-  $: stroke = isSelected || isHighlighted ? '#ebebea' : strokeMap[type];
+  $: stroke = matchesQuery || matchesRestrict ? '#ebebea' : strokeMap[type];
 
-  $: fontWeight = isSelected ? 900 : isHighlighted ? 600 : 400;
+  $: fontWeight = matchesQuery ? 900 : matchesRestrict ? 600 : 400;
 
-  $: fontSize = isHighlighted ? 16 : 14;
+  $: fontSize = matchesRestrict ? 16 : 14;
 
   const radius = tweened(0);
 
@@ -53,8 +57,8 @@
 </script>
 
 <g
-  class:hover={(!isSelected && !isHighlighted) || highlight}
-  class:highlight={highlight && !isSelected && !isHighlighted}
+  class:hover={(!matchesQuery && !matchesRestrict) || highlight}
+  class:highlight={highlight && !matchesQuery && !matchesRestrict}
   transform="translate({x}, {y})"
   on:click={() => onClick(id, type)}
   on:mouseenter
@@ -63,14 +67,14 @@
   <circle
     {fill}
     {stroke}
-    stroke-width={isSelected || isHighlighted ? 4 : 1}
+    stroke-width={matchesQuery || matchesRestrict ? 4 : 1}
     fill-opacity={type === SECONDARY_NODE ? 0.9 : 1}
     r={Math.max(0, $radius)}
   />
   {#if dates}
     <Scatter
       {dates}
-      isInteractive={isSelected}
+      isInteractive={matchesQuery}
       radius={$radius}
       on:enterDate
       on:leaveDate
@@ -85,12 +89,12 @@
       {textAnchor}
       {fontSize}
       {fontWeight}
-      fill={isHighlighted ? '#4d4d4d' : undefined}
+      fill={matchesRestrict ? '#4d4d4d' : undefined}
       on:enterLabel
       on:leaveLabel
     />
 
-    {#if !isHighlighted}
+    {#if !matchesRestrict}
       <LabelCount {count} fontSize={16} />
     {/if}
   {/if}
