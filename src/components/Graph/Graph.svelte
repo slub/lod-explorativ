@@ -164,12 +164,11 @@
         graphNode.vy = prev.vy;
       }
 
-      if (matchesQuery) selectedNode = graphNode;
-
       return graphNode;
     });
 
     nodes = newNodes;
+    selectedNode = newNodes.find((n) => n.matchesQuery);
     unselectedNodes = newNodes.filter((n) => !n.matchesQuery);
   }
 
