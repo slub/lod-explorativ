@@ -15,7 +15,7 @@
   <table>
     {#each $genres as [name, count], i}
       <tr transition:fade>
-        <td class="name">{name}</td>
+        <td class="name" title={name}>{name}</td>
         <td class="count">{formatNumber(count)}</td>
         <td><span class="bar" style="width: {scale(count)}px" /></td>
       </tr>
@@ -36,11 +36,8 @@
   td {
     white-space: nowrap;
     border-bottom: 1px solid lightgray;
-  }
-
-  td:last-child {
     padding-right: 1rem;
-    padding-left: 0.5rem;
+    max-width: 112px;
   }
   .name {
     width: 160px;
