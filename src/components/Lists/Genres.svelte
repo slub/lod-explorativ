@@ -40,6 +40,7 @@
 
   td:last-child {
     padding-right: 1rem;
+    padding-left: 0.5rem;
   }
   .name {
     width: 160px;
@@ -49,6 +50,7 @@
 
   .count {
     width: 40px;
+    text-align: right;
   }
   .bar {
     display: inline-block;
