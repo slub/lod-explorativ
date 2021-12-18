@@ -1,6 +1,10 @@
 # LOD app
 
-This is a [Svelte](https://svelte.dev) app.
+This is a [Svelte](https://svelte.dev) app which enables exploring of [SLUB](slub-dresden.de)'s bibliographic data based on the topics connected to each bibliographic dataset.
+
+In order for the app to work, a running instance of the [LOD-API](https://github.com/slub/efre-lod-api) is needed, with the endpoint `/explore` enabled. This wrapper provides aggregated information to the webapp.
+
+A hosted instance of the app connected to the [SLUB LOD-API](https://data.slub-dresden.de) can be found at [https://data.slub-dresden.de/explore](https://data.slub-dresden.de/explore).
 
 ## Get started
 
