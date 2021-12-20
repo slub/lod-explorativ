@@ -1,6 +1,12 @@
 # LOD app
 
-This is a [Svelte](https://svelte.dev) app.
+![webapp preview](./docs/images/explorative-Suche-preview.png)
+
+This is a [Svelte](https://svelte.dev) app which enables exploring of [SLUB](https://www.slub-dresden.de)'s bibliographic data based on the topics connected to each bibliographic dataset. It is still a prototype so be gentle with it.
+
+In order for the app to work, a running instance of the [LOD-API](https://github.com/slub/efre-lod-api) is needed, with the endpoint `/explore` enabled. This wrapper provides aggregated information to the webapp.
+
+A hosted instance of the app connected to the [SLUB LOD-API](https://data.slub-dresden.de) can be found at [https://data.slub-dresden.de/explore](https://data.slub-dresden.de/explore).
 
 ## Get started
 
@@ -41,3 +47,5 @@ If you're building a single-page app (SPA) with multiple routes, sirv needs to b
 ```js
 "start": "sirv public --single"
 ```
+
+<img alt="EFRE-Lod logo" src="https://raw.githubusercontent.com/slub/data.slub-dresden.de/master/assets/images/EFRE_EU_quer_2015_rgb_engl.svg" width="300">
