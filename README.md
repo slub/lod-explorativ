@@ -2,7 +2,7 @@
 
 ![webapp preview](./docs/images/explorative-Suche-preview.png)
 
-This is a [Svelte](https://svelte.dev) app which enables exploring of [SLUB](https://www.slub-dresden.de)'s bibliographic data based on the topics connected to each bibliographic dataset.
+This is a [Svelte](https://svelte.dev) app which enables exploring of [SLUB](https://www.slub-dresden.de)'s bibliographic data based on the topics connected to each bibliographic dataset. It is still a prototype so be gentle with it.
 
 In order for the app to work, a running instance of the [LOD-API](https://github.com/slub/efre-lod-api) is needed, with the endpoint `/explore` enabled. This wrapper provides aggregated information to the webapp.
 
