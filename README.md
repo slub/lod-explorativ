@@ -1,4 +1,4 @@
-# LOD app
+# Exploratory search prototype for [SLUB LOD-API](https://data.slub-dresden.de)
 
 ![webapp preview](./docs/images/explorative-Suche-preview.png)
 
