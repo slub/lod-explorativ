@@ -1,12 +1,10 @@
 <script lang="ts">
   import { fade } from 'svelte/transition';
   import { last } from 'lodash';
-  import { search, searchMode, SearchMode } from 'state/uiState';
+  import { query, restrict, searchMode, SearchMode } from 'state/uiState';
   import { resources, selectedTopic } from 'state/dataAPI';
   import Chip from './Chip.svelte';
   import { areEqual, formatNumber } from 'utils';
-
-  $: ({ query, restrict } = $search);
 
   function chipColor(id) {
     if (/geo/.test(id)) return '#D5E7D0';
@@ -33,11 +31,11 @@
           {#each mentions as mention}
             <!-- do not show selected topic if SearchMode is 'topic'
             as it exists for all elements  -->
-            {#if $searchMode == SearchMode.phrase || (!areEqual(mention.name, query) && !areEqual(mention.name, restrict))}
+            {#if $searchMode == SearchMode.phrase || (!areEqual(mention.name, $query) && !areEqual(mention.name, $restrict))}
               <li
                 class="topicItem"
                 on:click={() => {
-                  search.setRestrict(mention.name);
+                  restrict.set(mention.name);
                 }}
               >
                 <Chip name={mention.name} color={chipColor(mention.id)} />

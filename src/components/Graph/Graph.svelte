@@ -9,7 +9,7 @@
   } from 'd3-force';
   import { flatten, map } from 'lodash';
   import { graph, selectedTopic } from 'state/dataAPI';
-  import { RelationContext, relationContext, search } from 'state/uiState';
+  import { RelationContext, relationContext, query, restrict } from 'state/uiState';
   import Node from './Node.svelte';
   import Link from './Link.svelte';
   import Label from './Label.svelte';
@@ -51,9 +51,6 @@
   const linkStrength = 0;
   const manyBodyStrength = -200;
 
-  $: query = $search.query;
-  $: restrict = $search.restrict;
-
   // dimensions
   $: shortSide = Math.min(width, height);
   $: radius = Math.round(shortSide / 2);
@@ -61,7 +58,7 @@
   // reactive variables for the scales
 
   $: maxCount = max(
-    $graph.nodes.filter((d) => !areEqual(d.id, query)),
+    $graph.nodes.filter((d) => !areEqual(d.id, $query)),
     (n: GraphNode) => n.count
   );
 
@@ -125,8 +122,8 @@
   $: if ($graph.nodes) {
     const newNodes = $graph.nodes.map((n) => {
       const prev = nodes.find((x) => x.id === n.id);
-      const matchesQuery = areEqual(n.text, query);
-      const matchesRestrict = areEqual(n.text, restrict);
+      const matchesQuery = areEqual(n.text, $query);
+      const matchesRestrict = areEqual(n.text, $restrict);
       const r = matchesQuery ? radius : radiusScale(n.count);
 
       const dates = n.datePublished?.map(({ year, count }) => {
@@ -210,23 +207,21 @@
 
   function handleClick(name, type) {
     // if outer primary node was clicked -> update primary query
-    if (type === PRIMARY_NODE && !areEqual(name, query)) {
-      search.setQuery(name);
+    if (type === PRIMARY_NODE && !areEqual(name, $query)) {
+      query.set(name);
     }
     // primary selected topic was clicked again -> reset query extension
-    else if (areEqual(name, query)) {
-      search.setRestrict(null);
+    else if (areEqual(name, $query)) {
+      restrict.set(null);
       // secondary topic was clicked again -> becomes primary topic
-    } else if (areEqual(name, restrict)) {
-      search.set({
-        query: name,
-        restrict: null
-      });
+    } else if (areEqual(name, $restrict)) {
+      query.set(name)
+      restrict.set(null)
       // topic exists, which matches query  -> set primary query to topic name
     } else if (!!$selectedTopic && $selectedTopic.count !== 0) {
-      search.setRestrict(name);
+      restrict.set(name);
     } else {
-      search.setQuery(name);
+      query.set(name);
     }
   }
 

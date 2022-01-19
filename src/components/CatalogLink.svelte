@@ -1,14 +1,11 @@
 <script lang="ts">
   import config from '../config';
-  import { search } from '../state/uiState';
-
-  $: ({ query, restrict } = $search);
+  import { query, restrict } from '../state/uiState';
 </script>
 
 <a
-  href={`${config.catalogURL}%22${query}%22${
-    restrict ? '+%22' + restrict + '%22' : ''
-  }`}
+  href={`${config.catalogURL}%22${$query}%22${$restrict ? '+%22' + $restrict + '%22' : ''}`}
   target="_blank"
-  rel="“noopener">↗ In den Katalog wechseln</a
->
+  rel="“noopener">
+  ↗ In den Katalog wechseln
+</a>

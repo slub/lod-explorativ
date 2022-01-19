@@ -13,7 +13,6 @@ export const queries = [
   'Medienkunst',
   'Zootiere',
   'Malerei',
-  'D3.js',
   'Belagerung',
   'Sakralbau',
   'Visualisierung',
@@ -48,39 +47,58 @@ function getParam(name) {
   return value === 'null' ? null : value;
 }
 
+/**
+ * Updates the browser URL and window history
+ *
+ * @param name The name of the search parameter
+ * @param push If 'true' the state will be pushed onto the stack, otherwise the current state will be replaced
+ */
+function updateURL(name, push = true) {
+  return (value) => {
+    const url = new URL(window.location.href);
+    const state = window.history.state || {};
+    url.searchParams.set(name, value);
+
+    // prevent update loop if triggered by pop state event
+    if (value !== state[name]) {
+      const newState = { ...state, [name]: value };
+      const title = `${name}: ${value}`;
+      const href = url.href;
+
+      if (push) {
+        window.history.pushState(newState, title, href);
+      } else {
+        window.history.replaceState(newState, title, href);
+      }
+    }
+  };
+}
+
 // update state when user uses the browser navigation
 window.onpopstate = ({ state }) => {
-  if (state?.query) search.set(state);
+  const { query: q, restrict: r } = state;
+  query.set(q);
+  restrict.set(r);
+
+  // The UI state and the browser history state are updated on every change of
+  // 'query' and 'restrict'. If 'query' is set to the value of 'restrict' and
+  // 'restrict' set to null, an intermediate state will saved to the history,
+  // which we'll skip
+  if (q === r) window.history.back();
 };
 
 // ************************************************
 // SEARCH STORE
 // ************************************************
 
-export const { set, update, subscribe } = writable({
-  query: getParam('query') || queries[random(0, queries.length - 1)],
-  restrict: getParam('restrict') || null
-});
+export const query = writable(
+  getParam('query') || queries[random(0, queries.length - 1)]
+);
 
-export const search = {
-  set,
-  setQuery: (val) => update((prev) => ({ ...prev, query: val })),
-  setRestrict: (val) => update((prev) => ({ ...prev, restrict: val })),
-  update,
-  subscribe
-};
+export const restrict = writable(getParam('restrict') || null);
 
-search.subscribe((state) => {
-  const url = new URL(window.location.href);
-  const { query, restrict } = state;
-  url.searchParams.set('query', query);
-  url.searchParams.set('restrict', restrict);
-
-  // prevent update loop if triggered by pop state event
-  if (state !== window.history.state) {
-    window.history.pushState(state, '', url.href);
-  }
-});
+query.subscribe(updateURL('query'));
+restrict.subscribe(updateURL('restrict'));
 
 // ************************************************
 // MODE STORE
@@ -90,13 +108,12 @@ export const searchMode = writable(
   <SearchMode>getParam('mode') || SearchMode.topic
 );
 
-searchMode.subscribe((val) => {
-  const url = new URL(window.location.href);
-  url.searchParams.set('mode', val);
-  window.history.replaceState(window.history.state, '', url.href);
-});
+searchMode.subscribe(updateURL('mode', false));
+
+// ************************************************
+// OTHER STORES
+// ************************************************
 
 export const author = writable(null);
-
 export const relationMode = writable(RelationMode.jaccard);
 export const relationContext = writable(RelationContext.relative);

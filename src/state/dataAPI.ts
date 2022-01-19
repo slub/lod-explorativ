@@ -25,7 +25,7 @@ import dataStore, {
   topicRelationStore,
   topicsPending
 } from './dataStore';
-import { RelationMode, relationMode, search, searchMode } from './uiState';
+import { RelationMode, relationMode, query, restrict, searchMode } from './uiState';
 import type { Subject, Resource } from '../types/backend';
 import { areEqual } from '../utils';
 
@@ -186,12 +186,12 @@ export const similarityMatrix = derived(
  * Returns graph structure for the visualization
  */
 export const graph = derived(
-  [topicsEnriched, search, similarityMatrix],
-  ([$topicsEnriched, $search, $relations], set) => {
+  [topicsEnriched, query, similarityMatrix],
+  ([$topicsEnriched, $query, $relations], set) => {
     const nodes: GraphNode[] = [];
     const links: GraphLink[] = [];
 
-    const query = $search.query;
+    const query = $query;
     const selectedTopic = $topicsEnriched.find((t) => areEqual(t.name, query));
     const related = selectedTopic?.related;
 
@@ -279,9 +279,9 @@ export const graph = derived(
  * Returns the topic with same name as the current query
  */
 export const selectedTopic = derived(
-  [search, topicsEnriched],
-  ([$search, $topicsEnriched]) => {
-    return $topicsEnriched.find((t) => areEqual(t.name, $search.query)) || null;
+  [query, topicsEnriched],
+  ([$query, $topicsEnriched]) => {
+    return $topicsEnriched.find((t) => areEqual(t.name, $query)) || null;
   }
 );
 

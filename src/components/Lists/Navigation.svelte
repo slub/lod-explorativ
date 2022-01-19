@@ -1,25 +1,13 @@
 <script lang="ts">
-  import { author, search } from 'state/uiState';
+  import { author, query, restrict } from 'state/uiState';
   import { additionalTypes } from 'state/dataAPI';
 
   function handleClick(q) {
-    search.set({
-      query: q,
-      restrict: null
-    });
-
+    query.set(q);
+    restrict.set(null);
     author.set(null);
   }
 </script>
-
-<h2>Ähnliche Suchbegriffe</h2>
-<div>
-  <ul>
-    {#each $additionalTypes as [type]}
-      <li on:click={() => handleClick(type)}><span>{type}</span></li>
-    {/each}
-  </ul>
-</div>
 
 <style>
   div {
@@ -41,3 +29,14 @@
     border-bottom: 1px solid black;
   }
 </style>
+
+<h2>Ähnliche Suchbegriffe</h2>
+<div>
+  <ul>
+    {#each $additionalTypes as [type] (type)}
+      <li on:click={() => handleClick(type)}>
+        <span>{type}</span>
+      </li>
+    {/each}
+  </ul>
+</div>

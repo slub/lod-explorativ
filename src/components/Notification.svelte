@@ -1,7 +1,7 @@
 <script lang="ts">
   import { fade } from 'svelte/transition';
   import { ready, selectedTopic, topicsEnriched } from '../state/dataAPI';
-  import { search, SearchMode, searchMode } from '../state/uiState';
+  import { query, restrict, SearchMode, searchMode } from '../state/uiState';
   import Message from './Message.svelte';
 
   let text = null;
@@ -10,7 +10,6 @@
   let actionAlternate = false;
   let actionNoRestrict = false;
 
-  $: ({ query, restrict } = $search);
   $: alternateTopics = $topicsEnriched.filter((t) => t.count > 0).length;
 
   $: caseNoTopics = $topicsEnriched.length === 0;
@@ -24,12 +23,12 @@
 
   $: if ($ready) {
     if (caseNoTopics) {
-      text = `Keine Themen zu „${query}“ gefunden.`;
+      text = `Keine Themen zu „${$query}“ gefunden.`;
       actionPhrase = false;
       actionAlternate = false;
       actionNoRestrict = false;
     } else if (caseNoSelected) {
-      text = `Das Thema „${query}“ existiert leider nicht. `;
+      text = `Das Thema „${$query}“ existiert leider nicht. `;
       actionPhrase = false;
       actionAlternate = alternateTopics > 0;
       actionNoRestrict = false;
@@ -39,9 +38,9 @@
       actionNoRestrict = caseNoRestrictHits;
 
       if (restrict) {
-        text = `Keine ${isLinked} Titeldaten zu „${query}“ und „${restrict}“ gefunden.`;
+        text = `Keine ${isLinked} Titeldaten zu „${$query}“ und „${restrict}“ gefunden.`;
       } else {
-        text = `Keine ${isLinked} Titeldaten zu „${query}“ gefunden.`;
+        text = `Keine ${isLinked} Titeldaten zu „${$query}“ gefunden.`;
       }
     }
   } else {
@@ -58,20 +57,9 @@
   }
 
   function removeRestrictFn() {
-    search.setRestrict(null);
+    restrict.set(null);
   }
 </script>
-
-{#if text && !hide.includes(window.location.href)}
-  <div in:fade={{ delay: 2000 }} out:fade>
-    <Message
-      {text}
-      switchToPhrase={actionPhrase && switchToPhraseFn}
-      selectAlternate={actionAlternate && dismiss}
-      removeRestrict={actionNoRestrict && removeRestrictFn}
-    />
-  </div>
-{/if}
 
 <style>
   div {
@@ -90,3 +78,13 @@
     box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.2);
   }
 </style>
+
+{#if text && !hide.includes(window.location.href)}
+  <div in:fade={{ delay: 2000 }} out:fade>
+    <Message
+      {text}
+      switchToPhrase={actionPhrase && switchToPhraseFn}
+      selectAlternate={actionAlternate && dismiss}
+      removeRestrict={actionNoRestrict && removeRestrictFn} />
+  </div>
+{/if}

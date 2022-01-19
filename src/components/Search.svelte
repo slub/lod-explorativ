@@ -6,7 +6,8 @@
     RelationContext,
     relationMode,
     RelationMode,
-    search,
+    query,
+    restrict,
     searchMode,
     SearchMode
   } from '../state/uiState';
@@ -15,15 +16,13 @@
 
   const maxInputSize = 25;
 
-  $: ({ query, restrict } = $search);
-
   const handleQuery = debounce((e) => {
-    search.setQuery(e.target.value);
+    query.set(e.target.value);
     author.set(null);
   }, 500);
 
   const handleRestrict = debounce((e) => {
-    search.setRestrict(e.target.value);
+    restrict.set(e.target.value);
     author.set(null);
   }, 500);
 </script>
@@ -34,8 +33,8 @@
     class="query"
     type="text"
     placeholder="Nach Thema suchen..."
-    value={query}
-    size={Math.min(query?.length + 3, maxInputSize)}
+    value={$query}
+    size={Math.min($query?.length + 3, maxInputSize)}
     on:input={handleQuery}
   />
 
@@ -45,8 +44,8 @@
     class="restrict"
     type="search"
     placeholder="..."
-    value={restrict}
-    size={Math.min(restrict?.length + 3, maxInputSize)}
+    value={$restrict}
+    size={Math.min($restrict?.length + 3, maxInputSize)}
     on:input={handleRestrict}
   />
 </div>

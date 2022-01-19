@@ -1,6 +1,6 @@
-import { derived, writable } from 'svelte/store';
+import { derived, writable, get } from 'svelte/store';
 import { keys, map, orderBy, upperFirst } from 'lodash';
-import { author, search as searchState, searchMode } from './uiState';
+import { author, query, restrict, searchMode } from './uiState';
 import type { Topic } from '../types/app';
 import type {
   BackendAggregation,
@@ -45,21 +45,20 @@ export const correlationsPending = writable(false);
  * Searches topics with a given query
  */
 export const topicStore = derived(
-  searchState,
-  ($search, set) => {
-    const { query } = $search;
+  query,
+  ($query, set) => {
 
     const fieldParams = getParams(config.topicSearchFields, 'fields');
 
     topicsPending.set(true);
-    search(Backendpoint.topicsearch, `q=${query}&size=15&${fieldParams}`).then(
+    search(Backendpoint.topicsearch, `q=${$query}&size=15&${fieldParams}`).then(
       (result) => {
+        topicsPending.set(false);
         if (result.message) {
           console.warn(result.message);
         } else {
           set(result);
         }
-        topicsPending.set(false);
       }
     );
   },
@@ -67,31 +66,35 @@ export const topicStore = derived(
 );
 
 const dataStore = derived(
-  [topicStore, searchState, author],
-  ([$topics, $search, $author], set) => {
+  [topicStore, restrict, author],
+  ([$topics, $restrict, $author], set) => {
     if ($topics.length > 0) {
       let queryString = getParams(
         $topics.map((t) => t.name),
         'topics'
       );
 
-      if ($search.restrict) {
-        queryString += `&restrict=${$search.restrict}`;
+      if ($restrict) {
+        queryString += `&restrict=${$restrict}`;
       }
 
       if ($author) {
         queryString += `&author=${$author}`;
       }
 
-      aggregationsPending.set(true);
-      search(Backendpoint.aggregations, queryString).then((result) => {
-        if (result.message) {
-          console.warn(result.message);
-        } else {
-          set({ aggregation: result, topics: $topics });
-        }
-        aggregationsPending.set(false);
-      });
+      // Skip aggregation request if topics are pending, request will be
+      // executed subsequently when topics are updated
+      if (!get(topicsPending)) {
+        aggregationsPending.set(true);
+        search(Backendpoint.aggregations, queryString).then((result) => {
+          if (result.message) {
+            console.warn(result.message);
+          } else {
+            set({ aggregation: result, topics: $topics });
+          }
+          aggregationsPending.set(false);
+        });
+      }
     } else {
       set({ topics: [], aggregation: null });
     }
@@ -107,8 +110,8 @@ const dataStore = derived(
  * Derived store contains relations between the selected and mentioned topics
  */
 export const topicRelationStore = derived(
-  [dataStore, searchState, searchMode],
-  ([$dataStore, $search, $searchMode], set) => {
+  [dataStore, searchMode],
+  ([$dataStore, $searchMode], set) => {
     const { topics, aggregation } = $dataStore;
 
     if (aggregation) {
@@ -116,8 +119,8 @@ export const topicRelationStore = derived(
       const topicsSorted = orderBy(topics, 'score', 'desc');
       let topicNames: string[] = map(topicsSorted, (t) => t.name);
 
-      const quc = upperFirst($search.query);
-      const selectedTopic = aggregation[$searchMode].subjects[quc];
+      const queryUc = upperFirst(get(query));
+      const selectedTopic = aggregation[$searchMode].subjects[queryUc];
 
       if (selectedTopic) {
         const mentions = keys(selectedTopic.aggs.topMentionedTopics);
